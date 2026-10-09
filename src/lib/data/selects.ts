@@ -1,0 +1,30 @@
+// Svi PostgREST selecti na jednom mjestu (bez zavisnosti od Next-a, da ih testovi mogu koristiti).
+
+export const MATCH_SELECT = `
+  id, starts_at, round, status, referee_count, table_count, home_score, away_score,
+  competition:competitions!matches_competition_id_fkey ( id, name, short_name ),
+  home:teams!matches_home_team_id_fkey ( id, name ),
+  away:teams!matches_away_team_id_fkey ( id, name ),
+  hall:halls!matches_hall_id_fkey ( id, name )
+` as const;
+
+export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match:matches!assignments_match_id_fkey ( ${MATCH_SELECT} )` as const;
+
+export const CREW_SELECT = "match_id, position, status, profile:profiles!assignments_profile_id_fkey ( full_name, phone )" as const;
+
+export const COMPETITION_SELECT =
+  "id, name, short_name, referee_count_default, table_count_default, fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_commissioner_km, season:seasons!competitions_season_id_fkey!inner ( is_current ), teams ( id, name, club:clubs!teams_club_id_fkey ( hall_id ) )" as const;
+
+/** Pravila naknada takmičenja utakmice (za trošak); poseban alias da MATCH_SELECT ostane mali */
+const MATCH_FEE_RULES =
+  "rules:competitions!matches_competition_id_fkey ( fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_commissioner_km )" as const;
+
+export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, assignments ( position, status )` as const;
+
+export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
+
+export const DELEGATION_ASSIGNMENT_SELECT =
+  "id, position, status, decline_reason, notified_at, responded_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email )" as const;
+
+/** Delegiranja s utakmicom; filtrira se po match.starts_at (zato !inner) */
+export const ASSIGNMENT_WITH_TIME_SELECT = "profile_id, match:matches!assignments_match_id_fkey!inner ( id, starts_at )" as const;

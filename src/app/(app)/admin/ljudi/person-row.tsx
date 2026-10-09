@@ -1,0 +1,64 @@
+"use client";
+
+import { useState } from "react";
+import { Phone } from "lucide-react";
+import { buttonClass, cx } from "@/components/ui";
+import { setActive } from "./actions";
+import { PersonForm, type PersonValues } from "./person-form";
+
+export function PersonRow({ person, active, isMe }: { person: PersonValues; active: boolean; isMe: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const roles = [
+    person.is_referee && "Sudija",
+    person.is_table && "Zapisnički sto",
+    person.role === "commissioner" && "Komesar",
+    person.role === "admin" && "Admin",
+    person.license && `Licenca ${person.license}`,
+  ].filter(Boolean) as string[];
+  const details = [person.email, ...roles].join(", ");
+
+  if (editing) {
+    return (
+      <li className="py-5">
+        <div className="mb-4 font-display text-[20px] font-semibold leading-tight">{person.full_name}</div>
+        <PersonForm person={person} onDone={() => setEditing(false)} />
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="-mx-3 px-3 rounded-md -m-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 text-left hover:bg-panel-2"
+        aria-label={`Uredi: ${person.full_name}`}
+      >
+        <span className="min-w-0 flex-1">
+          <span className={cx("block truncate text-[16px] font-semibold leading-tight", !active && "text-fg-faint")}>
+            {person.full_name}
+            {!active && <span className="ml-2 text-[13px] font-semibold text-fg-faint">neaktivan</span>}
+          </span>
+          <span className="block truncate text-[13px] text-fg-muted">{details}</span>
+        </span>
+      </button>
+      <div className="flex items-center gap-2 pl-14 sm:pl-0">
+        {person.phone && (
+          <a href={`tel:${person.phone}`} className={buttonClass("secondary", "h-10 px-3")} aria-label={`Pozovi ${person.full_name}`}>
+            <Phone className="size-4" />
+            <span className="tabular">{person.phone}</span>
+          </a>
+        )}
+        {!isMe && (
+          <form action={setActive}>
+            <input type="hidden" name="id" value={person.id} />
+            <input type="hidden" name="active" value={active ? "0" : "1"} />
+            <button type="submit" className={buttonClass(active ? "secondary" : "primary", "h-10 px-3")}>
+              {active ? "Deaktiviraj" : "Aktiviraj"}
+            </button>
+          </form>
+        )}
+      </div>
+    </li>
+  );
+}

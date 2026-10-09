@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KSKS Delegiranje
 
-## Getting Started
+Aplikacija Košarkaškog saveza Kantona Sarajevo za delegiranje sudija, zapisničkog stola i komesara na omladinske lige.
 
-First, run the development server:
+Stack: Next.js 16 (App Router, Cache Components) · Supabase (Auth, Postgres, Realtime) · Vercel · Gmail SMTP (nodemailer).
+
+## Uloge
+
+| Uloga | Šta radi |
+|---|---|
+| Admin (savez) | utakmice, delegiranje, slanje nominacija, ljudi, takmičenja, kotizacije, naknade |
+| Sudija / zapisnički sto (`official`) | nominacije (prihvati/odbij), moje utakmice, odsustva, moje naknade |
+| Komesar (`commissioner`) | sve kao sudija + rezultat po četvrtinama uživo i bilten utakmice |
+
+## Postavljanje
+
+### 1. Supabase
+1. Napravi projekat (region: Frankfurt `eu-central-1`).
+2. Pusti migracije redom iz `supabase/migrations/`, pa `supabase/seed.sql` (takmičenja, klubovi, ekipe).
+3. Authentication → Sign In / Providers → Email: **isključi "Allow new users to sign up"** (naloge pravi samo savez).
+4. Project Settings → API: kopiraj URL, publishable i secret ključ.
+
+### 2. Gmail
+Google nalog → Sigurnost → potvrda u 2 koraka → App passwords → nova app šifra. Limit je oko 500 mailova dnevno.
+
+### 3. Varijable okruženja
+Kopiraj `.env.example` u `.env.local` i popuni:
+
+| Varijabla | Opis |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase projekat |
+| `SUPABASE_SECRET_KEY` | samo server: kreiranje korisnika, MCP, email log, cron |
+| `GMAIL_USER`, `GMAIL_APP_PASSWORD` | slanje nominacija i podsjetnika |
+| `NEXT_PUBLIC_SITE_URL` | javna adresa (linkovi u emailovima i MCP) |
+| `INITIAL_PASSWORD` | zajednička početna šifra novih naloga |
+| `CRON_SECRET` | zaštita `/api/cron/podsjetnici` |
+
+### 4. Ljudi
+Popuni CSV po uzoru na `scripts/ljudi-primjer.csv` (uloga: `sudija`, `sto`, `sudija+sto`, `komesar`, `admin`):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx tsx scripts/import-people.mts ljudi.csv          # provjera
+npx tsx scripts/import-people.mts ljudi.csv --upisi  # upis
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Kasnije se ljudi dodaju u aplikaciji: Admin → Ljudi. Svako mijenja šifru u Postavkama.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. Vercel
+1. Importuj repozitorij, root direktorij `web`.
+2. Unesi varijable okruženja iz koraka 3 (`NEXT_PUBLIC_SITE_URL` = vercel.app adresa).
+3. `vercel.json` pokreće podsjetnike svaki dan u 07:00 UTC: dan prije utakmice za prihvaćene nominacije i jednom za nominacije bez odgovora duže od 48 h.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Emailovi
+- **Nominacija:** admin klikne "Pošalji nominacije" na utakmici; šalje se samo onima kojima još nije poslana.
+- **Otkazivanje:** uklanjanje već poslane nominacije javlja osobi.
+- **Odbijanje:** kad neko odbije ili otkaže dolazak, email ide svim adminima s linkom za zamjenu.
+- **Podsjetnici:** cron, gore.
 
-## Learn More
+Svaki email (i neuspjeli) upisuje se u `email_log`.
 
-To learn more about Next.js, take a look at the following resources:
+## MCP
+Svaki korisnik u Postavkama pravi lični token (prikazuje se jednom). Endpoint: `${NEXT_PUBLIC_SITE_URL}/api/mcp`, zaglavlje `Authorization: Bearer <token>`. Alati zavise od uloge; svaki poziv se bilježi u `mcp_audit`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Razvoj
+```bash
+pnpm install
+npx tsc --noEmit && npx eslint src
+```
