@@ -33,3 +33,19 @@ update public.matches m
    set has_commissioner = false
   from public.competitions c
  where m.competition_id = c.id and c.name in ('Minibasket', 'Unobasket', 'Pioniri — Grupa 2', 'Kadeti — Grupa 2') and m.has_commissioner;
+
+-- Komesar: Pioniri G1 20, Kadeti G1 30, Juniori 40 KM
+update public.competitions c set fee_commissioner_km = v.fee
+  from public.seasons s, (values ('Pioniri — Grupa 1', 20), ('Kadeti — Grupa 1', 30), ('Juniori', 40)) v(name, fee)
+ where s.id = c.season_id and s.is_current and c.name = v.name;
+
+-- Pomoćne sudije: Minibasket/Unobasket 8, Premijer liga 50, A1 liga žene 20 KM
+update public.competitions c set fee_table_km = v.fee, fee_stats_km = v.fee
+  from public.seasons s, (values ('Minibasket', 8), ('Unobasket', 8), ('Premijer liga BiH', 50), ('A1 liga žene', 20)) v(name, fee)
+ where s.id = c.season_id and s.is_current and c.name = v.name;
+
+-- A1 liga žene: samo zapisnik i jedna statistika
+update public.competitions c
+   set scorer_default = true, assistant_scorer_default = false, timer_default = false, shot_clock_default = false, stats_default = 1, table_count_default = 2
+  from public.seasons s
+ where s.id = c.season_id and s.is_current and c.name = 'A1 liga žene';
