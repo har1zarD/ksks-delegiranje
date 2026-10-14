@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileText, MapPin, Printer } from "lucide-react";
 import { getCompetitions, getDelegation, getHalls, type Candidate } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
-import { isoToSarajevo, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, requiredPositions, type MatchStatus, type Position } from "@/lib/format";
+import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, requiredPositions, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
-import { BoxScore, DateTile } from "@/components/match-line";
+import { BoxScore, DateTile, KindTag } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
 import { buttonClass, cx, Loading, Panel, SectionTitle, Status } from "@/components/ui";
 import { deleteMatch } from "../actions";
@@ -71,6 +71,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
               <span className="text-fg">{matchNo(match.number)}</span>, {match.competition?.name}
               {match.round ? `, ${match.round}. kolo` : ""}
             </span>
+            {matchKindLabel(match.kind, match.kind_label) && <KindTag>{matchKindLabel(match.kind, match.kind_label)}</KindTag>}
             {match.status !== "scheduled" && (
               <Status tone={STATUS_TONE[match.status]} pulse={match.status === "live"}>
                 {MATCH_STATUS_LABEL[match.status]}
@@ -247,6 +248,8 @@ async function EditMatch({
       values={{
         id: match.id,
         number: match.number,
+        kind: match.kind,
+        kind_label: match.kind_label,
         competition_id: match.competition_id,
         round: match.round,
         home_team_id: match.home_team_id,

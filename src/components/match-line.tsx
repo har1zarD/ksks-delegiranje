@@ -1,11 +1,13 @@
 import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
-import { formatTime, isoToSarajevo, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS } from "@/lib/format";
+import { formatTime, isoToSarajevo, matchKindLabel, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS, type MatchKind } from "@/lib/format";
 
 export type PeriodScore = { period: number; home_points: number; away_points: number };
 
 export type MatchSummary = {
   number?: number;
+  kind?: MatchKind;
+  kind_label?: string | null;
   starts_at: string;
   round: number | null;
   home_score: number | null;
@@ -63,6 +65,7 @@ export function MatchLine({
         {match.competition?.short_name ?? match.competition?.name}
         {match.round ? `, ${match.round}. kolo` : ""}
       </span>
+      {matchKindLabel(match.kind, match.kind_label) && <KindTag>{matchKindLabel(match.kind, match.kind_label)}</KindTag>}
     </>
   );
   const hall = match.hall && (
@@ -192,5 +195,14 @@ export function BoxScore({
       })}
       </div>
     </div>
+  );
+}
+
+/** Vrsta utakmice koja nije liga (Prijateljska, Turnir, vlastiti naziv) */
+export function KindTag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="ml-1.5 inline-flex items-center whitespace-nowrap rounded-md border border-line-strong px-1.5 py-px align-middle text-[11px] font-semibold text-fg-muted">
+      {children}
+    </span>
   );
 }

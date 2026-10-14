@@ -9,6 +9,8 @@ export type StandingMatch = {
   away_score: number | null;
   status: string;
   round?: number | null;
+  /** Samo liga ulazi u tabelu (prijateljska, turnir, ostalo ne); bez polja = liga */
+  kind?: string;
 };
 
 export type StandingRow = {
@@ -35,7 +37,7 @@ type Played = { home: string; away: string; hs: number; as: number };
 
 function counted(matches: StandingMatch[]): Played[] {
   return matches
-    .filter((m) => m.status === "finished" && m.home_score != null && m.away_score != null)
+    .filter((m) => (m.kind ?? "league") === "league" && m.status === "finished" && m.home_score != null && m.away_score != null)
     .map((m) => ({ home: m.home_team_id, away: m.away_team_id, hs: m.home_score!, as: m.away_score! }));
 }
 

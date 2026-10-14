@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Download } from "lucide-react";
-import { getFeeRules, getPayroll, resolveMonth } from "@/lib/data/finance";
-import { formatMonth } from "@/lib/finance";
+import { getFeeRules, getPayroll, resolvePeriod } from "@/lib/data/finance";
+import { formatMonth, matchesLabel, parsePayrollFilter } from "@/lib/finance";
 import { buttonClass, Empty, Loading, PageHeader, SectionTitle } from "@/components/ui";
-import { MonthPicker, PayrollTable } from "./_components/payroll-view";
+import { MarkAllPaid } from "./_components/paid-toggle";
+import { describeFilter, PayrollFilters, PayrollSummary, PayrollTable, PeriodPicker } from "./_components/payroll-view";
 import { RulesForm } from "./rules-form";
 
 export const metadata = { title: "Naknade — KSKS" };
@@ -16,7 +17,7 @@ export default function FeesPage({ searchParams }: { searchParams: SearchParams 
     <>
       <PageHeader
         title="Naknade"
-        subtitle="Cijene po takmičenju i mjesečni obračun. Sudije se plaćaju zavisno od toga sude li dvojica ili trojica."
+        subtitle="Obračun i isplata po utakmici za sudije, zapisnički sto i komesare. Ispod su cijene po takmičenju."
       />
       <div className="flex flex-col gap-14">
         <section>
@@ -39,26 +40,55 @@ export default function FeesPage({ searchParams }: { searchParams: SearchParams 
 }
 
 async function Payroll({ searchParams }: { searchParams: SearchParams }) {
-  const { mjesec } = await searchParams;
+  const sp = await searchParams;
   await connection(); // "tekući mjesec" se računa po zahtjevu
-  const month = resolveMonth(mjesec);
-  const people = await getPayroll(month);
+  const period = resolvePeriod(sp.mjesec);
+  const filter = parsePayrollFilter(sp);
+  const { people, totals } = await getPayroll(period, filter);
+
+  // Trenutni parametri za linkove filtera (mjesec se ne upisuje kad je tekući)
+  const params = {
+    mjesec: typeof sp.mjesec === "string" ? sp.mjesec : undefined,
+    grupa: typeof sp.grupa === "string" ? sp.grupa : undefined,
+    isplata: typeof sp.isplata === "string" ? sp.isplata : undefined,
+    q: filter.q,
+  };
+  const csv = `/admin/naknade/csv?${new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => Boolean(e[1])))}`;
+  const filtered = Boolean(filter.group || filter.paid || filter.q);
+  const unpaidIds = people.flatMap((p) => p.items.filter((i) => !i.paidAt).map((i) => i.assignmentId));
+
   return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-        <MonthPicker month={month} basePath="/admin/naknade" />
-        {people.length > 0 && (
-          <a href={`/admin/naknade/csv?mjesec=${month}`} download className={buttonClass("secondary")}>
-            <Download className="size-4" /> CSV za Excel
-          </a>
-        )}
-      </div>
+    <div className="flex flex-col gap-5">
+      <PeriodPicker period={period} basePath="/admin/naknade" params={params} />
+      <PayrollFilters basePath="/admin/naknade" params={params} />
+      <PayrollSummary
+        total={totals.total}
+        paid={totals.paid}
+        unpaid={totals.unpaid}
+        note={`${people.length} ${people.length % 10 >= 2 && people.length % 10 <= 4 && (people.length % 100 < 12 || people.length % 100 > 14) ? "osobe" : "osoba"}, ${matchesLabel(totals.items)}, ${totals.unpaidItems} neisplaćeno`}
+        aside={
+          <div className="flex flex-wrap items-center gap-2">
+            {filtered && <MarkAllPaid ids={unpaidIds} amount={totals.unpaid} label="Označi sve prikazano isplaćeno" />}
+            {people.length > 0 && (
+              <a href={csv} download className={buttonClass("secondary")}>
+                <Download className="size-4" /> CSV za Excel
+              </a>
+            )}
+          </div>
+        }
+      />
       {people.length === 0 ? (
-        <Empty>Nema završenih utakmica s prihvaćenim delegiranjem u {formatMonth(month)}.</Empty>
+        <Empty>
+          Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
+        </Empty>
       ) : (
-        <PayrollTable people={people} />
+        <PayrollTable
+          people={people}
+          open={Boolean(filter.q)}
+          personHref={(id) => `/admin/naknade/osoba/${id}${period === "sve" ? "?mjesec=sve" : params.mjesec ? `?mjesec=${params.mjesec}` : ""}`}
+        />
       )}
-    </>
+    </div>
   );
 }
 

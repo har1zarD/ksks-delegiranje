@@ -4,7 +4,7 @@ import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
 import { todayISO } from "@/lib/format";
-import { computePayroll, feeStatus, monthBounds, parseMonth, round2 } from "@/lib/finance";
+import { computePayroll, feeStatus, filterPayroll, monthBounds, parseMonth, payrollTotals, round2, type PayrollFilter } from "@/lib/finance";
 
 // Selecti za finansije (selects.ts drži selecte utakmica i delegiranja)
 const FEE_COMPETITION_SELECT = `
@@ -20,9 +20,9 @@ const RULES_COMPETITION_SELECT =
   `id, name, short_name, referee_count_default, table_count_default, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
 
 const PAYROLL_SELECT = `
-  position,
+  id, position, paid_at,
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
-  match:matches!assignments_match_id_fkey!inner ( id, number, starts_at, status, referee_count,
+  match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, status, referee_count,
     competition:competitions!matches_competition_id_fkey ( name, short_name, ${FEE_RULES} ),
     home:teams!matches_home_team_id_fkey ( name ),
     away:teams!matches_away_team_id_fkey ( name ) )
@@ -132,25 +132,29 @@ export function resolveMonth(value: unknown) {
   return parseMonth(value) ?? todayISO().slice(0, 7);
 }
 
-/** Prihvaćena delegiranja na završenim utakmicama u mjesecu (profileId = samo jedna osoba, inače sve) */
-async function payrollRows(month: string, profileId: string | null) {
+/** Period obračuna: mjesec ("2026-10") ili "sve" (cijela evidencija, npr. sve što se još duguje) */
+export type PayrollPeriod = string | "sve";
+
+export function resolvePeriod(value: unknown): PayrollPeriod {
+  return value === "sve" ? "sve" : resolveMonth(value);
+}
+
+/** Prihvaćena delegiranja na završenim utakmicama u periodu (profileId = samo jedna osoba, inače sve) */
+async function payrollRows(period: PayrollPeriod, profileId: string | null) {
   "use cache: remote";
   cacheLife(LIFE.live);
   cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.profiles);
   const db = createAdminClient();
-  const { from, to } = monthBounds(month);
 
   // PostgREST vraća najviše 1000 redova po upitu, pa se čita po stranicama
   const PAGE = 1000;
   const all = [];
   for (let offset = 0; ; offset += PAGE) {
-    let q = db
-      .from("assignments")
-      .select(PAYROLL_SELECT)
-      .eq("status", "accepted")
-      .eq("match.status", "finished")
-      .gte("match.starts_at", from)
-      .lt("match.starts_at", to);
+    let q = db.from("assignments").select(PAYROLL_SELECT).eq("status", "accepted").eq("match.status", "finished");
+    if (period !== "sve") {
+      const { from, to } = monthBounds(period);
+      q = q.gte("match.starts_at", from).lt("match.starts_at", to);
+    }
     if (profileId) q = q.eq("profile_id", profileId);
     const data = rows(await q.order("id").range(offset, offset + PAGE - 1));
     all.push(...data);
@@ -159,12 +163,24 @@ async function payrollRows(month: string, profileId: string | null) {
   return all;
 }
 
-export async function getPayroll(month: string) {
+/** Obračun svih osoba (admin), s filterima (grupa, isplata, pretraga) i zbirom */
+export async function getPayroll(period: PayrollPeriod, filter: PayrollFilter = {}) {
   await requireRole("admin");
-  return computePayroll(await payrollRows(month, null));
+  const people = computePayroll(filterPayroll(await payrollRows(period, null), filter));
+  return { people, totals: payrollTotals(people) };
 }
 
-export async function getMyPayroll(month: string) {
+/** Obračun jedne osobe (admin) */
+export async function getPersonPayroll(profileId: string, period: PayrollPeriod, filter: PayrollFilter = {}) {
+  await requireRole("admin");
+  const all = await payrollRows(period, profileId);
+  const [person] = computePayroll(filterPayroll(all, filter));
+  // Zbir bez filtera: stanje osobe se ne mijenja kad se filtrira lista
+  const [summary] = computePayroll(all);
+  return { person: person ?? null, summary: summary ?? null };
+}
+
+export async function getMyPayroll(period: PayrollPeriod) {
   const user = await getCurrentUser();
-  return computePayroll(await payrollRows(month, user.id))[0] ?? null;
+  return computePayroll(await payrollRows(period, user.id))[0] ?? null;
 }

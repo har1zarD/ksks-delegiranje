@@ -40,3 +40,25 @@ export async function saveFeeRules(prev: RulesState, formData: FormData): Promis
   invalidate("competitions");
   return { saved: (prev.saved ?? 0) + 1 };
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Isplata naknade: označi delegiranja (prihvaćena) kao isplaćena ili vrati na neisplaćeno */
+export async function setPaid(ids: string[], paid: boolean): Promise<{ error?: string }> {
+  const admin = await requireRole("admin");
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 1000 || !ids.every((id) => UUID.test(id))) {
+    return { error: "Nije izabrana nijedna utakmica." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("assignments")
+    .update(paid ? { paid_at: new Date().toISOString(), paid_by: admin.id } : { paid_at: null, paid_by: null })
+    .in("id", ids)
+    .eq("status", "accepted")
+    .select("match_id");
+  if (error) return { error: "Isplata nije sačuvana. Pokušaj ponovo." };
+
+  invalidate(...[...new Set(data.map((a) => a.match_id))].map((match) => ({ table: "assignments" as const, match })));
+  return {};
+}

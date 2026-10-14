@@ -16,14 +16,14 @@ const COMPETITION_LIST_SELECT =
   "id, name, short_name, parent_id, carry_over_h2h, sort, format, season:seasons!competitions_season_id_fkey!inner ( is_current )" as const;
 
 const RESULT_MATCH_SELECT = `
-  id, number, round, starts_at, status, home_team_id, away_team_id, home_score, away_score,
+  id, number, kind, kind_label, round, starts_at, status, home_team_id, away_team_id, home_score, away_score,
   home:teams!matches_home_team_id_fkey ( id, name ),
   away:teams!matches_away_team_id_fkey ( id, name ),
   hall:halls!matches_hall_id_fkey ( name ),
   match_periods ( period, home_points, away_points )
 ` as const;
 
-const STANDING_MATCH_SELECT = "home_team_id, away_team_id, home_score, away_score, status, round" as const;
+const STANDING_MATCH_SELECT = "home_team_id, away_team_id, home_score, away_score, status, round, kind" as const;
 
 async function currentCompetitionRows() {
   "use cache: remote";

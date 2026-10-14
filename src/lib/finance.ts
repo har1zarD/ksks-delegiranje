@@ -1,5 +1,5 @@
 // Čisti proračuni za kotizacije i naknade (bez Next-a i baze, testabilno).
-import { MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type Position } from "@/lib/format";
+import { matchKindLabel, MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type MatchKind, type Position } from "@/lib/format";
 
 // ───────── Kotizacije ─────────
 
@@ -125,13 +125,17 @@ export function matchCost(rules: FeeRules | null, refereeCount: number, tableCou
 }
 
 export type PayrollAssignment = {
+  id: string;
   position: Position;
+  paid_at: string | null;
   profile: { id: string; full_name: string };
   match: {
     id: string;
     number: number;
     starts_at: string;
     referee_count: number;
+    kind: MatchKind;
+    kind_label: string | null;
     competition: ({ name: string; short_name: string | null } & FeeRules) | null;
     home: { name: string } | null;
     away: { name: string } | null;
@@ -139,24 +143,93 @@ export type PayrollAssignment = {
 };
 
 export type PayrollItem = {
+  assignmentId: string;
   matchId: string;
   number: number;
   startsAt: string;
   competition: string;
+  /** "Prijateljska", "Turnir", vlastiti naziv; prazno za ligu */
+  kind: string;
   teams: string;
   position: Position;
   refereeCount: number;
   /** null = naknada za takmičenje i poziciju nije određena */
   amount: number | null;
+  paidAt: string | null;
 };
 
 export type PayrollPerson = {
   profileId: string;
   name: string;
   items: PayrollItem[];
+  /** Zarađeno (sve stavke s određenom cijenom) */
   total: number;
+  paid: number;
+  /** Duguje se */
+  unpaid: number;
+  unpaidCount: number;
+  /** Stavke bez određene cijene */
   missing: number;
 };
+
+// ───────── Filteri obračuna ─────────
+
+export type PositionGroup = "referees" | "table" | "commissioners";
+
+export const POSITION_GROUP_LABEL: Record<PositionGroup, string> = {
+  referees: "Sudije",
+  table: "Zapisnički sto",
+  commissioners: "Komesari",
+};
+
+export function positionGroup(position: Position): PositionGroup {
+  if (position === "commissioner") return "commissioners";
+  return TABLE.includes(position) ? "table" : "referees";
+}
+
+export type PaidFilter = "paid" | "unpaid";
+
+export type PayrollFilter = { group?: PositionGroup; paid?: PaidFilter; q?: string };
+
+/** Pretraga bez obzira na velika slova i dijakritike (spars = Spars, cosic = Ćosić) */
+function fold(s: string) {
+  return s.normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "dj").replace(/Đ/g, "dj").toLowerCase();
+}
+
+/** Filtrira delegiranja prije obračuna: grupa pozicija, isplaćeno/neisplaćeno, tekst (osoba, ekipa, takmičenje, broj utakmice) */
+export function filterPayroll<A extends PayrollAssignment>(rows: A[], f: PayrollFilter): A[] {
+  const words = f.q ? fold(f.q).split(/\s+/).filter(Boolean) : [];
+  return rows.filter((a) => {
+    if (f.group && positionGroup(a.position) !== f.group) return false;
+    if (f.paid === "paid" && !a.paid_at) return false;
+    if (f.paid === "unpaid" && a.paid_at) return false;
+    if (words.length === 0) return true;
+    const hay = fold(
+      [
+        a.profile.full_name,
+        a.match.home?.name,
+        a.match.away?.name,
+        a.match.competition?.name,
+        a.match.competition?.short_name,
+        a.match.kind_label,
+        String(a.match.number),
+        `utakmica ${a.match.number}`,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+    return words.every((w) => hay.includes(w));
+  });
+}
+
+/** Filteri iz adrese: ?grupa=sudije|sto|komesari&isplata=isplaceno|neisplaceno&q=spars */
+export function parsePayrollFilter(sp: Record<string, string | string[] | undefined>): PayrollFilter {
+  const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
+  const group = ({ sudije: "referees", sto: "table", komesari: "commissioners" } as const)[one("grupa") as "sudije" | "sto" | "komesari"];
+  const paid = ({ isplaceno: "paid", neisplaceno: "unpaid" } as const)[one("isplata") as "isplaceno" | "neisplaceno"];
+  const q = one("q")?.trim().slice(0, 80) || undefined;
+  return { group, paid, q };
+}
 
 export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[] {
   const people = new Map<string, PayrollPerson>();
@@ -167,21 +240,32 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       name: a.profile.full_name,
       items: [],
       total: 0,
+      paid: 0,
+      unpaid: 0,
+      unpaidCount: 0,
       missing: 0,
     };
     const amount = feeFor(a.position, a.match.referee_count, a.match.competition);
     person.items.push({
+      assignmentId: a.id,
       matchId: a.match.id,
       number: a.match.number,
       startsAt: a.match.starts_at,
       competition: a.match.competition?.short_name ?? a.match.competition?.name ?? "",
+      kind: matchKindLabel(a.match.kind, a.match.kind_label),
       teams: `${a.match.home?.name ?? ""} – ${a.match.away?.name ?? ""}`,
       position: a.position,
       refereeCount: a.match.referee_count,
       amount,
+      paidAt: a.paid_at,
     });
+    if (!a.paid_at) person.unpaidCount++;
     if (amount == null) person.missing++;
-    else person.total = round2(person.total + amount);
+    else {
+      person.total = round2(person.total + amount);
+      if (a.paid_at) person.paid = round2(person.paid + amount);
+      else person.unpaid = round2(person.unpaid + amount);
+    }
     people.set(a.profile.id, person);
   }
 
@@ -189,6 +273,20 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
     p.items.sort((x, y) => x.startsAt.localeCompare(y.startsAt) || POSITION_ORDER.indexOf(x.position) - POSITION_ORDER.indexOf(y.position));
   }
   return [...people.values()].sort((a, b) => a.name.localeCompare(b.name, "bs"));
+}
+
+/** Zbir preko svih osoba */
+export function payrollTotals(people: PayrollPerson[]) {
+  return people.reduce(
+    (t, p) => ({
+      total: round2(t.total + p.total),
+      paid: round2(t.paid + p.paid),
+      unpaid: round2(t.unpaid + p.unpaid),
+      items: t.items + p.items.length,
+      unpaidItems: t.unpaidItems + p.unpaidCount,
+    }),
+    { total: 0, paid: 0, unpaid: 0, items: 0, unpaidItems: 0 },
+  );
 }
 
 // ───────── CSV (Excel: UTF-8 BOM, separator ;) ─────────
@@ -204,12 +302,13 @@ export function toCsv(rows: (string | number | null)[][]) {
 }
 
 export function payrollCsv(people: PayrollPerson[], formatDay: (iso: string) => string) {
-  const rows: (string | number | null)[][] = [["Ime i prezime", "Br. utakmice", "Datum", "Takmičenje", "Utakmica", "Pozicija", "Naknada (KM)"]];
+  const rows: (string | number | null)[][] = [["Ime i prezime", "Br. utakmice", "Datum", "Takmičenje", "Utakmica", "Pozicija", "Naknada (KM)", "Isplaćeno"]];
   for (const p of people) {
     for (const i of p.items) {
-      rows.push([p.name, i.number, formatDay(i.startsAt), i.competition, i.teams, POSITION_LABEL[i.position], i.amount]);
+      rows.push([p.name, i.number, formatDay(i.startsAt), i.kind ? `${i.competition} (${i.kind})` : i.competition, i.teams, POSITION_LABEL[i.position], i.amount, i.paidAt ? formatDay(i.paidAt) : "ne"]);
     }
-    rows.push([p.name, null, null, null, null, "Ukupno", p.total]);
+    rows.push([p.name, null, null, null, null, "Ukupno", p.total, null]);
+    rows.push([p.name, null, null, null, null, "Duguje se", p.unpaid, null]);
   }
   return toCsv(rows);
 }

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { createClient } from "@/lib/supabase/server";
-import { sarajevoToISO, type MatchStatus } from "@/lib/format";
+import { MATCH_KIND_LABEL, sarajevoToISO, type MatchKind, type MatchStatus } from "@/lib/format";
 
 export type MatchFormState = { error?: string };
 
@@ -20,6 +20,8 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   const round = get("round");
   const number = get("number");
   const status = get("status") as MatchStatus;
+  const kind = (get("kind") in MATCH_KIND_LABEL ? get("kind") : "league") as MatchKind;
+  const kindLabel = get("kind_label");
   const match = {
     competition_id: get("competition_id"),
     home_team_id: get("home_team_id"),
@@ -30,6 +32,8 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
     referee_count: get("referee_count") === "3" ? 3 : 2,
     table_count: get("table_count") === "3" ? 3 : 2,
     notes: get("notes") || null,
+    kind,
+    kind_label: kind === "custom" ? kindLabel : null,
     ...(STATUSES.includes(status) ? { status } : {}),
   };
 
@@ -37,6 +41,7 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   if (match.home_team_id === match.away_team_id) return { error: "Domaćin i gost moraju biti različite ekipe." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return { error: "Upiši datum i vrijeme." };
   if (match.round !== null && (!Number.isInteger(match.round) || match.round < 1)) return { error: "Kolo mora biti pozitivan broj." };
+  if (kind === "custom" && !kindLabel) return { error: "Upiši naziv za utakmicu vrste Ostalo." };
   if (number && (!Number.isInteger(Number(number)) || Number(number) < 1)) return { error: "Broj utakmice mora biti pozitivan broj." };
 
   const supabase = await createClient();

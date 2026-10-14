@@ -94,7 +94,7 @@ async function standingsFor(supabase: Awaited<ReturnType<typeof createClient>>, 
   const [comp, teams, matches] = await Promise.all([
     supabase.from("competitions").select("id, season_id, category, gender, parent_id, carry_over_h2h, sort").eq("id", competitionId).single(),
     supabase.from("teams").select("id, name, club_id").eq("competition_id", competitionId),
-    supabase.from("matches").select("home_team_id, away_team_id, home_score, away_score, status, round").eq("competition_id", competitionId),
+    supabase.from("matches").select("home_team_id, away_team_id, home_score, away_score, status, round, kind").eq("competition_id", competitionId),
   ]);
   if (comp.error || teams.error || matches.error) return null;
 
@@ -102,7 +102,7 @@ async function standingsFor(supabase: Awaited<ReturnType<typeof createClient>>, 
   if (comp.data.parent_id && comp.data.carry_over_h2h) {
     const [pt, pm] = await Promise.all([
       supabase.from("teams").select("id, name").eq("competition_id", comp.data.parent_id),
-      supabase.from("matches").select("home_team_id, away_team_id, home_score, away_score, status, round").eq("competition_id", comp.data.parent_id),
+      supabase.from("matches").select("home_team_id, away_team_id, home_score, away_score, status, round, kind").eq("competition_id", comp.data.parent_id),
     ]);
     carryOver = { parentTeams: pt.data ?? [], parentMatches: pm.data ?? [] };
   }
