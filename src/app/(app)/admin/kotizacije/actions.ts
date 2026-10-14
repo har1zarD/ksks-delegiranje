@@ -1,7 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { invalidate } from "@/lib/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type PaymentState = { error?: string; ok?: number };
@@ -22,7 +22,7 @@ export async function addPayment(prev: PaymentState, formData: FormData): Promis
     .insert({ team_id: teamId, amount_km: Math.round(amount * 100) / 100, paid_on: paidOn, note, created_by: admin.id });
   if (error) return { error: "Uplata nije sačuvana. Pokušaj ponovo." };
 
-  refresh();
+  invalidate("fee_payments");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -30,5 +30,5 @@ export async function deletePayment(formData: FormData) {
   await requireRole("admin");
   const supabase = await createClient();
   await supabase.from("fee_payments").delete().eq("id", String(formData.get("id") ?? ""));
-  refresh();
+  invalidate("fee_payments");
 }

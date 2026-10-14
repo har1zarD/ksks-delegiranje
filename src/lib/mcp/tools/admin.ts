@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invalidateFromRoute } from "@/lib/cache";
 import { ADMIN_MATCH_SELECT, ASSIGNMENT_WITH_TIME_SELECT, MATCH_SELECT } from "@/lib/data/selects";
 import { assignPerson, eligibleFor, removeAssignment, sendMatchNominations } from "@/lib/delegation";
 import {
@@ -136,6 +137,8 @@ export const createMatch = defineTool({
         .single(),
       "Utakmica nije kreirana.",
     );
+    // MCP radi u route handleru: updateTag nije dozvoljen, pa revalidateTag (invalidateFromRoute)
+    invalidateFromRoute({ table: "matches", match: row.id });
     return matchView(row);
   },
 });
@@ -188,6 +191,7 @@ export const updateMatch = defineTool({
       await db.from("matches").update(patch).eq("id", a.utakmica_id).select(MATCH_SELECT).single(),
       "Utakmica nije izmijenjena.",
     );
+    invalidateFromRoute({ table: "matches", match: a.utakmica_id });
     return matchView(row);
   },
 });
@@ -291,7 +295,14 @@ export const assign = defineTool({
   roles: [...ADMIN],
   input: { utakmica_id: uuidSchema, osoba_id: uuidSchema, pozicija: positionSchema },
   async run({ utakmica_id, osoba_id, pozicija }, { db, profile }) {
-    const { id, name } = await assignPerson(db, { matchId: utakmica_id, profileId: osoba_id, position: pozicija, createdBy: profile.id });
+    let assigned;
+    try {
+      assigned = await assignPerson(db, { matchId: utakmica_id, profileId: osoba_id, position: pozicija, createdBy: profile.id });
+    } finally {
+      // I neuspjeli pokušaj je mogao obrisati odbijene/otkazane nominacije
+      invalidateFromRoute({ table: "assignments", match: utakmica_id });
+    }
+    const { id, name } = assigned;
     return { nominacija_id: id, osoba: name, pozicija: POSITION_LABEL[pozicija], status: "Nije poslano" };
   },
 });
@@ -313,6 +324,7 @@ export const unassign = defineTool({
     );
     if (!rows[0]) throw new ToolError("Na toj poziciji nema aktivnog delegiranja.");
     const r = await removeAssignment(db, rows[0].id);
+    invalidateFromRoute({ table: "assignments", match: r.matchId });
     return r.cancelled ? { otkazano: r.name, email: r.emailed } : { uklonjeno: r.name, email: false };
   },
 });
@@ -323,7 +335,13 @@ export const sendNominations = defineTool({
   roles: [...ADMIN],
   input: { utakmica_id: uuidSchema },
   async run({ utakmica_id }, { db }) {
-    const results = await sendMatchNominations(db, utakmica_id);
+    let results;
+    try {
+      results = await sendMatchNominations(db, utakmica_id);
+    } finally {
+      // notified_at se upisuje za svaku poslanu nominaciju, pa i kad kasnije nešto pukne
+      invalidateFromRoute({ table: "assignments", match: utakmica_id });
+    }
     if (results.length === 0) return { poruka: "Nema neposlanih nominacija." };
     return results.map((r) => ({ osoba: r.name, pozicija: POSITION_LABEL[r.position], poslano: r.sent }));
   },

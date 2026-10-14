@@ -1,7 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { invalidate } from "@/lib/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type RulesState = { error?: string; saved?: number };
@@ -37,6 +37,6 @@ export async function saveFeeRules(prev: RulesState, formData: FormData): Promis
     .eq("id", id);
   if (error) return { error: "Pravila nisu sačuvana. Pokušaj ponovo." };
 
-  refresh();
+  invalidate("competitions");
   return { saved: (prev.saved ?? 0) + 1 };
 }

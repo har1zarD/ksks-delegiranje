@@ -1,6 +1,8 @@
 // Pravila delegiranja na jednom mjestu. Koriste ih web akcije i MCP alati.
 // Funkcije primaju servisni klijent (zaobilazi RLS), pa pozivalac MORA prije provjeriti ulogu;
 // ovdje se provjerava vlasništvo i stanje (ko smije odgovoriti, ko unosi rezultat).
+// Keš se ovdje NE invalidira (web akcija koristi updateTag, MCP revalidateTag): pozivalac poziva invalidate
+// s tabelom "assignments" i utakmicom (povratne vrijednosti nose matchId).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { sendEmail } from "@/lib/email";
@@ -54,7 +56,7 @@ export async function assignPerson(
 }
 
 const WITH_PERSON_AND_MATCH =
-  `id, position, status, notified_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email ), match:matches!assignments_match_id_fkey ( ${MATCH_SELECT} )` as const;
+  `id, match_id, position, status, notified_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email ), match:matches!assignments_match_id_fkey ( ${MATCH_SELECT} )` as const;
 
 /**
  * Uklanja delegiranje. Neposlana ili odbijena nominacija se briše;
@@ -66,7 +68,7 @@ export async function removeAssignment(db: Db, assignmentId: string) {
 
   if (!a.notified_at || a.status === "declined" || a.status === "cancelled") {
     await db.from("assignments").delete().eq("id", a.id);
-    return { name: a.profile?.full_name ?? null, cancelled: false, emailed: false };
+    return { matchId: a.match_id, name: a.profile?.full_name ?? null, cancelled: false, emailed: false };
   }
 
   await db.from("assignments").update({ status: "cancelled" }).eq("id", a.id);
@@ -80,7 +82,7 @@ export async function removeAssignment(db: Db, assignmentId: string) {
           ...cancellationEmail(a.profile.full_name, a.position, a.match),
         })
       : false;
-  return { name: a.profile?.full_name ?? null, cancelled: true, emailed };
+  return { matchId: a.match_id, name: a.profile?.full_name ?? null, cancelled: true, emailed };
 }
 
 /** Šalje email svima na utakmici kojima nominacija još nije poslana */
@@ -149,7 +151,7 @@ export async function respondToNomination(
     }
   };
 
-  return { status: row.status, notifyAdmins };
+  return { status: row.status, matchId: row.match_id, notifyAdmins };
 }
 
 /** Dozvoljeni prelazi statusa za komesara (admin smije sve). Isto pravilo je u set_match_status(). */

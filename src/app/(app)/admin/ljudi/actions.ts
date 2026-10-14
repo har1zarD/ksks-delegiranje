@@ -1,7 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { requireRole, type Role } from "@/lib/auth";
+import { invalidate } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -55,7 +55,7 @@ export async function addPerson(prev: PersonState, formData: FormData): Promise<
     return { error: "Profil nije sačuvan. Pokušaj ponovo." };
   }
 
-  refresh();
+  invalidate("profiles");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -76,7 +76,7 @@ export async function updatePerson(_prev: PersonState, formData: FormData): Prom
     .eq("id", id);
   if (error) return { error: "Izmjene nisu sačuvane." };
 
-  refresh();
+  invalidate("profiles");
   return {};
 }
 
@@ -86,5 +86,5 @@ export async function setActive(formData: FormData) {
   if (id === me.id) return;
   const supabase = await createClient();
   await supabase.from("profiles").update({ active: formData.get("active") === "1" }).eq("id", id);
-  refresh();
+  invalidate("profiles");
 }
