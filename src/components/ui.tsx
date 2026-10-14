@@ -140,7 +140,7 @@ export function SectionTitle({ children, count, action }: { children: ReactNode;
 }
 
 /** Lista u kartici: redovi razdvojeni linijom preko cijele širine */
-export const ROWS = "divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6";
+export const ROWS = "divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6";
 
 /** Lista redova unutar panela, razdvojenih linijom */
 export function Rows({ className, ...props }: ComponentProps<"ul">) {

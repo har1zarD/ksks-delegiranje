@@ -106,7 +106,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
             <Rows>
               {list.map((m) => (
                 <li key={m.id}>
-                  <Link href={`/admin/utakmice/${m.id}`} className="-mx-3 px-3 rounded-md flex items-center gap-3 py-4 transition-colors hover:bg-panel-2">
+                  <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
                     <MatchLine
                       match={m}
                       periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}

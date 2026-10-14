@@ -129,7 +129,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           {group.key && (
             <h3 className="pb-2 text-[13px] font-semibold text-fg-muted">{NOMINATION_GROUP_LABEL[group.key]}</h3>
           )}
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {group.positions.map((position) => {
               const current = active.find((a) => a.position === position);
               const declined = assignments.find((a) => a.position === position && a.status === "declined");
@@ -240,8 +240,8 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Izmjena utakmice */}
-      <details className="group rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
-        <summary className="-mx-3 px-3 rounded-md flex cursor-pointer list-none items-center justify-between gap-3 py-4 font-display text-[20px] font-semibold hover:bg-panel-2 [&::-webkit-details-marker]:hidden">
+      <details className="group overflow-hidden rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-6">
+        <summary className="-mx-4 flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 transition-colors sm:-mx-6 sm:px-6 font-display text-[20px] font-semibold hover:bg-panel-2 [&::-webkit-details-marker]:hidden">
           Uredi utakmicu
           <ChevronDown className="size-5 text-fg-faint transition-transform group-open:rotate-180" />
         </summary>

@@ -73,7 +73,7 @@ async function Fees() {
               {c.teams.map((t) => (
                 <li key={t.id}>
                   <details className="group">
-                    <summary className="-mx-3 px-3 rounded-md flex cursor-pointer list-none items-center gap-3 py-4 hover:bg-panel-2 [&::-webkit-details-marker]:hidden">
+                    <summary className="-mx-4 flex cursor-pointer list-none items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 [&::-webkit-details-marker]:hidden">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-display text-[19px] font-semibold leading-tight">{t.name}</span>
                         <span className="mt-1 block">

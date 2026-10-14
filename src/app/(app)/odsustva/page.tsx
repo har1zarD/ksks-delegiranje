@@ -33,7 +33,7 @@ async function Absences() {
             Nemaš najavljenih odsustava.
           </p>
         ) : (
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {items.map((u) => (
               <li key={u.id} className="flex items-center gap-4 py-4">
                 <div className="min-w-0 flex-1">

@@ -30,7 +30,7 @@ async function Nominations() {
       {pending.length > 0 && (
         <section>
           <SectionTitle count={pending.length}>Čeka tvoj odgovor</SectionTitle>
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {pending.map((a) => (
               <li
                 key={a.id}
@@ -46,7 +46,7 @@ async function Nominations() {
       {accepted.length > 0 && (
         <section>
           <SectionTitle count={accepted.length}>Prihvaćene</SectionTitle>
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {accepted.map((a) => (
               <li key={a.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:py-5">
                 <MatchLine match={a.match} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />

@@ -30,7 +30,7 @@ async function Competitions() {
       <Rows>
         {competitions.map((c) => (
           <li key={c.id}>
-            <Link href={`/admin/takmicenja/${c.id}`} className="-mx-3 px-3 rounded-md flex items-center gap-4 py-4 hover:bg-panel-2">
+            <Link href={`/admin/takmicenja/${c.id}`} className="-mx-4 flex items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   {c.parent_id && <GitBranch className="size-4 shrink-0 text-brand" aria-label="Faza" />}

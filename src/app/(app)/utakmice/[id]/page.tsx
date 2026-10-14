@@ -107,7 +107,7 @@ async function Match({ params }: { params: Params }) {
 
       <section>
         <SectionTitle count={crew.length}>Službena lica</SectionTitle>
-        <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+        <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
           {crew.map((c) => (
             <li key={c.id} className="flex min-h-16 items-center gap-3 py-2.5">
               <div className="min-w-0 flex-1">

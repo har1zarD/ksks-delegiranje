@@ -112,7 +112,7 @@ function ResultRow({ match: m }: { match: ResultMatch }) {
   return (
     <li>
       <details className="group">
-        <summary className="-mx-3 px-3 rounded-md cursor-pointer list-none py-4 hover:bg-panel-2 [&::-webkit-details-marker]:hidden">{line}</summary>
+        <summary className="-mx-4 cursor-pointer list-none px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 [&::-webkit-details-marker]:hidden">{line}</summary>
         <div className="pb-4 sm:pl-[92px]">
           <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
             {periods.map((p) => (

@@ -61,7 +61,7 @@ async function Tokens() {
         <p className="text-[15px] text-fg-muted">Još nema povezanih asistenata. Kad povežeš Claude, pojavit će se ovdje.</p>
       )}
       {tokens && tokens.length > 0 && (
-        <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+        <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
           {tokens.map((t) => (
             <li key={t.id} className="flex items-center gap-3 py-4">
               <KeyRound className={cx("size-5 shrink-0", t.revoked_at ? "text-fg-faint" : "text-brand")} strokeWidth={1.9} />
@@ -132,8 +132,8 @@ function ConnectGuide() {
         </ol>
       </Panel>
 
-      <details className="group rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
-        <summary className="-mx-3 flex cursor-pointer list-none items-center justify-between gap-3 rounded-md px-3 py-4 hover:bg-panel-2 [&::-webkit-details-marker]:hidden">
+      <details className="group overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
+        <summary className="-mx-4 flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 [&::-webkit-details-marker]:hidden">
           <span>
             <span className="block font-semibold">Napredno: lični token</span>
             <span className="block text-[13px] text-fg-muted">Za alate koji ne podržavaju prijavu (zaglavlje Authorization: Bearer).</span>

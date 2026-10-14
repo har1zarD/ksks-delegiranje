@@ -96,7 +96,7 @@ async function Rules() {
   const competitions = await getFeeRules();
   if (competitions.length === 0) return <Empty>Nema takmičenja u tekućoj sezoni.</Empty>;
   return (
-    <div className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+    <div className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
       {competitions.map((c) => (
         <RulesForm key={c.id} competition={c} />
       ))}

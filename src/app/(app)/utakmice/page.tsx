@@ -41,8 +41,8 @@ async function MyMatches() {
         ) : (
           <ul className="flex flex-col gap-3">
             {upcoming.map((a) => (
-              <li key={a.id} className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
-                <Link href={`/utakmice/${a.match.id}`} className="-mx-3 px-3 rounded-md flex items-center gap-3 py-4 hover:bg-panel-2 sm:py-5">
+              <li key={a.id} className="overflow-hidden rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-6">
+                <Link href={`/utakmice/${a.match.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 sm:py-5">
                   <MatchLine
                     match={a.match}
                     meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>}
@@ -58,10 +58,10 @@ async function MyMatches() {
       {past.length > 0 && (
         <section>
           <SectionTitle count={past.length}>Odsuđene</SectionTitle>
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {past.map((a) => (
               <li key={a.id}>
-                <Link href={`/utakmice/${a.match.id}`} className="-mx-3 px-3 rounded-md flex py-4 hover:bg-panel-2 sm:py-5">
+                <Link href={`/utakmice/${a.match.id}`} className="-mx-4 flex px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 sm:py-5">
                   <MatchLine
                     match={a.match}
                     showScore

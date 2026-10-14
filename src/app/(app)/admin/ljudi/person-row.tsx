@@ -31,11 +31,11 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="-mx-3 px-3 rounded-md -m-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 text-left hover:bg-panel-2"
+        className="group/name flex min-w-0 flex-1 items-center gap-3 text-left"
         aria-label={`Uredi: ${person.full_name}`}
       >
         <span className="min-w-0 flex-1">
-          <span className={cx("block truncate text-[16px] font-semibold leading-tight", !active && "text-fg-faint")}>
+          <span className={cx("block truncate text-[16px] font-semibold leading-tight underline-offset-4 group-hover/name:underline", !active && "text-fg-faint")}>
             {person.full_name}
             {!active && <span className="ml-2 text-[13px] font-semibold text-fg-faint">neaktivan</span>}
           </span>
