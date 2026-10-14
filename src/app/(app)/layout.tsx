@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getCurrentUser, type Role } from "@/lib/auth";
 import { logout } from "@/app/prijava/actions";
+import { InstallApp } from "@/components/install-app";
 import { AppNav, type NavItem } from "./nav";
 
 const PERSONAL: NavItem[] = [
@@ -37,7 +38,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Suspense fallback={<div className="h-14 border-b border-line bg-panel sm:h-16" />}>
         <UserNav />
       </Suspense>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 sm:px-6 sm:pt-10 md:pb-20">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 sm:px-6 sm:pt-10 md:pb-20">
+        <InstallApp dismissible className="mb-6 md:hidden" />
+        {children}
+      </main>
     </>
   );
 }

@@ -10,6 +10,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin",
 export const metadata: Metadata = {
   title: "KSKS Delegiranje",
   description: "Košarkaški savez Kantona Sarajevo — delegiranje sudija i komesara",
+  // iPhone: s početnog ekrana se otvara bez Safarijeve trake, s kratkim imenom ispod ikone
+  appleWebApp: { capable: true, title: "KSKS", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

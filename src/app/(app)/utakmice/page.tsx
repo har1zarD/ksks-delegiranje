@@ -81,11 +81,12 @@ function CrewList({ crew, mine }: { crew: Crew; mine: Crew[number]["position"] }
   const sorted = [...crew].sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
   if (sorted.length === 0) return null;
   return (
-    <ul className="grid gap-px border-t border-line bg-line sm:grid-cols-2">
+    // Preko cijele širine kartice; ćelije imaju svoju podlogu i razmak, a 1px razmak između njih daje liniju
+    <ul className="-mx-4 grid gap-px border-t border-line bg-line sm:-mx-6 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
       {sorted.map((c) => {
         const me = c.position === mine;
         return (
-          <li key={c.position} className="flex min-h-14 items-center gap-3 py-2.5">
+          <li key={c.position} className="flex min-h-14 items-center gap-3 bg-panel px-4 py-2.5 sm:px-6">
             <div className="min-w-0 flex-1">
               <div className="text-[12px] font-semibold text-fg-faint">{positionName(c.position)}</div>
               <div className={cx("truncate text-[15px] font-semibold", me ? "text-brand" : "text-fg")}>

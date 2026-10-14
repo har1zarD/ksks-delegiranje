@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Suspense } from "react";
+import { InstallApp } from "@/components/install-app";
 import { LoginForm } from "./login-form";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -19,6 +20,7 @@ export default function LoginPage({ searchParams }: { searchParams: SearchParams
           </Suspense>
         </div>
         <p className="mt-6 text-center text-[13px] text-fg-muted">Nemaš nalog ili si zaboravio šifru? Javi se savezu.</p>
+        <InstallApp className="mt-8" />
       </div>
     </main>
   );

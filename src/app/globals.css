@@ -140,6 +140,21 @@ body {
   textarea {
     font-size: 16px; /* iOS ne zumira polja; Tailwind klase (sm:text-…) ga mogu promijeniti */
   }
+
+  /* iOS Safari daje datumu vlastitu minimalnu širinu, pa polje izlazi iz kolone */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    display: block;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.4em; /* prazno polje na iOS-u inače nema visinu teksta */
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
