@@ -4,6 +4,20 @@ type Enums = Database["public"]["Enums"];
 export type Position = Enums["assignment_position"];
 export type AssignmentStatus = Enums["assignment_status"];
 export type MatchStatus = Enums["match_status"];
+export type MatchKind = Enums["match_kind"];
+
+export const MATCH_KIND_LABEL: Record<MatchKind, string> = {
+  league: "Liga",
+  friendly: "Prijateljska",
+  tournament: "Turnir",
+  custom: "Ostalo",
+};
+
+/** Naziv vrste za prikaz uz utakmicu; liga se ne ispisuje (podrazumijevana) */
+export function matchKindLabel(kind: MatchKind | null | undefined, label?: string | null) {
+  if (!kind || kind === "league") return "";
+  return kind === "custom" ? (label ?? MATCH_KIND_LABEL.custom) : MATCH_KIND_LABEL[kind];
+}
 
 export const POSITION_LABEL: Record<Position, string> = {
   referee_1: "1. sudija",

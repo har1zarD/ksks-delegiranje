@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Button, cx, Field, Select } from "@/components/ui";
 import { formatKM, matchCost, type FeeRules } from "@/lib/finance";
-import { MATCH_STATUS_LABEL, type MatchStatus } from "@/lib/format";
+import { MATCH_KIND_LABEL, MATCH_STATUS_LABEL, type MatchKind, type MatchStatus } from "@/lib/format";
 import { saveMatch, type MatchFormState } from "./actions";
 
 type Competition = FeeRules & {
@@ -17,6 +17,8 @@ type Competition = FeeRules & {
 export type MatchFormValues = {
   id?: string;
   number?: number;
+  kind?: MatchKind;
+  kind_label?: string | null;
   competition_id?: string;
   round?: number | null;
   home_team_id?: string;
@@ -43,6 +45,7 @@ export function MatchForm({
   const [competitionId, setCompetitionId] = useState(values.competition_id ?? competitions[0]?.id ?? "");
   const competition = competitions.find((c) => c.id === competitionId);
   const [hallId, setHallId] = useState(values.hall_id ?? "");
+  const [kind, setKind] = useState<MatchKind>(values.kind ?? "league");
   // Nova utakmica preuzima broj sudija/stola iz pravila takmičenja; postojeća zadržava svoj
   const [refs, setRefs] = useState(values.referee_count ?? competition?.referee_count_default ?? 2);
   const [table, setTable] = useState(values.table_count ?? competition?.table_count_default ?? 2);
@@ -55,6 +58,7 @@ export function MatchForm({
       {values.id && <input type="hidden" name="id" value={values.id} />}
       <input type="hidden" name="referee_count" value={refs} />
       <input type="hidden" name="table_count" value={table} />
+      <input type="hidden" name="kind" value={kind} />
 
       <Field
         label="Broj utakmice"
@@ -68,6 +72,40 @@ export function MatchForm({
         required={isEdit}
       />
       <Field label="Kolo" name="round" type="number" inputMode="numeric" min={1} defaultValue={values.round ?? ""} />
+      {/* Vrsta: samo liga ulazi u tabelu */}
+      <div className="flex flex-col gap-1.5 sm:col-span-2">
+        <span className="text-[13px] font-medium text-fg-muted">Vrsta utakmice</span>
+        <div role="radiogroup" aria-label="Vrsta utakmice" className="grid grid-cols-2 gap-0.5 rounded-lg bg-track p-[3px] sm:inline-grid sm:w-fit sm:grid-cols-4">
+          {(Object.keys(MATCH_KIND_LABEL) as MatchKind[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={kind === k}
+              onClick={() => setKind(k)}
+              className={cx(
+                "h-9 rounded-md px-4 text-[14px] font-semibold transition-colors",
+                kind === k ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:text-fg",
+              )}
+            >
+              {MATCH_KIND_LABEL[k]}
+            </button>
+          ))}
+        </div>
+        {kind !== "league" && <span className="text-[12px] text-faint">Ne ulazi u tabelu takmičenja; delegira se i plaća normalno.</span>}
+      </div>
+      {kind === "custom" && (
+        <Field
+          className="sm:col-span-2"
+          label="Naziv"
+          name="kind_label"
+          defaultValue={values.kind_label ?? ""}
+          placeholder="Npr. Memorijalni turnir, revijalna utakmica"
+          required
+          maxLength={80}
+        />
+      )}
+
       <Select
         className="sm:col-span-2"
         label="Takmičenje"

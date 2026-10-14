@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "assignments": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"decline_reason": string | null,"id": string,"match_id": string,"notified_at": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]
+                    "created_at": string,"created_by": string | null,"decline_reason": string | null,"id": string,"match_id": string,"notified_at": string | null,"paid_at": string | null,"paid_by": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"id"?: string,"match_id": string,"notified_at"?: string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
+                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"id"?: string,"match_id": string,"notified_at"?: string | null,"paid_at"?: string | null,"paid_by"?: string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"id"?: string,"match_id"?: string,"notified_at"?: string | null,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
+                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"id"?: string,"match_id"?: string,"notified_at"?: string | null,"paid_at"?: string | null,"paid_by"?: string | null,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
                   }
                   Relationships: [
                     {
@@ -223,14 +223,14 @@ isOneToOne: true
                   ]
                 },"matches": {
                   Row: {
-                    "away_score": number | null,"table_count": number,"away_team_id": string,"competition_id": string,"created_at": string,"hall_id": string | null,"home_score": number | null,"home_team_id": string,"id": string,"notes": string | null,"number": number,"referee_count": number,"round": number | null,"starts_at": string,"status": Database["public"]['Enums']["match_status"]
+                    "away_score": number | null,"table_count": number,"away_team_id": string,"competition_id": string,"created_at": string,"hall_id": string | null,"home_score": number | null,"home_team_id": string,"id": string,"notes": string | null,"number": number,"kind": Database["public"]["Enums"]["match_kind"],"kind_label": string | null,"referee_count": number,"round": number | null,"starts_at": string,"status": Database["public"]['Enums']["match_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "away_score"?: number | null,"table_count"?: number,"away_team_id": string,"competition_id": string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id": string,"id"?: string,"notes"?: string | null,"number"?: number,"referee_count"?: number,"round"?: number | null,"starts_at": string,"status"?: Database["public"]['Enums']["match_status"]
+                    "away_score"?: number | null,"table_count"?: number,"away_team_id": string,"competition_id": string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id": string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"referee_count"?: number,"round"?: number | null,"starts_at": string,"status"?: Database["public"]['Enums']["match_status"]
                   }
                   Update: {
-                    "away_score"?: number | null,"table_count"?: number,"away_team_id"?: string,"competition_id"?: string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id"?: string,"id"?: string,"notes"?: string | null,"number"?: number,"referee_count"?: number,"round"?: number | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["match_status"]
+                    "away_score"?: number | null,"table_count"?: number,"away_team_id"?: string,"competition_id"?: string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id"?: string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"referee_count"?: number,"round"?: number | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["match_status"]
                   }
                   Relationships: [
                     {
@@ -417,6 +417,8 @@ isOneToOne: false
 "id": string,
 "match_id": string,
 "notified_at": string | null,
+"paid_at": string | null,
+"paid_by": string | null,
 "position": Database["public"]['Enums']["assignment_position"],
 "profile_id": string,
 "responded_at": string | null,
@@ -438,7 +440,7 @@ isOneToOne: false
       } }
           }
           Enums: {
-            "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"timer"|"shot_clock"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"
+            "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"timer"|"shot_clock"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_kind": "league"|"friendly"|"tournament"|"custom","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -554,7 +556,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "assignment_position": ["referee_1", "referee_2", "referee_3", "scorer", "timer", "shot_clock", "commissioner"],"assignment_status": ["pending", "accepted", "declined", "cancelled"],"match_status": ["scheduled", "live", "finished", "postponed", "cancelled"],"user_role": ["admin", "official", "commissioner"]
+            "assignment_position": ["referee_1", "referee_2", "referee_3", "scorer", "timer", "shot_clock", "commissioner"],"assignment_status": ["pending", "accepted", "declined", "cancelled"],"match_kind": ["league", "friendly", "tournament", "custom"],"match_status": ["scheduled", "live", "finished", "postponed", "cancelled"],"user_role": ["admin", "official", "commissioner"]
           }
         }
 } as const
