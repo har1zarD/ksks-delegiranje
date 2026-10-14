@@ -464,7 +464,7 @@ isOneToOne: false
       } }
           }
           Enums: {
-            "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"assistant_scorer"|"timer"|"shot_clock"|"statistician_1"|"statistician_2"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_kind": "league"|"friendly"|"tournament"|"custom","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"
+            "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"assistant_scorer"|"timer"|"shot_clock"|"statistician_1"|"statistician_2"|"statistician_3"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_kind": "league"|"friendly"|"tournament"|"custom","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -580,7 +580,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "assignment_position": ["referee_1", "referee_2", "referee_3", "scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "commissioner"],"assignment_status": ["pending", "accepted", "declined", "cancelled"],"match_kind": ["league", "friendly", "tournament", "custom"],"match_status": ["scheduled", "live", "finished", "postponed", "cancelled"],"user_role": ["admin", "official", "commissioner"]
+            "assignment_position": ["referee_1", "referee_2", "referee_3", "scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "statistician_3", "commissioner"],"assignment_status": ["pending", "accepted", "declined", "cancelled"],"match_kind": ["league", "friendly", "tournament", "custom"],"match_status": ["scheduled", "live", "finished", "postponed", "cancelled"],"user_role": ["admin", "official", "commissioner"]
           }
         }
 } as const

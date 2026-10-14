@@ -90,7 +90,7 @@ export type FeeRules = {
 };
 
 const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock"];
-const STATS: Position[] = ["statistician_1", "statistician_2"];
+const STATS: Position[] = ["statistician_1", "statistician_2", "statistician_3"];
 
 /** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica */
 export function feeFor(position: Position, refereeCount: number, rules: FeeRules | null): number | null {

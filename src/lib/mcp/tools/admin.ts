@@ -101,14 +101,14 @@ const matchInput = {
   pom_zapisnik: z.boolean().optional().describe("Pomoćni zapisničar"),
   glavno_vrijeme: z.boolean().optional(),
   sat_24: z.boolean().optional().describe("Operator 24/14"),
-  statistika: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe("Broj statističara"),
+  statistika: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional().describe("Broj statističara (0–3)"),
   digitalni_zapisnik: z.boolean().optional(),
   napomena: z.string().max(500).optional(),
 };
 
 type CrewInput = Partial<Record<"komesar" | "zapisnik" | "pom_zapisnik" | "glavno_vrijeme" | "sat_24" | "digitalni_zapisnik", boolean>> & {
   broj_sudija?: 0 | 2 | 3;
-  statistika?: 0 | 1 | 2;
+  statistika?: 0 | 1 | 2 | 3;
 };
 
 /** Sastav iz MCP argumenata preko osnovnog (pravilo takmičenja ili postojeća utakmica) */

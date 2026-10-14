@@ -29,6 +29,7 @@ export const POSITION_LABEL: Record<Position, string> = {
   shot_clock: "24/14",
   statistician_1: "Statistika",
   statistician_2: "Statistika 2",
+  statistician_3: "Statistika 3",
   commissioner: "Komesar",
 };
 
@@ -43,6 +44,7 @@ export const POSITION_ORDER: Position[] = [
   "shot_clock",
   "statistician_1",
   "statistician_2",
+  "statistician_3",
 ];
 
 /** Naziv pozicije na utakmici: zapisničar s digitalnim zapisnikom je "Dig. zapisnik" */

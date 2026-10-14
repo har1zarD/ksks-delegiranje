@@ -34,7 +34,7 @@ export function CrewEditor({ value, onChange }: { value: Crew; onChange: (c: Cre
 
       <Row label="Statistika">
         <Choice
-          options={([0, 1, 2] as const).map((n) => ({ label: String(n), active: value.stats === n, onClick: () => set({ stats: n }) }))}
+          options={([0, 1, 2, 3] as const).map((n) => ({ label: String(n), active: value.stats === n, onClick: () => set({ stats: n }) }))}
         />
         <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md px-1 text-[14px] font-medium text-fg-muted hover:text-fg">
           <input

@@ -17,7 +17,7 @@ type Db = SupabaseClient<Database>;
 export class DelegationError extends Error {}
 
 /** Pomoćne sudije: zapisnik, pom. zapisnik, glavno vrijeme, 24/14, statistika */
-const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2"];
+const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "statistician_3"];
 
 export function eligibleFor(position: Position, p: { role: string; is_referee: boolean; is_table: boolean }) {
   if (position === "commissioner") return p.role === "commissioner";

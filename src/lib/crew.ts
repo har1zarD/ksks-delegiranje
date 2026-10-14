@@ -16,7 +16,8 @@ export type Crew = {
   assistantScorer: boolean;
   timer: boolean;
   shotClock: boolean;
-  stats: 0 | 1 | 2;
+  /** Statistika: 0–3 osobe (EuroCup 3, domaće seniorske lige 2) */
+  stats: 0 | 1 | 2 | 3;
   /** Digitalni zapisnik: zapisničar se ispisuje kao "Dig. zapisnik" */
   digital: boolean;
 };
@@ -53,7 +54,7 @@ type CrewDefaultsRow = {
   digital_default: boolean;
 };
 
-const stats = (n: number) => (Math.min(2, Math.max(0, n)) as Crew["stats"]);
+const stats = (n: number) => (Math.min(3, Math.max(0, n)) as Crew["stats"]);
 
 export function crewOf(m: CrewRow): Crew {
   return {
@@ -156,7 +157,8 @@ export function crewPositions(c: Crew): Position[] {
   if (c.timer) list.push("timer");
   if (c.shotClock) list.push("shot_clock");
   if (c.stats >= 1) list.push("statistician_1");
-  if (c.stats === 2) list.push("statistician_2");
+  if (c.stats >= 2) list.push("statistician_2");
+  if (c.stats >= 3) list.push("statistician_3");
   return list;
 }
 
