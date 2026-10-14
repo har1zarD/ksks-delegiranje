@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ChevronRight, GitBranch } from "lucide-react";
 import { getCompetitionsOverview } from "@/lib/data/results";
 import { Empty, Field, Loading, PageHeader, Panel, Rows, SectionTitle } from "@/components/ui";
+import { SENIOR_CATEGORIES } from "@/lib/crew";
 import { ActionForm, Check } from "./action-form";
 import { createSystemA } from "./actions";
 
@@ -21,7 +22,8 @@ export default function CompetitionsPage() {
 
 async function Competitions() {
   const competitions = await getCompetitionsOverview();
-  const leagues = competitions.filter((c) => !c.parent_id);
+  // Sistem A pravi se iz omladinskih liga (seniorske nemaju tabelu u aplikaciji)
+  const leagues = competitions.filter((c) => !c.parent_id && !(SENIOR_CATEGORIES as readonly string[]).includes(c.category));
 
   if (competitions.length === 0) return <Empty>Nema takmičenja u tekućoj sezoni.</Empty>;
 
