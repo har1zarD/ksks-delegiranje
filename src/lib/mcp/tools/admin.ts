@@ -367,7 +367,7 @@ export const unassign = defineTool({
 export const sendNominations = defineTool({
   name: "send_nominations",
   description:
-    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija kola emailom, a delegiranima i lični pregled.",
+    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija (dokument cijelog kola) emailom; omladinska liga i seniori odvojeno.",
   roles: [...ADMIN],
   input: { utakmice: z.array(uuidSchema).min(1).max(100).describe("id utakmica koje se objavljuju") },
   async run({ utakmice }, { db }) {
@@ -381,8 +381,8 @@ export const sendNominations = defineTool({
     return {
       objavljeno_utakmica: r.matches,
       vidljivih_delegiranja: r.revealed,
-      nominacija_kola: r.emailed ? `poslana na ${r.recipients} adresa` : "email nije poslan (nije podešen)",
-      licni_emailovi: `${r.personal.sent}/${r.personal.total}`,
+      dokumenti: r.documents.map((d) => ({ vrsta: d.kind === "youth" ? "nominacija" : "nominacija – pomoćne sudije", utakmica: d.matches, poslano: d.sent })),
+      primalaca: r.recipients,
     };
   },
 });

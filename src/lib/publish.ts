@@ -1,19 +1,18 @@
 // Objava nominacije (aktiviranje utakmica): jedino mjesto koje čini delegiranje vidljivim službenim licima.
 //  1. delegiranja koja čekaju dobijaju notified_at (tek tada ih sudija vidi i može odgovoriti)
 //  2. utakmice dobijaju published_at
-//  3. nominacija kola ide emailom SVIM aktivnim sudijama, pomoćnim sudijama i komesarima (jedan email, skriveni primaoci)
-//  4. svako delegirano lice dobija i lični pregled svojih utakmica iz ove objave
+//  3. nominacija (dokument cijelog kola) ide emailom SVIM aktivnim sudijama, pomoćnim sudijama i komesarima
+//     (skriveni primaoci); omladinska liga i seniori (pomoćne sudije) su odvojeni dokumenti
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
-import { nominationListEmail, personalNominationEmail, type NominationMatch } from "@/lib/nomination-email";
-import type { Position } from "@/lib/format";
+import { nominationEmail, nominationKindOf, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Db = ReturnType<typeof createAdminClient>;
 
 const PUBLISH_SELECT = `
   id, number, starts_at, round, kind, kind_label, digital_scoresheet,
-  competition:competitions!matches_competition_id_fkey ( name, sort ),
+  competition:competitions!matches_competition_id_fkey ( name, sort, category ),
   home:teams!matches_home_team_id_fkey ( name ),
   away:teams!matches_away_team_id_fkey ( name ),
   hall:halls!matches_hall_id_fkey ( name ),
@@ -25,17 +24,17 @@ export type PublishResult = {
   matches: number;
   /** Delegiranja koja su sada postala vidljiva */
   revealed: number;
-  /** Primalaca nominacije kola */
+  /** Primalaca nominacije */
   recipients: number;
-  /** Je li email zaista otišao (false = email nije podešen ili nije prošao) */
+  /** Poslani dokumenti: nominacija (omladinska) i/ili nominacija – pomoćne sudije (seniori) */
+  documents: { kind: NominationKind; matches: number; sent: boolean }[];
+  /** Svi dokumenti zaista otišli (false = email nije podešen, nije prošao ili test način) */
   emailed: boolean;
-  /** Ličnih emailova poslano / pokušano */
-  personal: { sent: number; total: number };
 };
 
 export async function publishMatches(db: Db, matchIds: string[]): Promise<PublishResult> {
   const ids = [...new Set(matchIds)];
-  if (ids.length === 0) return { matches: 0, revealed: 0, recipients: 0, emailed: false, personal: { sent: 0, total: 0 } };
+  if (ids.length === 0) return { matches: 0, revealed: 0, recipients: 0, documents: [], emailed: false };
 
   const { data: rows, error } = await db.from("matches").select(PUBLISH_SELECT).in("id", ids).order("starts_at");
   if (error) throw new Error(error.message);
@@ -56,32 +55,21 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
       .filter((a) => (a.status === "pending" || a.status === "accepted") && a.profile)
       .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email })),
   }));
-  const link = siteUrl("/nominacije");
 
-  // 3: nominacija kola svima sa liste (sudije, pomoćne sudije, komesari)
+  // 3: nominacija svima sa liste; omladinska liga i seniori (pomoćne sudije) kao odvojeni dokumenti
   const { data: list } = await db.from("profiles").select("email").eq("active", true).in("role", ["official", "commissioner"]);
   const recipients = [...new Set((list ?? []).map((p) => p.email.toLowerCase()))];
-  const mail = nominationListEmail(matches, link);
-  const emailed = recipients.length
-    ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "nomination_list", ...mail })
-    : false;
-
-  // 4: lični pregled svakom delegiranom (samo ono što je ovom objavom postalo vidljivo)
-  const revealedSet = new Set(pending);
-  const perPerson = new Map<string, { name: string; email: string; items: { match: NominationMatch; position: Position }[] }>();
-  for (const m of rows) {
-    for (const a of m.assignments) {
-      if (!revealedSet.has(a.id) || !a.profile?.active) continue;
-      const p = perPerson.get(a.profile.id) ?? { name: a.profile.full_name, email: a.profile.email, items: [] };
-      p.items.push({ match: matches.find((x) => x.id === m.id)!, position: a.position });
-      perPerson.set(a.profile.id, p);
-    }
-  }
-  let sent = 0;
-  for (const [profileId, p] of perPerson) {
-    const ok = await sendEmail({ to: p.email, kind: "nomination", profileId, ...personalNominationEmail(p.name, p.items, link) });
-    if (ok) sent++;
+  const link = siteUrl("/nominacije");
+  const logo = siteUrl("/icons/icon-192.png");
+  const documents: PublishResult["documents"] = [];
+  for (const kind of ["youth", "seniors"] as const) {
+    const part = matches.filter((m) => nominationKindOf(m) === kind);
+    if (part.length === 0) continue;
+    const sent = recipients.length
+      ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "nomination_list", ...nominationEmail(part, kind, link, logo) })
+      : false;
+    documents.push({ kind, matches: part.length, sent });
   }
 
-  return { matches: rows.length, revealed: pending.length, recipients: recipients.length, emailed, personal: { sent, total: perPerson.size } };
+  return { matches: rows.length, revealed: pending.length, recipients: recipients.length, documents, emailed: documents.length > 0 && documents.every((d) => d.sent) };
 }
