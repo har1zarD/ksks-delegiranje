@@ -1,7 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
+import { invalidate } from "@/lib/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type AbsenceState = { error?: string; ok?: number };
@@ -21,7 +21,7 @@ export async function addAbsence(prev: AbsenceState, formData: FormData): Promis
     .insert({ profile_id: user.id, from_date: from, to_date: to, reason });
   if (error) return { error: "Odsustvo nije sačuvano. Pokušaj ponovo." };
 
-  refresh();
+  invalidate("unavailability");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -33,5 +33,5 @@ export async function deleteAbsence(formData: FormData) {
     .delete()
     .eq("id", String(formData.get("id")))
     .eq("profile_id", user.id);
-  refresh();
+  invalidate("unavailability");
 }

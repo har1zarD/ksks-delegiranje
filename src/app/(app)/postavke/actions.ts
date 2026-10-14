@@ -36,6 +36,7 @@ export async function createToken(_prev: TokenState, formData: FormData): Promis
     .insert({ profile_id: user.id, name, token_hash: hash, prefix });
   if (error) return { error: "Token nije kreiran. Pokušaj ponovo." };
 
+  // Lista tokena nije keširana (lična je i rijetko se otvara), pa je dovoljan refresh
   refresh();
   return { token };
 }

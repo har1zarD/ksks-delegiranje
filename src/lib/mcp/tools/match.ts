@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invalidateFromRoute } from "@/lib/cache";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { assertCommissionerCanScore, commissionerCanSetStatus } from "@/lib/delegation";
 import { ASSIGNMENT_STATUS_LABEL, POSITION_ORDER } from "@/lib/format";
@@ -86,28 +87,33 @@ export const setPeriodScore = defineTool({
     if (profile.role !== "admin" && next !== "live") {
       throw new ToolError("Rezultat se unosi dok je utakmica u toku (status live).");
     }
-    if (next !== current) must(await db.from("matches").update({ status: next }).eq("id", utakmica_id).select("id"));
+    // Više uzastopnih upisa (status, četvrtina, status): invalidira se i kad neki od njih pukne
+    try {
+      if (next !== current) must(await db.from("matches").update({ status: next }).eq("id", utakmica_id).select("id"));
 
-    must(
-      await db
-        .from("match_periods")
-        .upsert({
-          match_id: utakmica_id,
-          period: cetvrtina,
-          home_points: domaci,
-          away_points: gosti,
-          updated_by: profile.id,
-          updated_at: new Date().toISOString(),
-        })
-        .select("period"),
-      "Četvrtina nije sačuvana.",
-    );
+      must(
+        await db
+          .from("match_periods")
+          .upsert({
+            match_id: utakmica_id,
+            period: cetvrtina,
+            home_points: domaci,
+            away_points: gosti,
+            updated_by: profile.id,
+            updated_at: new Date().toISOString(),
+          })
+          .select("period"),
+        "Četvrtina nije sačuvana.",
+      );
 
-    if (status === "finished" && next !== "finished") {
-      if (profile.role !== "admin" && !commissionerCanSetStatus(next, "finished")) {
-        throw new ToolError("Utakmica se ne može završiti u ovom statusu.");
+      if (status === "finished" && next !== "finished") {
+        if (profile.role !== "admin" && !commissionerCanSetStatus(next, "finished")) {
+          throw new ToolError("Utakmica se ne može završiti u ovom statusu.");
+        }
+        must(await db.from("matches").update({ status: "finished" }).eq("id", utakmica_id).select("id"));
       }
-      must(await db.from("matches").update({ status: "finished" }).eq("id", utakmica_id).select("id"));
+    } finally {
+      invalidateFromRoute({ table: "match_periods", match: utakmica_id });
     }
 
     const m = must(await db.from("matches").select("home_score, away_score, status").eq("id", utakmica_id).single());

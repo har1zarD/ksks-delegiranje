@@ -1,7 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
+import { invalidate } from "@/lib/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchStatus } from "@/lib/format";
 import type { TechnicalFoul } from "@/lib/data/report-selects";
@@ -35,7 +35,7 @@ export async function savePeriod(matchId: string, period: number, home: string, 
     .upsert({ match_id: matchId, period, home_points: h, away_points: a, updated_by: auth.user.id });
   if (error) return { error: "Rezultat nije sačuvan. Pokušaj ponovo." };
 
-  refresh();
+  invalidate({ table: "match_periods", match: matchId });
   return { savedAt: period };
 }
 
@@ -46,7 +46,7 @@ export async function removePeriod(matchId: string, period: number): Promise<Per
   if (period <= 4) return { error: "Regularne četvrtine se ne brišu." };
   const { error } = await auth.supabase.from("match_periods").delete().eq("match_id", matchId).eq("period", period);
   if (error) return { error: "Produžetak nije obrisan." };
-  refresh();
+  invalidate({ table: "match_periods", match: matchId });
   return {};
 }
 
@@ -57,7 +57,7 @@ export async function setStatus(formData: FormData) {
   const auth = await authorize(matchId);
   if (!auth) return;
   await auth.supabase.rpc("set_match_status", { m: matchId, s: status });
-  refresh();
+  invalidate({ table: "matches", match: matchId });
 }
 
 export type ReportState = { error?: string; saved?: "draft" | "submitted" | "unlocked" };
@@ -88,7 +88,7 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
     if (!isAdmin) return { error: "Samo savez može vratiti bilten na doradu." };
     const { error } = await supabase.from("match_reports").update({ submitted_at: null }).eq("match_id", matchId);
     if (error) return { error: "Bilten nije otključan." };
-    refresh();
+    invalidate({ table: "match_reports", match: matchId });
     return { saved: "unlocked" };
   }
   if (existing?.submitted_at && !isAdmin) return { error: "Bilten je već poslan. Za izmjene se javi savezu." };
@@ -137,6 +137,6 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
   });
   if (error) return { error: "Bilten nije sačuvan. Pokušaj ponovo." };
 
-  refresh();
+  invalidate({ table: "match_reports", match: matchId });
   return { saved: submit ? "submitted" : "draft" };
 }

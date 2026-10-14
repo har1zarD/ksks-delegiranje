@@ -1,6 +1,9 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { LIFE, TAG, tag } from "@/lib/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { POSITION_ORDER } from "@/lib/format";
+import { row, rows } from "./db";
 import {
   MATCH_CREW_SELECT,
   MATCH_PAGE_SELECT,
@@ -9,40 +12,50 @@ import {
   REPORT_SELECT,
 } from "./report-selects";
 
+/** Sve o utakmici u jednom zapisu (isti za sve korisnike); pristup odlučuje getMatchPage, ne keš */
+async function matchPageRows(matchId: string) {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(tag.match(matchId), TAG.competitions, TAG.teams, TAG.halls, TAG.profiles);
+  const db = createAdminClient();
+
+  const [match, crew, periods, report] = await Promise.all([
+    db.from("matches").select(MATCH_PAGE_SELECT).eq("id", matchId).maybeSingle(),
+    db.from("assignments").select(MATCH_CREW_SELECT).eq("match_id", matchId).in("status", ["pending", "accepted"]),
+    db.from("match_periods").select(PERIODS_SELECT).eq("match_id", matchId).order("period"),
+    db.from("match_reports").select(REPORT_SELECT).eq("match_id", matchId).maybeSingle(),
+  ]);
+  return { match: row(match), crew: rows(crew), periods: rows(periods), report: row(report) };
+}
+
 /**
  * Utakmica za osobu koja je na njoj delegirana (ili admina): ekipa, četvrtine, bilten.
  * null = utakmica ne postoji ili korisnik nema pristup.
  */
 export async function getMatchPage(matchId: string) {
   const user = await getCurrentUser();
-  const supabase = await createClient();
-
-  const [match, crew, periods, report] = await Promise.all([
-    supabase.from("matches").select(MATCH_PAGE_SELECT).eq("id", matchId).maybeSingle(),
-    supabase.from("assignments").select(MATCH_CREW_SELECT).eq("match_id", matchId).in("status", ["pending", "accepted"]),
-    supabase.from("match_periods").select(PERIODS_SELECT).eq("match_id", matchId).order("period"),
-    supabase.from("match_reports").select(REPORT_SELECT).eq("match_id", matchId).maybeSingle(),
-  ]);
-  for (const r of [match, crew, periods, report]) if (r.error) throw r.error;
-  if (!match.data) return null;
+  const data = await matchPageRows(matchId);
+  if (!data.match) return null;
 
   const isAdmin = user.role === "admin";
-  const mine = (crew.data ?? []).find((a) => a.profile_id === user.id);
+  // Kao RLS: delegirani vide samo poslane nominacije (admin i neposlane)
+  const visible = isAdmin ? data.crew : data.crew.filter((a) => a.notified_at);
+  const mine = visible.find((a) => a.profile_id === user.id);
   if (!isAdmin && !mine) return null;
 
-  const sortedCrew = (crew.data ?? [])
+  const sortedCrew = visible
     .filter((a) => a.profile)
     .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
 
   return {
     user,
-    match: match.data,
+    match: data.match,
     crew: sortedCrew,
-    periods: periods.data ?? [],
-    report: report.data
+    periods: data.periods,
+    report: data.report
       ? {
-          ...report.data,
-          technicals: parseTechnicals(report.data.technicals),
+          ...data.report,
+          technicals: parseTechnicals(data.report.technicals),
         }
       : null,
     isAdmin,

@@ -1,8 +1,8 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
+import { invalidate } from "@/lib/cache";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, sarajevoToISO } from "@/lib/format";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
@@ -51,7 +51,7 @@ export async function updateCompetition(prev: FormState, f: FormData): Promise<F
     .eq("id", id);
   if (error) return { error: error.code === "23505" ? "Takmičenje s tim nazivom već postoji." : "Izmjene nisu sačuvane." };
 
-  refresh();
+  invalidate("competitions");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -72,7 +72,7 @@ export async function addTeam(prev: FormState, f: FormData): Promise<FormState> 
     .insert({ competition_id: competitionId, club_id: clubId, name, sort: (count ?? 0) + 1 });
   if (error) return { error: error.code === "23505" ? "Ekipa s tim nazivom već postoji u takmičenju." : "Ekipa nije dodana." };
 
-  refresh();
+  invalidate("teams");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -82,7 +82,8 @@ export async function removeTeam(_prev: FormState, f: FormData): Promise<FormSta
   const { error } = await supabase.from("teams").delete().eq("id", text(f, "id"));
   // Utakmice drže referencu na ekipu (bez kaskadnog brisanja)
   if (error) return { error: error.code === "23503" ? "Ekipa ima utakmice — prvo obriši njene utakmice." : "Ekipa nije uklonjena." };
-  refresh();
+  // Brisanje ekipe kaskadno briše njene uplate kotizacije
+  invalidate("teams", "fee_payments");
   return {};
 }
 
@@ -136,6 +137,8 @@ async function createCompetitionWithTeams(
     await supabase.from("competitions").delete().eq("id", data.id);
     return { error: teamsError.code === "23505" ? "Dvije ekipe imaju isti naziv." : "Ekipe nisu prenesene." };
   }
+  // Pozivaoci odmah nakon toga rade redirect, pa se invalidira ovdje
+  invalidate("competitions", "teams");
   return data.id;
 }
 
@@ -255,7 +258,7 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
   const { error } = await supabase.from("matches").insert(rows);
   if (error) return { error: "Raspored nije sačuvan." };
 
-  refresh();
+  invalidate("matches");
   return {};
 }
 

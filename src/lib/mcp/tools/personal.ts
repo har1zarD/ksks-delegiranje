@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invalidateFromRoute } from "@/lib/cache";
 import { MY_ASSIGNMENT_SELECT } from "@/lib/data/selects";
 import { respondToNomination as respond } from "@/lib/delegation";
 import { ASSIGNMENT_STATUS_LABEL, todayISO } from "@/lib/format";
@@ -47,12 +48,13 @@ export const respondToNomination = defineTool({
     razlog: z.string().max(500).optional().describe("Obavezno kod odbijanja"),
   },
   async run({ nominacija_id, prihvati, razlog }, { db, profile }) {
-    const { status, notifyAdmins } = await respond(db, {
+    const { status, matchId, notifyAdmins } = await respond(db, {
       assignmentId: nominacija_id,
       profileId: profile.id,
       accept: prihvati,
       reason: razlog,
     });
+    invalidateFromRoute({ table: "assignments", match: matchId });
     await notifyAdmins();
     return { nominacija_id, status: ASSIGNMENT_STATUS_LABEL[status] };
   },
@@ -116,13 +118,15 @@ export const addUnavailability = defineTool({
     const end = to ?? od;
     if (end < od) throw new ToolError("Kraj ne može biti prije početka.");
     if (end < todayISO()) throw new ToolError("Odsustvo mora biti u budućnosti.");
-    return must(
+    const created = must(
       await db
         .from("unavailability")
         .insert({ profile_id: profile.id, from_date: od, to_date: end, reason: razlog?.trim() || null })
         .select("id, from_date, to_date, reason")
         .single(),
     );
+    invalidateFromRoute("unavailability");
+    return created;
   },
 });
 
@@ -136,6 +140,7 @@ export const deleteUnavailability = defineTool({
       await db.from("unavailability").delete().eq("id", id).eq("profile_id", profile.id).select("id"),
     );
     if (deleted.length === 0) throw new ToolError("Odsustvo nije pronađeno.");
+    invalidateFromRoute("unavailability");
     return { obrisano: id };
   },
 });
