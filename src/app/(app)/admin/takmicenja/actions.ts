@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
@@ -288,5 +289,7 @@ export async function deleteCompetition(_prev: FormState, f: FormData): Promise<
   const { error } = await supabase.from("competitions").delete().eq("id", id);
   if (error) return { error: "Takmičenje nije obrisano." };
   invalidate("competitions");
+  // Lista takmičenja je možda već učitana u browseru: osvježi je prije povratka na nju
+  refresh();
   redirect("/admin/takmicenja");
 }
