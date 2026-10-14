@@ -43,7 +43,7 @@ export function TokenForm({ mcpUrl }: { mcpUrl: string }) {
   );
 }
 
-function CopyBlock({ text }: { text: string }) {
+export function CopyBlock({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="mt-2 flex items-start gap-2 rounded-md bg-panel-2 p-3">
