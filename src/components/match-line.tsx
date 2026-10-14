@@ -136,22 +136,32 @@ export function BoxScore({
   const team = cx("truncate font-semibold tracking-[-0.02em]", lg ? "text-[17px] sm:text-[20px]" : "text-[16px] sm:text-[17px]");
   const quarter = cx("scoreboard text-center", lg ? "text-[15px] sm:text-[17px]" : "text-[13px] sm:text-[14px]");
   const total = cx("scoreboard text-right font-semibold leading-none", lg ? "text-[30px] sm:text-[40px]" : "text-[22px]");
-  const head = cx("text-center text-[11px] font-semibold", lg ? "pb-2 sm:text-[12px]" : "pb-0.5");
-  const qWidth = lg ? "minmax(1.75rem,3rem)" : "1.5rem";
-  const style = { gridTemplateColumns: `minmax(0,1fr) repeat(${cols.length}, ${qWidth}) ${lg ? "4.25rem" : "2.5rem"}` };
+  const head = "text-center text-[11px] font-semibold text-fg-faint";
 
   return (
-    <div className={cx("grid items-center gap-x-1 sm:gap-x-2", lg ? "gap-y-1.5" : "gap-y-0.5")} style={style}>
-      <div className={cx("flex min-w-0 items-center gap-x-2.5 truncate text-[12px] font-semibold text-fg-faint", lg && "pb-2")}>
-        {label && <span className="truncate">{label}</span>}
-        {badge}
-      </div>
-      {cols.map((c) => (
-        <span key={c.period} className={cx(head, "text-fg-faint")}>
-          {periodShort(c.period)}
-        </span>
-      ))}
-      <span className={cx(head, "text-right text-fg-faint")}>Uk.</span>
+    <div>
+      {(label || badge) && (
+        <div className={cx("flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint", lg ? "mb-3" : "mb-1")}>
+          {label && <span>{label}</span>}
+          {badge}
+        </div>
+      )}
+      <div
+        style={{ "--n": cols.length } as React.CSSProperties}
+        className={cx(
+          "grid items-center gap-x-1 sm:gap-x-2",
+          lg
+            ? "max-w-2xl grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_4.5rem]"
+            : "max-w-xl grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2rem)_3rem]",
+        )}
+      >
+        <span aria-hidden />
+        {cols.map((c) => (
+          <span key={c.period} className={head}>
+            {periodShort(c.period)}
+          </span>
+        ))}
+        <span className={cx(head, "text-right")}>Uk.</span>
 
       {(["home", "away"] as const).map((side) => {
         const points = side === "home" ? home : away;
@@ -176,6 +186,7 @@ export function BoxScore({
           </span>,
         ];
       })}
+      </div>
     </div>
   );
 }

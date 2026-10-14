@@ -97,7 +97,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
             match={match}
             periods={match.periods}
             label="Rezultat"
-            badge={match.status === "live" ? <span className="font-medium">osvježava se uživo</span> : undefined}
+            badge={match.status === "live" ? <span className="font-medium">Osvježava se uživo</span> : undefined}
           />
         </Panel>
       )}
