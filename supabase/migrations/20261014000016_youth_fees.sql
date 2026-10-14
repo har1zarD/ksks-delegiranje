@@ -4,3 +4,9 @@ update public.competitions c
   from (values ('juniori', 40, 26), ('kadeti', 30, 20), ('pioniri', 20, 13)) as v(category, r2, r3),
        public.seasons s
  where c.category = v.category and s.id = c.season_id and s.is_current;
+
+-- Minibasket i Unobasket: uvijek dvojica sudija, 15 KM po sudiji
+update public.competitions c
+   set referees_default = true, referee_count_default = 2, fee_referee_2_km = 15
+  from public.seasons s
+ where c.category in ('minibasket', 'unobasket') and s.id = c.season_id and s.is_current;
