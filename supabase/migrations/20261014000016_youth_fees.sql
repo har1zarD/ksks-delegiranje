@@ -10,3 +10,9 @@ update public.competitions c
    set referees_default = true, referee_count_default = 2, fee_referee_2_km = 15
   from public.seasons s
  where c.category in ('minibasket', 'unobasket') and s.id = c.season_id and s.is_current;
+
+-- A1 i A2 liga jug: pomoćne sudije (zapisnik, glavno vrijeme, 24/14, statistika) 30 KM po osobi
+update public.competitions c
+   set fee_table_km = 30, fee_stats_km = 30
+  from public.seasons s
+ where c.name in ('A1 liga KSBiH', 'A2 liga jug KSBiH') and s.id = c.season_id and s.is_current;
