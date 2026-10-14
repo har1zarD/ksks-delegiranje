@@ -36,6 +36,19 @@ export async function getHalls() {
   return data ?? [];
 }
 
+/** Sljedeći slobodan broj utakmice u tekućoj sezoni (prijedlog na formi; baza ga dodijeli i sama) */
+export async function getNextMatchNumber() {
+  const supabase = await adminClient();
+  const { data, error } = await supabase
+    .from("matches")
+    .select("number, competition:competitions!matches_competition_id_fkey!inner ( season:seasons!competitions_season_id_fkey!inner ( is_current ) )")
+    .eq("competition.season.is_current", true)
+    .order("number", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return (data?.[0]?.number ?? 0) + 1;
+}
+
 export type StaffingSummary = { missing: Position[]; pending: number };
 
 function staffing(refereeCount: number, tableCount: number, assignments: { position: Position; status: AssignmentStatus }[]): StaffingSummary {

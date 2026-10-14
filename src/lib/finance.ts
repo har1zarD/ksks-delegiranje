@@ -129,6 +129,7 @@ export type PayrollAssignment = {
   profile: { id: string; full_name: string };
   match: {
     id: string;
+    number: number;
     starts_at: string;
     referee_count: number;
     competition: ({ name: string; short_name: string | null } & FeeRules) | null;
@@ -139,6 +140,7 @@ export type PayrollAssignment = {
 
 export type PayrollItem = {
   matchId: string;
+  number: number;
   startsAt: string;
   competition: string;
   teams: string;
@@ -170,6 +172,7 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
     const amount = feeFor(a.position, a.match.referee_count, a.match.competition);
     person.items.push({
       matchId: a.match.id,
+      number: a.match.number,
       startsAt: a.match.starts_at,
       competition: a.match.competition?.short_name ?? a.match.competition?.name ?? "",
       teams: `${a.match.home?.name ?? ""} – ${a.match.away?.name ?? ""}`,
@@ -201,12 +204,12 @@ export function toCsv(rows: (string | number | null)[][]) {
 }
 
 export function payrollCsv(people: PayrollPerson[], formatDay: (iso: string) => string) {
-  const rows: (string | number | null)[][] = [["Ime i prezime", "Datum", "Takmičenje", "Utakmica", "Pozicija", "Naknada (KM)"]];
+  const rows: (string | number | null)[][] = [["Ime i prezime", "Br. utakmice", "Datum", "Takmičenje", "Utakmica", "Pozicija", "Naknada (KM)"]];
   for (const p of people) {
     for (const i of p.items) {
-      rows.push([p.name, formatDay(i.startsAt), i.competition, i.teams, POSITION_LABEL[i.position], i.amount]);
+      rows.push([p.name, i.number, formatDay(i.startsAt), i.competition, i.teams, POSITION_LABEL[i.position], i.amount]);
     }
-    rows.push([p.name, null, null, null, "Ukupno", p.total]);
+    rows.push([p.name, null, null, null, null, "Ukupno", p.total]);
   }
   return toCsv(rows);
 }

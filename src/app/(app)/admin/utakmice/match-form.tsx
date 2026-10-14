@@ -16,6 +16,7 @@ type Competition = FeeRules & {
 
 export type MatchFormValues = {
   id?: string;
+  number?: number;
   competition_id?: string;
   round?: number | null;
   home_team_id?: string;
@@ -55,7 +56,20 @@ export function MatchForm({
       <input type="hidden" name="referee_count" value={refs} />
       <input type="hidden" name="table_count" value={table} />
 
+      <Field
+        label="Broj utakmice"
+        name="number"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        defaultValue={values.number ?? ""}
+        placeholder="Sljedeći slobodan"
+        hint={isEdit ? undefined : "Sljedeći slobodan u sezoni; možeš upisati broj iz rasporeda."}
+        required={isEdit}
+      />
+      <Field label="Kolo" name="round" type="number" inputMode="numeric" min={1} defaultValue={values.round ?? ""} />
       <Select
+        className="sm:col-span-2"
         label="Takmičenje"
         name="competition_id"
         value={competitionId}
@@ -75,7 +89,6 @@ export function MatchForm({
           </option>
         ))}
       </Select>
-      <Field label="Kolo" name="round" type="number" inputMode="numeric" min={1} defaultValue={values.round ?? ""} />
 
       {/* key: kad se promijeni takmičenje, izbor ekipa se resetuje */}
       <Select

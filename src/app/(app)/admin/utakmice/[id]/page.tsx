@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileText, MapPin, Printer } from "lucide-react";
 import { getCompetitions, getDelegation, getHalls, type Candidate } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
-import { isoToSarajevo, MATCH_STATUS_LABEL, POSITION_LABEL, requiredPositions, type MatchStatus, type Position } from "@/lib/format";
+import { isoToSarajevo, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, requiredPositions, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -68,7 +68,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-semibold text-fg-faint">
             <span>
-              {match.competition?.name}
+              <span className="text-fg">{matchNo(match.number)}</span>, {match.competition?.name}
               {match.round ? `, ${match.round}. kolo` : ""}
             </span>
             {match.status !== "scheduled" && (
@@ -246,6 +246,7 @@ async function EditMatch({
       halls={halls}
       values={{
         id: match.id,
+        number: match.number,
         competition_id: match.competition_id,
         round: match.round,
         home_team_id: match.home_team_id,

@@ -1,10 +1,11 @@
 import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
-import { formatTime, isoToSarajevo, MONTHS_SHORT, periodShort, WEEKDAYS } from "@/lib/format";
+import { formatTime, isoToSarajevo, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS } from "@/lib/format";
 
 export type PeriodScore = { period: number; home_points: number; away_points: number };
 
 export type MatchSummary = {
+  number?: number;
   starts_at: string;
   round: number | null;
   home_score: number | null;
@@ -57,6 +58,7 @@ export function MatchLine({
 }) {
   const competition = (
     <>
+      {match.number != null && <span className="text-fg-muted">{matchNo(match.number)}, </span>}
       {match.competition?.short_name ?? match.competition?.name}
       {match.round ? `, ${match.round}. kolo` : ""}
     </>

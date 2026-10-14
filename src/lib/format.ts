@@ -60,6 +60,11 @@ export function formatDayMonth(iso: string) {
   const { d, m } = parts(isoToSarajevo(iso).date);
   return `${d}. ${m}.`;
 }
+/** "Utakmica 66" (broj je jedinstven u sezoni) */
+export function matchNo(n: number | null | undefined) {
+  return n == null ? "" : `Utakmica ${n}`;
+}
+
 /** Kratka oznaka perioda: Q1–Q4, produžeci P1, P2… */
 export function periodShort(p: number) {
   return p <= 4 ? `Q${p}` : `P${p - 4}`;

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CalendarDays, ChevronLeft, MapPin, Phone, Printer } from "lucide-react";
 import { getMatchPage } from "@/lib/data/report";
-import { formatDayMonth, formatTime, formatWeekday, MATCH_STATUS_LABEL, POSITION_LABEL, type MatchStatus } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, type MatchStatus } from "@/lib/format";
 import { Button, buttonClass, Loading, SectionTitle, Status } from "@/components/ui";
 import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
@@ -54,7 +54,7 @@ async function Match({ params }: { params: Params }) {
       <section className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
           <span className="text-[13px] font-semibold text-fg-muted">
-            {match.competition?.name}
+            <span className="text-fg">{matchNo(match.number)}</span>, {match.competition?.name}
             {match.round ? `, ${match.round}. kolo` : ""}
           </span>
           <Status tone={STATUS_TONE[match.status]} pulse={match.status === "live"}>

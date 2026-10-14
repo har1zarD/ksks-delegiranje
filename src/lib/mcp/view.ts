@@ -2,6 +2,7 @@ import { isoToSarajevo, MATCH_STATUS_LABEL, POSITION_LABEL, type MatchStatus, ty
 
 type MatchRow = {
   id: string;
+  number: number;
   starts_at: string;
   round: number | null;
   status: MatchStatus;
@@ -19,6 +20,7 @@ export function matchView(m: MatchRow) {
   const { date, time } = isoToSarajevo(m.starts_at);
   return {
     id: m.id,
+    broj: m.number,
     datum: date,
     vrijeme: time,
     takmicenje: m.competition?.name ?? null,

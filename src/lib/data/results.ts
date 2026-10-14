@@ -6,7 +6,7 @@ const COMPETITION_LIST_SELECT =
   "id, name, short_name, parent_id, carry_over_h2h, sort, format, season:seasons!competitions_season_id_fkey!inner ( is_current )" as const;
 
 const RESULT_MATCH_SELECT = `
-  id, round, starts_at, status, home_team_id, away_team_id, home_score, away_score,
+  id, number, round, starts_at, status, home_team_id, away_team_id, home_score, away_score,
   home:teams!matches_home_team_id_fkey ( id, name ),
   away:teams!matches_away_team_id_fkey ( id, name ),
   hall:halls!matches_hall_id_fkey ( name ),

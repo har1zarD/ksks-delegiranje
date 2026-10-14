@@ -19,7 +19,7 @@ const RULES_COMPETITION_SELECT =
 const PAYROLL_SELECT = `
   position,
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
-  match:matches!assignments_match_id_fkey!inner ( id, starts_at, status, referee_count,
+  match:matches!assignments_match_id_fkey!inner ( id, number, starts_at, status, referee_count,
     competition:competitions!matches_competition_id_fkey ( name, short_name, ${FEE_RULES} ),
     home:teams!matches_home_team_id_fkey ( name ),
     away:teams!matches_away_team_id_fkey ( name ) )

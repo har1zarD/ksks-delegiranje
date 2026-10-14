@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
-import { getCompetitions, getHalls } from "@/lib/data/admin";
+import { getCompetitions, getHalls, getNextMatchNumber } from "@/lib/data/admin";
 import { Loading, PageHeader, Panel } from "@/components/ui";
 import { MatchForm } from "../match-form";
 
@@ -16,7 +16,7 @@ export default function NewMatchPage() {
       </Link>
       <PageHeader
         title="Nova utakmica"
-        subtitle="Broj sudija i ljudi za stolom dolazi iz pravila takmičenja; ovdje ga možeš promijeniti za ovu utakmicu."
+        subtitle="Broj utakmice, termin i dvorana. Broj sudija i ljudi za stolom dolazi iz pravila takmičenja."
       />
       <Panel className="max-w-3xl py-4 sm:py-6">
         <Suspense fallback={<Loading />}>
@@ -28,6 +28,6 @@ export default function NewMatchPage() {
 }
 
 async function NewMatch() {
-  const [competitions, halls] = await Promise.all([getCompetitions(), getHalls()]);
-  return <MatchForm competitions={competitions} halls={halls} />;
+  const [competitions, halls, number] = await Promise.all([getCompetitions(), getHalls(), getNextMatchNumber()]);
+  return <MatchForm competitions={competitions} halls={halls} values={{ number }} />;
 }

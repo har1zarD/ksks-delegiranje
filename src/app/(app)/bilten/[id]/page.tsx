@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getMatchPage } from "@/lib/data/report";
 import { FOUL_TYPE_LABEL } from "@/lib/data/report-selects";
-import { formatDayMonth, formatTime, formatWeekday, POSITION_LABEL } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, POSITION_LABEL } from "@/lib/format";
 import { ChevronLeft } from "lucide-react";
 import { Loading } from "@/components/ui";
 import { PrintButton } from "./print-button";
@@ -67,7 +67,7 @@ async function Bilten({ params }: { params: Params }) {
             <p className="text-[12px] text-black/60 print:text-black">Košarkaški savez Kantona Sarajevo</p>
             <h1 className="font-display text-[26px] font-bold leading-tight">Bilten utakmice</h1>
             <p>
-              {match.competition?.name}
+              <strong>{matchNo(match.number)}</strong>, {match.competition?.name}
               {match.round ? `, ${match.round}. kolo` : ""}
             </p>
           </div>

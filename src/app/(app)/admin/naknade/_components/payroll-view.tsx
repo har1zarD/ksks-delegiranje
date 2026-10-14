@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatKM, formatMonth, matchesLabel, shiftMonth, type PayrollPerson } from "@/lib/finance";
-import { formatDayMonth, POSITION_LABEL } from "@/lib/format";
+import { formatDayMonth, matchNo, POSITION_LABEL } from "@/lib/format";
 import { cx } from "@/components/ui";
 
 /** Biranje mjeseca: ‹ naziv › */
@@ -30,7 +30,7 @@ export function PayrollItems({ person }: { person: PayrollPerson }) {
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold">{i.teams}</span>
             <span className="block truncate text-[13px] text-fg-muted">
-              {i.competition}, {POSITION_LABEL[i.position].toLowerCase()}
+              <span className="font-semibold text-fg">{matchNo(i.number)}</span>, {i.competition}, {POSITION_LABEL[i.position].toLowerCase()}
               {i.position.startsWith("referee") && (i.refereeCount === 3 ? " (trojka)" : " (dvojka)")}
             </span>
           </span>

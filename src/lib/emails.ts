@@ -1,7 +1,8 @@
-import { formatDayMonth, formatTime, formatWeekday, POSITION_LABEL, type Position } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, POSITION_LABEL, type Position } from "@/lib/format";
 import { siteUrl } from "@/lib/email";
 
 type MatchInfo = {
+  number?: number;
   starts_at: string;
   home: { name: string } | null;
   away: { name: string } | null;
@@ -12,6 +13,7 @@ type MatchInfo = {
 function describe(m: MatchInfo) {
   const when = `${formatWeekday(m.starts_at)} ${formatDayMonth(m.starts_at)} u ${formatTime(m.starts_at)}`;
   return [
+    matchNo(m.number),
     `${m.home?.name} – ${m.away?.name}`,
     m.competition?.name,
     when,

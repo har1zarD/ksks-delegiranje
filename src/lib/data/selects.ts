@@ -1,7 +1,7 @@
 // Svi PostgREST selecti na jednom mjestu (bez zavisnosti od Next-a, da ih testovi mogu koristiti).
 
 export const MATCH_SELECT = `
-  id, starts_at, round, status, referee_count, table_count, home_score, away_score,
+  id, number, starts_at, round, status, referee_count, table_count, home_score, away_score,
   competition:competitions!matches_competition_id_fkey ( id, name, short_name ),
   home:teams!matches_home_team_id_fkey ( id, name ),
   away:teams!matches_away_team_id_fkey ( id, name ),

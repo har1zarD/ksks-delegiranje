@@ -18,6 +18,7 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   const date = get("date");
   const time = get("time");
   const round = get("round");
+  const number = get("number");
   const status = get("status") as MatchStatus;
   const match = {
     competition_id: get("competition_id"),
@@ -25,6 +26,7 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
     away_team_id: get("away_team_id"),
     hall_id: get("hall_id") || null,
     round: round ? Number(round) : null,
+    ...(number ? { number: Number(number) } : {}),
     referee_count: get("referee_count") === "3" ? 3 : 2,
     table_count: get("table_count") === "3" ? 3 : 2,
     notes: get("notes") || null,
@@ -35,12 +37,14 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   if (match.home_team_id === match.away_team_id) return { error: "Domaćin i gost moraju biti različite ekipe." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return { error: "Upiši datum i vrijeme." };
   if (match.round !== null && (!Number.isInteger(match.round) || match.round < 1)) return { error: "Kolo mora biti pozitivan broj." };
+  if (number && (!Number.isInteger(Number(number)) || Number(number) < 1)) return { error: "Broj utakmice mora biti pozitivan broj." };
 
   const supabase = await createClient();
   const row = { ...match, starts_at: sarajevoToISO(date, time) };
   const { data, error } = id
     ? await supabase.from("matches").update(row).eq("id", id).select("id").single()
     : await supabase.from("matches").insert(row).select("id").single();
+  if (error?.code === "23505") return { error: `Utakmica ${number} već postoji u ovoj sezoni. Upiši drugi broj ili ostavi prazno.` };
   if (error) return { error: "Utakmica nije sačuvana. Pokušaj ponovo." };
 
   // Nova utakmica → odmah na delegiranje
