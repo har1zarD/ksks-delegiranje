@@ -4,7 +4,7 @@
 //  3. nominacija kola ide emailom SVIM aktivnim sudijama, pomoćnim sudijama i komesarima (jedan email, skriveni primaoci)
 //  4. svako delegirano lice dobija i lični pregled svojih utakmica iz ove objave
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
-import { sendEmail, siteUrl } from "@/lib/email";
+import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
 import { nominationListEmail, personalNominationEmail, type NominationMatch } from "@/lib/nomination-email";
 import type { Position } from "@/lib/format";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -63,7 +63,7 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
   const recipients = [...new Set((list ?? []).map((p) => p.email.toLowerCase()))];
   const mail = nominationListEmail(matches, link);
   const emailed = recipients.length
-    ? await sendEmail({ to: process.env.GMAIL_USER ?? "ksksdelegiranje@gmail.com", bcc: recipients, kind: "nomination_list", ...mail })
+    ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "nomination_list", ...mail })
     : false;
 
   // 4: lični pregled svakom delegiranom (samo ono što je ovom objavom postalo vidljivo)

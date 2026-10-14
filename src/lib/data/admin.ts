@@ -152,7 +152,7 @@ async function activePeople() {
   cacheLife(LIFE.people);
   cacheTag(TAG.profiles);
   return rows(
-    await createAdminClient().from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).neq("role", "admin").order("full_name"),
+    await createAdminClient().from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).or("role.neq.admin,is_referee.eq.true,is_table.eq.true").order("full_name"),
   );
 }
 
@@ -217,9 +217,9 @@ export async function getDelegation(matchId: string) {
     return {
       id: p.id,
       name: p.full_name,
-      canReferee: p.role === "official" && p.is_referee,
-      canTable: p.role === "official" && p.is_table,
-      tableSkills: p.role === "official" && p.is_table ? p.table_skills : [],
+      canReferee: (p.role === "official" || p.role === "admin") && p.is_referee,
+      canTable: (p.role === "official" || p.role === "admin") && p.is_table,
+      tableSkills: (p.role === "official" || p.role === "admin") && p.is_table ? p.table_skills : [],
       isCommissioner: p.role === "commissioner",
       absence: absence ? (absence.reason ?? "") : null,
       sameDay: sameDay.filter((a) => a.profileId === p.id && a.matchId !== matchId).map((a) => a.startsAt),

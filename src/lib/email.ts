@@ -1,16 +1,39 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Gmail SMTP s app šifrom (Google nalog → Sigurnost → App passwords). Limit ~500 mailova dnevno.
+// Slanje emaila preko SMTP-a. Dvije mogućnosti (varijable okruženja):
+//  * Gmail: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords)
+//  * bilo koji SMTP (npr. Brevo): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM (adresa pošiljaoca)
+// Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 let transport: Transporter | null = null;
 
 function getTransport() {
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    transport ??= nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: Number(process.env.SMTP_PORT ?? 587) === 465,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    return transport;
+  }
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null;
   transport ??= nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
   });
   return transport;
+}
+
+/** Adresa pošiljaoca */
+export function senderAddress() {
+  return process.env.EMAIL_FROM ?? process.env.GMAIL_USER ?? process.env.SMTP_USER ?? "ksksdelegiranje@gmail.com";
+}
+
+/** Test način: dozvoljene adrese (null = šalje se svima) */
+function allowList() {
+  const v = process.env.EMAIL_ONLY_TO?.trim();
+  return v ? new Set(v.split(/[,\s]+/).filter(Boolean).map((e) => e.toLowerCase())) : null;
 }
 
 export type Email = {
@@ -31,12 +54,24 @@ export async function sendEmail(email: Email): Promise<boolean> {
   let providerId: string | null = null;
   let error: string | null = null;
 
+  // Test način: samo dozvoljene adrese (glavni primalac je pošiljalac kod nominacije kola, pa i njega propuštamo)
+  const allow = allowList();
+  if (allow) {
+    const bcc = email.bcc?.filter((e) => allow.has(e.toLowerCase()));
+    const toAllowed = allow.has(email.to.toLowerCase()) || (email.bcc !== undefined && email.to.toLowerCase() === senderAddress().toLowerCase());
+    if (!toAllowed || (email.bcc && bcc!.length === 0)) {
+      await logEmail(email, null, "Test način: adresa nije na listi EMAIL_ONLY_TO");
+      return false;
+    }
+    email = { ...email, bcc };
+  }
+
   if (!t) {
-    error = "Email nije podešen (GMAIL_USER / GMAIL_APP_PASSWORD)";
+    error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD ili SMTP_HOST/SMTP_USER/SMTP_PASS)";
   } else {
     try {
       const info = await t.sendMail({
-        from: { name: "KSKS Delegiranje", address: process.env.GMAIL_USER! },
+        from: { name: "KSKS Delegiranje", address: senderAddress() },
         to: email.to,
         bcc: email.bcc,
         subject: email.subject,
@@ -49,7 +84,12 @@ export async function sendEmail(email: Email): Promise<boolean> {
     }
   }
 
-  // email_log nema insert politiku za korisnike; piše servisni klijent
+  await logEmail(email, providerId, error);
+  return error === null;
+}
+
+// email_log nema insert politiku za korisnike; piše servisni klijent
+async function logEmail(email: Email, providerId: string | null, error: string | null) {
   await createAdminClient().from("email_log").insert({
     kind: email.kind,
     to_email: email.bcc?.length ? `${email.to} (+${email.bcc.length} skriveno)` : email.to,
@@ -58,8 +98,6 @@ export async function sendEmail(email: Email): Promise<boolean> {
     provider_id: providerId,
     error,
   });
-
-  return error === null;
 }
 
 export function siteUrl(path: string) {

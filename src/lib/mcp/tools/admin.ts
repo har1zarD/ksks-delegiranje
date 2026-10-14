@@ -287,7 +287,7 @@ export const whoIsFree = defineTool({
     if (utakmica_id) sameDayQ = sameDayQ.neq("match_id", utakmica_id);
 
     const [people, absences, sameDay, monthly] = await Promise.all([
-      db.from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).neq("role", "admin").order("full_name"),
+      db.from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).or("role.neq.admin,is_referee.eq.true,is_table.eq.true").order("full_name"),
       db.from("unavailability").select("profile_id, reason").lte("from_date", datum).gte("to_date", datum),
       sameDayQ,
       db

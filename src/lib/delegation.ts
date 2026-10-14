@@ -21,9 +21,11 @@ const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", 
 
 export function eligibleFor(position: Position, p: { role: string; is_referee: boolean; is_table: boolean; table_skills: string[] }) {
   if (position === "commissioner") return p.role === "commissioner";
+  // Admin (savez) može i suditi/raditi za stolom ako je tako označen u Ljudima
+  const official = p.role === "official" || p.role === "admin";
   // Pomoćne sudije: samo za pozicije koje osoba zna (zapisnik, glavno vrijeme, 24/14, statistika)
-  if (TABLE.includes(position)) return p.role === "official" && p.is_table && p.table_skills.includes(skillFor(position)!);
-  return p.role === "official" && p.is_referee;
+  if (TABLE.includes(position)) return official && p.is_table && p.table_skills.includes(skillFor(position)!);
+  return official && p.is_referee;
 }
 
 export async function assignPerson(
