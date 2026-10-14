@@ -12,14 +12,6 @@ const nextConfig: NextConfig = {
       { source: "/.well-known/openid-configuration/:path*", destination: "/api/well-known/oauth-authorization-server" },
     ];
   },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
 };
 
 export default nextConfig;
