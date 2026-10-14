@@ -331,14 +331,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "active": boolean,"city": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"is_referee": boolean,"is_table": boolean,"license": string | null,"phone": string | null,"role": Database["public"]['Enums']["user_role"]
+                    "active": boolean,"city": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"is_referee": boolean,"is_table": boolean,"table_skills": string[],"license": string | null,"phone": string | null,"role": Database["public"]['Enums']["user_role"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"city"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id": string,"is_referee"?: boolean,"is_table"?: boolean,"license"?: string | null,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"]
+                    "active"?: boolean,"city"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id": string,"is_referee"?: boolean,"is_table"?: boolean,"table_skills"?: string[],"license"?: string | null,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"]
                   }
                   Update: {
-                    "active"?: boolean,"city"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"is_referee"?: boolean,"is_table"?: boolean,"license"?: string | null,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"]
+                    "active"?: boolean,"city"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"is_referee"?: boolean,"is_table"?: boolean,"table_skills"?: string[],"license"?: string | null,"phone"?: string | null,"role"?: Database["public"]['Enums']["user_role"]
                   }
                   Relationships: [
                     

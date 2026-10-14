@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { sendEmail } from "@/lib/email";
 import { cancellationEmail, declinedEmail, nominationEmail } from "@/lib/emails";
-import { CREW_COLUMNS, crewOf, crewPositions, nominationGroupOf, type NominationGroup } from "@/lib/crew";
+import { CREW_COLUMNS, crewOf, crewPositions, nominationGroupOf, skillFor, type NominationGroup } from "@/lib/crew";
 import type { MatchStatus, Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -19,9 +19,10 @@ export class DelegationError extends Error {}
 /** Pomoćne sudije: zapisnik, pom. zapisnik, glavno vrijeme, 24/14, statistika */
 const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "statistician_3"];
 
-export function eligibleFor(position: Position, p: { role: string; is_referee: boolean; is_table: boolean }) {
+export function eligibleFor(position: Position, p: { role: string; is_referee: boolean; is_table: boolean; table_skills: string[] }) {
   if (position === "commissioner") return p.role === "commissioner";
-  if (TABLE.includes(position)) return p.role === "official" && p.is_table;
+  // Pomoćne sudije: samo za pozicije koje osoba zna (zapisnik, glavno vrijeme, 24/14, statistika)
+  if (TABLE.includes(position)) return p.role === "official" && p.is_table && p.table_skills.includes(skillFor(position)!);
   return p.role === "official" && p.is_referee;
 }
 
@@ -31,7 +32,7 @@ export async function assignPerson(
 ) {
   const [{ data: match }, { data: person }] = await Promise.all([
     db.from("matches").select(CREW_COLUMNS).eq("id", matchId).maybeSingle(),
-    db.from("profiles").select("full_name, role, is_referee, is_table, active").eq("id", profileId).maybeSingle(),
+    db.from("profiles").select("full_name, role, is_referee, is_table, table_skills, active").eq("id", profileId).maybeSingle(),
   ]);
   if (!match) throw new DelegationError("Utakmica nije pronađena.");
   if (!person?.active) throw new DelegationError("Osoba nije pronađena ili nije aktivna.");

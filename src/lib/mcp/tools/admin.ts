@@ -239,7 +239,7 @@ export const listPeople = defineTool({
   },
   readOnly: true,
   async run({ uloga, samo_aktivni = true }, { db }) {
-    let q = db.from("profiles").select("id, full_name, email, phone, role, is_referee, is_table, license, active");
+    let q = db.from("profiles").select("id, full_name, email, phone, role, is_referee, is_table, table_skills, license, active");
     if (samo_aktivni) q = q.eq("active", true);
     if (uloga === "sudija") q = q.eq("role", "official").eq("is_referee", true);
     if (uloga === "sto") q = q.eq("role", "official").eq("is_table", true);
@@ -253,6 +253,7 @@ export const listPeople = defineTool({
       uloga: p.role,
       sudija: p.is_referee,
       sto: p.is_table,
+      sto_zna: p.is_table ? p.table_skills : [],
       licenca: p.license,
       aktivan: p.active,
     }));
@@ -285,7 +286,7 @@ export const whoIsFree = defineTool({
     if (utakmica_id) sameDayQ = sameDayQ.neq("match_id", utakmica_id);
 
     const [people, absences, sameDay, monthly] = await Promise.all([
-      db.from("profiles").select("id, full_name, role, is_referee, is_table").eq("active", true).neq("role", "admin").order("full_name"),
+      db.from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).neq("role", "admin").order("full_name"),
       db.from("unavailability").select("profile_id, reason").lte("from_date", datum).gte("to_date", datum),
       sameDayQ,
       db

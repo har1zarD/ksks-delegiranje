@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Phone } from "lucide-react";
 import { buttonClass, cx } from "@/components/ui";
+import { TABLE_SKILLS } from "@/lib/crew";
 import { setActive } from "./actions";
 import { PersonForm, type PersonValues } from "./person-form";
 
@@ -10,7 +11,10 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
   const [editing, setEditing] = useState(false);
   const roles = [
     person.is_referee && "Sudija",
-    person.is_table && "Zapisnički sto",
+    person.is_table &&
+      (person.table_skills.length >= TABLE_SKILLS.length
+        ? "Zapisnički sto"
+        : `Sto: ${TABLE_SKILLS.filter((s) => person.table_skills.includes(s.key)).map((s) => s.label.toLowerCase()).join(", ")}`),
     person.role === "commissioner" && "Komesar",
     person.role === "admin" && "Admin",
     person.license && `Licenca ${person.license}`,

@@ -162,6 +162,26 @@ export function crewPositions(c: Crew): Position[] {
   return list;
 }
 
+// ───────── Vještine pomoćnih sudija ─────────
+
+export type TableSkill = "scorer" | "timer" | "shot_clock" | "stats";
+
+export const TABLE_SKILLS: { key: TableSkill; label: string }[] = [
+  { key: "scorer", label: "Zapisnik" },
+  { key: "timer", label: "Glavno vrijeme" },
+  { key: "shot_clock", label: "24/14" },
+  { key: "stats", label: "Statistika" },
+];
+
+/** Koju vještinu traži pozicija za stolom (null = nije pozicija za stolom) */
+export function skillFor(position: Position): TableSkill | null {
+  if (position === "scorer" || position === "assistant_scorer") return "scorer";
+  if (position === "timer") return "timer";
+  if (position === "shot_clock") return "shot_clock";
+  if (position.startsWith("statistician")) return "stats";
+  return null;
+}
+
 /** Kratak opis sastava: "3 sudije, komesar, zapisnik, glavno vrijeme, 24/14, 1 statistika" */
 export function crewSummary(c: Crew) {
   const parts = [

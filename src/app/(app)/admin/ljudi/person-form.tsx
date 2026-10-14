@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Button, cx, Field, Select } from "@/components/ui";
 import type { Role } from "@/lib/auth";
+import { TABLE_SKILLS } from "@/lib/crew";
 import { addPerson, updatePerson, type PersonState } from "./actions";
 
 export type PersonValues = {
@@ -14,6 +15,7 @@ export type PersonValues = {
   role: Role;
   is_referee: boolean;
   is_table: boolean;
+  table_skills: string[];
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -32,6 +34,7 @@ export function PersonForm({ person, onDone }: { person?: PersonValues; onDone?:
     {},
   );
   const [role, setRole] = useState<Role>(person?.role ?? "official");
+  const [table, setTable] = useState(person?.is_table ?? false);
 
   return (
     <form key={state.ok} action={action} className="grid gap-4 sm:grid-cols-2">
@@ -61,7 +64,23 @@ export function PersonForm({ person, onDone }: { person?: PersonValues; onDone?:
           <legend className="pb-1.5 text-[13px] font-medium text-fg-muted">Šta radi</legend>
           <div className="flex gap-2">
             <Check name="is_referee" label="Sudija" defaultChecked={person?.is_referee ?? true} />
-            <Check name="is_table" label="Zapisnički sto" defaultChecked={person?.is_table} />
+            <Check name="is_table" label="Zapisnički sto" defaultChecked={person?.is_table} onChange={setTable} />
+          </div>
+        </fieldset>
+      )}
+      {role === "official" && table && (
+        <fieldset className="flex flex-col gap-1.5 sm:col-span-2">
+          <legend className="pb-1.5 text-[13px] font-medium text-fg-muted">Šta zna za stolom (delegiranje nudi samo ove pozicije)</legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {TABLE_SKILLS.map((s) => (
+              <Check
+                key={s.key}
+                name="table_skills"
+                value={s.key}
+                label={s.label}
+                defaultChecked={person ? person.table_skills.includes(s.key) : true}
+              />
+            ))}
           </div>
         </fieldset>
       )}
@@ -85,7 +104,19 @@ export function PersonForm({ person, onDone }: { person?: PersonValues; onDone?:
   );
 }
 
-function Check({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
+function Check({
+  name,
+  label,
+  value,
+  defaultChecked,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value?: string;
+  defaultChecked?: boolean;
+  onChange?: (checked: boolean) => void;
+}) {
   return (
     <label
       className={cx(
@@ -93,7 +124,14 @@ function Check({ name, label, defaultChecked }: { name: string; label: string; d
         "has-[:checked]:ring-2 has-[:checked]:ring-brand",
       )}
     >
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="size-4 accent-[var(--brand)]" />
+      <input
+        type="checkbox"
+        name={name}
+        value={value}
+        defaultChecked={defaultChecked}
+        onChange={onChange && ((e) => onChange(e.target.checked))}
+        className="size-4 accent-[var(--brand)]"
+      />
       {label}
     </label>
   );

@@ -2,6 +2,9 @@
 
 import { requireRole, type Role } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { TABLE_SKILLS } from "@/lib/crew";
+
+const TABLE_SKILL_KEYS = TABLE_SKILLS.map((s) => s.key);
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,6 +25,10 @@ function readPerson(formData: FormData) {
     // Sudija/sto ima smisla samo za ulogu official
     is_referee: isOfficial && formData.get("is_referee") === "on",
     is_table: isOfficial && formData.get("is_table") === "on",
+    // Šta zna za stolom; bez polja (npr. nije označen sto) ostaju sve vještine
+    table_skills: formData.has("table_skills")
+      ? formData.getAll("table_skills").map(String).filter((s) => (TABLE_SKILL_KEYS as string[]).includes(s))
+      : [...TABLE_SKILL_KEYS],
   };
 }
 
@@ -30,6 +37,7 @@ function validate(p: ReturnType<typeof readPerson>, { checkEmail = true } = {}) 
   if (checkEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email)) return "Email nije ispravan.";
   if (!ROLES.includes(p.role)) return "Izaberi ulogu.";
   if (p.role === "official" && !p.is_referee && !p.is_table) return "Označi da li je sudija, zapisnički sto ili oboje.";
+  if (p.is_table && p.table_skills.length === 0) return "Označi bar jednu poziciju za stolom.";
   return null;
 }
 
@@ -69,10 +77,10 @@ export async function updatePerson(_prev: PersonState, formData: FormData): Prom
 
   const supabase = await createClient();
   // Email je vezan za Auth nalog i ovdje se ne mijenja
-  const { full_name, phone, license, role, is_referee, is_table } = person;
+  const { full_name, phone, license, role, is_referee, is_table, table_skills } = person;
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name, phone, license, role, is_referee, is_table })
+    .update({ full_name, phone, license, role, is_referee, is_table, table_skills })
     .eq("id", id);
   if (error) return { error: "Izmjene nisu sačuvane." };
 

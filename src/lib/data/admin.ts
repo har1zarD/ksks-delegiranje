@@ -121,6 +121,8 @@ export type Candidate = {
   /** Može li osoba na ovu vrstu pozicije */
   canReferee: boolean;
   canTable: boolean;
+  /** Šta zna za stolom (zapisnik, glavno vrijeme, 24/14, statistika) */
+  tableSkills: string[];
   isCommissioner: boolean;
   /** Najavljeno odsustvo na dan utakmice */
   absence: string | null;
@@ -150,7 +152,7 @@ async function activePeople() {
   cacheLife(LIFE.people);
   cacheTag(TAG.profiles);
   return rows(
-    await createAdminClient().from("profiles").select("id, full_name, role, is_referee, is_table").eq("active", true).neq("role", "admin").order("full_name"),
+    await createAdminClient().from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).neq("role", "admin").order("full_name"),
   );
 }
 
@@ -217,6 +219,7 @@ export async function getDelegation(matchId: string) {
       name: p.full_name,
       canReferee: p.role === "official" && p.is_referee,
       canTable: p.role === "official" && p.is_table,
+      tableSkills: p.role === "official" && p.is_table ? p.table_skills : [],
       isCommissioner: p.role === "commissioner",
       absence: absence ? (absence.reason ?? "") : null,
       sameDay: sameDay.filter((a) => a.profileId === p.id && a.matchId !== matchId).map((a) => a.startsAt),
@@ -238,7 +241,7 @@ async function peopleRows() {
   return rows(
     await createAdminClient()
       .from("profiles")
-      .select("id, email, full_name, phone, role, is_referee, is_table, license, city, active")
+      .select("id, email, full_name, phone, role, is_referee, is_table, table_skills, license, city, active")
       .order("full_name"),
   );
 }
