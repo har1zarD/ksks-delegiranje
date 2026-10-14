@@ -211,7 +211,7 @@ function Toggle({
           className={cx(
             "scoreboard whitespace-nowrap grid size-9 place-items-center rounded-md text-[18px] font-semibold transition-colors",
             value === n
-              ? "bg-brand text-[color:var(--brand-ink)]"
+              ? "bg-brand text-brand-ink"
               : "text-fg-muted hover:text-fg",
           )}
         >

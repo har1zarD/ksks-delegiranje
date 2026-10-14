@@ -89,16 +89,16 @@ export function ScoreBoard({
   }
 
   const last = periods[periods.length - 1];
-  const homeLeads = total.home > total.away;
-  const awayLeads = total.away > total.home;
+  const homeTrails = total.home < total.away;
+  const awayTrails = total.away < total.home;
 
   return (
     <div>
       {/* Semafor */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-2 text-center sm:gap-6">
-        <TeamScore name={homeName} points={total.home} leads={homeLeads} />
+        <TeamScore name={homeName} points={total.home} trails={homeTrails} />
         <div className="scoreboard whitespace-nowrap pb-6 text-[40px] font-semibold text-fg-faint sm:text-[64px]">:</div>
-        <TeamScore name={awayName} points={total.away} leads={awayLeads} />
+        <TeamScore name={awayName} points={total.away} trails={awayTrails} />
       </div>
 
       {/* Po četvrtinama */}
@@ -191,10 +191,10 @@ export function ScoreBoard({
   );
 }
 
-function TeamScore({ name, points, leads }: { name: string; points: number; leads: boolean }) {
+function TeamScore({ name, points, trails }: { name: string; points: number; trails: boolean }) {
   return (
     <div className="min-w-0">
-      <div className={cx("scoreboard whitespace-nowrap text-[84px] font-semibold leading-[0.9] sm:text-[128px]", leads ? "text-brand" : "text-fg")}>
+      <div className={cx("scoreboard whitespace-nowrap text-[84px] font-semibold leading-[0.9] sm:text-[128px]", trails ? "text-fg-faint" : "text-fg")}>
         {points}
       </div>
       <div className="mt-2 line-clamp-2 font-display text-[17px] font-semibold leading-tight text-fg-muted sm:text-[22px]">{name}</div>

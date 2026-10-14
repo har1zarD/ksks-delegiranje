@@ -21,6 +21,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { cx } from "@/components/ui";
 
 export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences";
@@ -164,8 +165,8 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
 
       {sheetOpen && (
         <div className="fixed inset-0 z-30 md:hidden print:hidden" role="dialog" aria-modal="true" aria-label="Više">
-          <button type="button" aria-label="Zatvori" className="absolute inset-0 bg-[#17142e]/25 backdrop-blur-[2px]" onClick={() => setSheetAt(null)} />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-lg border-t border-line bg-panel pb-[calc(env(safe-area-inset-bottom)+68px)] pt-2 shadow-[0_-8px_30px_rgb(23_20_46/0.08)]">
+          <button type="button" aria-label="Zatvori" className="absolute inset-0 bg-overlay backdrop-blur-[2px]" onClick={() => setSheetAt(null)} />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-lg border-t border-line bg-panel pb-[calc(env(safe-area-inset-bottom)+68px)] pt-2 shadow-pop">
             <div className="mx-auto mb-1 h-1 w-9 rounded-full bg-line-strong" aria-hidden />
             <ul className="divide-y divide-line px-4">
               {rest.map((item) => {
@@ -252,17 +253,22 @@ function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string
         aria-label={`${user}, meni`}
         className="flex h-10 items-center gap-2.5 rounded-lg pl-1 pr-1 text-[14px] font-medium transition-colors hover:bg-panel-2 sm:pr-2.5"
       >
-        <span className="grid size-8 place-items-center rounded-md bg-brand text-[12px] font-semibold tracking-wide text-white" aria-hidden>
+        <span className="grid size-8 place-items-center rounded-md bg-brand text-[12px] font-semibold tracking-wide text-brand-ink" aria-hidden>
           {initials(user)}
         </span>
         <span className="hidden max-w-[10rem] truncate sm:block">{user}</span>
         <ChevronsUpDown className="hidden size-4 text-fg-faint sm:block" />
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-64 rounded-lg border border-line bg-panel p-1 shadow-[0_12px_32px_rgb(23_20_46/0.12),0_2px_6px_rgb(23_20_46/0.06)]">
+        <div className="absolute right-0 top-12 z-50 w-64 rounded-lg border border-line bg-panel p-1 shadow-pop">
           <div className="px-3 py-2.5">
             <div className="truncate text-[14px] font-semibold">{user}</div>
             <div className="text-[13px] text-fg-muted">{roleLabel}</div>
+          </div>
+          <div className="my-1 h-px bg-line" />
+          <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+            <span className="text-[14px] font-medium text-fg-muted">Tema</span>
+            <ThemeSwitch className="w-32" />
           </div>
           <div className="my-1 h-px bg-line" />
           <Link href="/postavke" className="flex h-10 items-center justify-between rounded-md px-3 text-[14px] font-medium text-fg-muted hover:bg-panel-2 hover:text-fg">

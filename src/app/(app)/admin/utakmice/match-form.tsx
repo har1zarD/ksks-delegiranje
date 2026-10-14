@@ -195,7 +195,7 @@ function Count({ label, value, onChange }: { label: string; value: number; onCha
           aria-pressed={value === n}
           className={cx(
             "scoreboard whitespace-nowrap grid size-10 place-items-center rounded-md text-[20px] font-semibold transition-colors",
-            value === n ? "bg-brand text-[color:var(--brand-ink)]" : "text-fg-muted hover:text-fg",
+            value === n ? "bg-brand text-brand-ink" : "text-fg-muted hover:text-fg",
           )}
         >
           {n}

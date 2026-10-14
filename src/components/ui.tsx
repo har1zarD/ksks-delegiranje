@@ -13,11 +13,11 @@ const BUTTON_BASE =
   "inline-flex h-11 shrink-0 select-none items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-semibold tracking-[-0.01em] transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:h-10 sm:text-[14px]";
 
 const BUTTON_VARIANT: Record<Variant, string> = {
-  primary: "bg-brand text-[color:var(--brand-ink)] shadow-panel hover:bg-brand-hover",
-  secondary: "border border-line-strong bg-panel text-fg shadow-panel hover:border-[#c4c1d3] hover:bg-panel-2",
+  primary: "bg-brand text-brand-ink shadow-panel hover:bg-brand-hover",
+  secondary: "border border-line-strong bg-panel text-fg shadow-panel hover:border-line-hover hover:bg-panel-2",
   plain: "px-2 text-fg-muted hover:text-fg",
   destructive: "px-2 text-crest hover:bg-crest/[0.06]",
-  danger: "bg-crest-deep text-white shadow-panel hover:bg-[#99201a]",
+  danger: "bg-crest-deep text-white shadow-panel hover:bg-crest-deep-hover",
 };
 
 export function buttonClass(variant: Variant = "primary", className?: string) {
@@ -39,7 +39,7 @@ export function ButtonLink({
 // ───────── Polja ─────────
 
 export const inputClass =
-  "h-11 w-full rounded-lg border border-line-strong bg-panel px-3 text-[16px] text-fg placeholder:text-faint outline-none transition-[border-color,box-shadow] hover:border-[#c4c1d3] focus:border-brand focus:ring-4 focus:ring-brand/12 disabled:bg-panel-2 disabled:opacity-60 sm:h-10 sm:text-[14px]";
+  "h-11 w-full rounded-lg border border-line-strong bg-panel px-3 text-[16px] text-fg placeholder:text-faint outline-none transition-[border-color,box-shadow] hover:border-line-hover focus:border-fg-muted focus:ring-4 focus:ring-fg/8 disabled:bg-panel-2 disabled:opacity-60 sm:h-10 sm:text-[14px]";
 
 function Label({ label, hint, children, className }: { label: string; hint?: string; children: ReactNode; className?: string }) {
   return (
@@ -82,7 +82,7 @@ export function Select({
 
 // Strelica za select (SVG u boji --muted)
 const SELECT_ARROW =
-  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f5c74' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]";
+  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8b95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]";
 
 export function Textarea({
   label,
@@ -181,7 +181,7 @@ const DOT: Record<Tone, string> = {
 
 /** Boja broja/teksta u tom stanju (tamnije, čitljivo na bijelom) */
 const TONE: Record<Tone, string> = {
-  gold: "text-[#9a6700]",
+  gold: "text-amber-ink",
   mint: "text-mint",
   orange: "text-orange",
   crest: "text-crest",
@@ -216,7 +216,7 @@ export function Stat({ label, value, unit, tone }: { label: string; value: React
 export function Segments({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div className={cx("-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0", className)}>
-      <div className="inline-flex gap-0.5 rounded-lg bg-[#e9e8f0] p-[3px]">{children}</div>
+      <div className="inline-flex gap-0.5 rounded-lg bg-track p-[3px]">{children}</div>
     </div>
   );
 }
@@ -228,7 +228,7 @@ export function Segment({ href, active, children }: { href: string; active: bool
       aria-current={active ? "page" : undefined}
       className={cx(
         "whitespace-nowrap rounded-md px-3.5 py-1.5 text-[14px] font-semibold transition-colors",
-        active ? "bg-panel-3 text-fg shadow-[0_1px_2px_rgb(23_20_46/0.08),0_0_0_0.5px_rgb(23_20_46/0.06)]" : "text-fg-muted hover:text-fg",
+        active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:text-fg",
       )}
     >
       {children}

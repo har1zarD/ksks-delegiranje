@@ -155,8 +155,8 @@ export function BoxScore({
         className={cx(
           "grid items-center gap-x-1 sm:gap-x-2",
           lg
-            ? "max-w-2xl grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_4.5rem]"
-            : "max-w-xl grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2rem)_3rem]",
+            ? "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),3.5rem)_5rem]"
+            : "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_3.5rem]",
         )}
       >
         <span aria-hidden />
@@ -185,7 +185,7 @@ export function BoxScore({
               </span>
             );
           }),
-          <span key={`${side}-total`} className={cx(total, leads ? "text-brand" : "text-fg")}>
+          <span key={`${side}-total`} className={cx(total, leads || points === other ? "text-fg" : "text-fg-faint")}>
             {points}
           </span>,
         ];
