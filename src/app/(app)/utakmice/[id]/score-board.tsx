@@ -4,17 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cx } from "@/components/ui";
+import { periodLabel, periodShort } from "@/lib/format";
 import { removePeriod, savePeriod } from "./actions";
 
 type Period = { period: number; home_points: number; away_points: number };
-
-function periodLabel(p: number) {
-  return p <= 4 ? `${p}. četvrtina` : `${p - 4}. produžetak`;
-}
-
-function periodShort(p: number) {
-  return p <= 4 ? `Q${p}` : `P${p - 4}`;
-}
 
 /**
  * Rezultat po četvrtinama. Komesar upisuje (čuva se kad napusti polje),
@@ -138,7 +131,7 @@ export function ScoreBoard({
                     onChange={(e) => update(p.period, side, e.target.value)}
                     onBlur={() => save(p)}
                     onFocus={(e) => e.target.select()}
-                    className="scoreboard whitespace-nowrap h-14 w-full min-w-0 rounded-md [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none bg-panel-2 text-center text-[28px] font-semibold text-fg outline-none placeholder:text-fg-faint focus:ring-2 focus:ring-gold"
+                    className="scoreboard whitespace-nowrap h-14 w-full min-w-0 rounded-md [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none bg-panel-2 text-center text-[28px] font-semibold text-fg outline-none placeholder:text-fg-faint focus:ring-2 focus:ring-brand"
                   />
                 ) : (
                   <span key={side} className="scoreboard whitespace-nowrap py-2 text-center text-[26px] font-semibold">
@@ -168,7 +161,7 @@ export function ScoreBoard({
           <button
             type="button"
             onClick={addOvertime}
-            className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-[15px] font-semibold text-gold hover:bg-panel-2"
+            className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-[15px] font-semibold text-brand hover:bg-panel-2"
           >
             <Plus className="size-5" /> Dodaj produžetak
           </button>
@@ -201,7 +194,7 @@ export function ScoreBoard({
 function TeamScore({ name, points, leads }: { name: string; points: number; leads: boolean }) {
   return (
     <div className="min-w-0">
-      <div className={cx("scoreboard whitespace-nowrap text-[84px] font-semibold leading-[0.9] sm:text-[128px]", leads ? "text-gold" : "text-fg")}>
+      <div className={cx("scoreboard whitespace-nowrap text-[84px] font-semibold leading-[0.9] sm:text-[128px]", leads ? "text-brand" : "text-fg")}>
         {points}
       </div>
       <div className="mt-2 line-clamp-2 font-display text-[17px] font-semibold leading-tight text-fg-muted sm:text-[22px]">{name}</div>

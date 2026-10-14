@@ -52,11 +52,13 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
   const now = Date.now();
   let q = supabase.from("matches").select(ADMIN_MATCH_SELECT);
   if (opts.competitionId) q = q.eq("competition_id", opts.competitionId);
+  const nowIso = new Date(now).toISOString();
+  // Utakmica uživo je "predstoji" i kad je prošlo vrijeme početka
   if (opts.when === "upcoming") {
-    q = q.gte("starts_at", new Date(now).toISOString());
+    q = q.or(`starts_at.gte.${nowIso},status.eq.live`);
     if (opts.days) q = q.lt("starts_at", new Date(now + opts.days * 86_400_000).toISOString());
   } else {
-    q = q.lt("starts_at", new Date(now).toISOString());
+    q = q.lt("starts_at", nowIso).neq("status", "live");
   }
   const { data, error } = await q.order("starts_at", { ascending: opts.when === "upcoming" }).limit(300);
   if (error) throw error;

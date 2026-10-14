@@ -140,7 +140,7 @@ export function MatchForm({
       )}
 
       {/* Ekipa službenih lica i trošak po pravilima takmičenja */}
-      <div className="flex flex-col gap-4 rounded-lg border border-line bg-panel px-4 sm:px-5 py-4 sm:col-span-2 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-4 rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-4 sm:col-span-2 sm:flex-row sm:items-center">
         <div className="flex flex-wrap gap-2">
           <Count label="Sudije" value={refs} onChange={setRefs} />
           <Count label="Sto" value={table} onChange={setTable} />
@@ -150,7 +150,7 @@ export function MatchForm({
             Trošak utakmice
             {cost.missing && <span className="text-orange"> · neke cijene nisu određene</span>}
           </span>
-          <span className="scoreboard whitespace-nowrap text-[28px] font-semibold text-gold">{formatKM(cost.total)}</span>
+          <span className="scoreboard whitespace-nowrap text-[28px] font-semibold text-brand">{formatKM(cost.total)}</span>
         </div>
       </div>
 
@@ -182,7 +182,7 @@ function Count({ label, value, onChange }: { label: string; value: number; onCha
           aria-pressed={value === n}
           className={cx(
             "scoreboard whitespace-nowrap grid size-10 place-items-center rounded-md text-[20px] font-semibold transition-colors",
-            value === n ? "bg-gold text-[color:var(--gold-ink)]" : "text-fg-muted hover:text-fg",
+            value === n ? "bg-brand text-[color:var(--brand-ink)]" : "text-fg-muted hover:text-fg",
           )}
         >
           {n}

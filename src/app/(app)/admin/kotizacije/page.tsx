@@ -39,7 +39,7 @@ async function Fees() {
 
   return (
     <div className="flex flex-col gap-12">
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-6 rounded-lg border border-line bg-panel px-4 sm:px-5 py-6 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-6 rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-6 sm:grid-cols-4">
         <Stat label="Ukupno kotizacija" value={formatAmount(totalDue)} unit="KM" />
         <Stat label="Uplaćeno" value={formatAmount(totalPaid)} unit="KM" tone="mint" />
         <Stat label="Preostalo" value={formatAmount(Math.max(round2(totalDue - totalPaid), 0))} unit="KM" tone="gold" />
@@ -142,7 +142,7 @@ async function Fees() {
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
-                  <span className={`scoreboard whitespace-nowrap block text-[22px] font-semibold leading-none ${left > 0 ? "text-gold" : "text-mint"}`}>
+                  <span className={`scoreboard whitespace-nowrap block text-[22px] font-semibold leading-none ${left > 0 ? "text-brand" : "text-mint"}`}>
                     {formatKM(left)}
                   </span>
                   <span className="mt-1 block text-[12px] text-fg-faint">preostalo</span>

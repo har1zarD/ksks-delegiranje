@@ -60,6 +60,16 @@ export function formatDayMonth(iso: string) {
   const { d, m } = parts(isoToSarajevo(iso).date);
   return `${d}. ${m}.`;
 }
+/** Kratka oznaka perioda: Q1–Q4, produžeci P1, P2… */
+export function periodShort(p: number) {
+  return p <= 4 ? `Q${p}` : `P${p - 4}`;
+}
+
+/** Puni naziv perioda: "1. četvrtina", "1. produžetak" */
+export function periodLabel(p: number) {
+  return p <= 4 ? `${p}. četvrtina` : `${p - 4}. produžetak`;
+}
+
 export function formatTime(iso: string) {
   return isoToSarajevo(iso).time;
 }

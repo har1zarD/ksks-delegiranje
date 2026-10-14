@@ -47,7 +47,7 @@ export function PayrollTable({ people }: { people: PayrollPerson[] }) {
   const total = people.reduce((s, p) => s + p.total, 0);
   const matches = people.reduce((s, p) => s + p.items.length, 0);
   return (
-    <div className="rounded-lg border border-line bg-panel px-4 sm:px-5">
+    <div className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
       <div className="flex items-end justify-between gap-4 border-b border-line py-4 sm:py-6">
         <div>
           <div className="text-[13px] font-semibold text-fg-muted">Ukupno za isplatu</div>

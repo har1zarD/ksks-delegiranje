@@ -1,6 +1,8 @@
 import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
-import { formatTime, isoToSarajevo, MONTHS_SHORT, WEEKDAYS } from "@/lib/format";
+import { formatTime, isoToSarajevo, MONTHS_SHORT, periodShort, WEEKDAYS } from "@/lib/format";
+
+export type PeriodScore = { period: number; home_points: number; away_points: number };
 
 export type MatchSummary = {
   starts_at: string;
@@ -13,8 +15,7 @@ export type MatchSummary = {
   hall: { name: string } | null;
 };
 
-
-/** Datum kao na semaforu: dan u sedmici, veliki broj, mjesec; vrijeme u zlatnoj */
+/** Datum: dan u sedmici, veliki broj, mjesec; vrijeme u akcent boji */
 export function DateTile({ iso, className }: { iso: string; className?: string }) {
   const { date } = isoToSarajevo(iso);
   const d = new Date(`${date}T12:00:00Z`);
@@ -23,23 +24,64 @@ export function DateTile({ iso, className }: { iso: string; className?: string }
       <span className="text-[11px] font-semibold text-fg-faint">{WEEKDAYS[d.getUTCDay()]}</span>
       <span className="scoreboard whitespace-nowrap text-[24px] font-semibold leading-none">{d.getUTCDate()}</span>
       <span className="text-[11px] font-semibold text-fg-muted">{MONTHS_SHORT[d.getUTCMonth()]}</span>
-      <span className="scoreboard whitespace-nowrap mt-1 text-[15px] font-semibold text-gold">{formatTime(iso)}</span>
+      <span className="scoreboard mt-1 whitespace-nowrap text-[14px] font-semibold text-brand">{formatTime(iso)}</span>
     </div>
   );
 }
 
-/** Utakmica kao semafor: datum lijevo, ekipe jedna ispod druge, rezultat desno */
+/** Uvijek 4 četvrtine, pa produžeci koji postoje */
+export function periodColumns(periods: PeriodScore[]) {
+  const max = Math.max(4, ...periods.map((p) => p.period));
+  return Array.from({ length: max }, (_, i) => periods.find((p) => p.period === i + 1) ?? { period: i + 1, home_points: null, away_points: null });
+}
+
+/**
+ * Utakmica u redu liste: datum lijevo, ekipe jedna ispod druge.
+ * `showScore` = ukupni rezultat desno; `periods` = box score (Q1–Q4, produžeci) + ukupno.
+ */
 export function MatchLine({
   match,
   meta,
+  badge,
   showScore,
+  periods,
   aside,
 }: {
   match: MatchSummary;
   meta?: React.ReactNode;
+  /** Stanje uz naziv takmičenja (npr. Uživo) */
+  badge?: React.ReactNode;
   showScore?: boolean;
+  periods?: PeriodScore[];
   aside?: React.ReactNode;
 }) {
+  const competition = (
+    <>
+      {match.competition?.short_name ?? match.competition?.name}
+      {match.round ? `, ${match.round}. kolo` : ""}
+    </>
+  );
+  const hall = match.hall && (
+    <div className="mt-1 flex items-center gap-1 truncate text-[13px] text-fg-muted">
+      <MapPin className="size-3.5 shrink-0" />
+      <span className="truncate">{match.hall.name}</span>
+    </div>
+  );
+
+  if (periods) {
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+        <DateTile iso={match.starts_at} />
+        <div className="min-w-0 flex-1">
+          <BoxScore match={match} periods={periods} label={competition} badge={badge} />
+          {hall}
+          {meta && <div className="mt-2 text-[14px]">{meta}</div>}
+        </div>
+        {aside && <div className="shrink-0 self-center">{aside}</div>}
+      </div>
+    );
+  }
+
   const score = showScore && match.home_score != null;
   const homeWon = score && match.home_score! > match.away_score!;
   const awayWon = score && match.away_score! > match.home_score!;
@@ -48,29 +90,92 @@ export function MatchLine({
     <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
       <DateTile iso={match.starts_at} />
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] font-semibold text-fg-faint">
-          {match.competition?.short_name ?? match.competition?.name}
-          {match.round ? `, ${match.round}. kolo` : ""}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint">
+          <span>{competition}</span>
+          {badge}
         </div>
         <div className={cx("mt-0.5 grid items-baseline gap-x-3", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !homeWon && "text-fg-muted")}>
             {match.home?.name}
           </span>
-          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", homeWon ? "text-gold" : "text-fg-muted")}>{match.home_score}</span>}
+          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", homeWon ? "text-brand" : "text-fg-muted")}>{match.home_score}</span>}
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !awayWon && "text-fg-muted")}>
             {match.away?.name}
           </span>
-          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", awayWon ? "text-gold" : "text-fg-muted")}>{match.away_score}</span>}
+          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", awayWon ? "text-brand" : "text-fg-muted")}>{match.away_score}</span>}
         </div>
-        {match.hall && (
-          <div className="mt-1 flex items-center gap-1 truncate text-[13px] text-fg-muted">
-            <MapPin className="size-3.5 shrink-0" />
-            <span className="truncate">{match.hall.name}</span>
-          </div>
-        )}
+        {hall}
         {meta && <div className="mt-2 text-[14px]">{meta}</div>}
       </div>
       {aside && <div className="shrink-0 self-center">{aside}</div>}
+    </div>
+  );
+}
+
+/**
+ * Box score: red po ekipi, kolone po četvrtini, ukupno desno (vodeća ekipa u akcentu).
+ * `size="lg"` za zaglavlje utakmice.
+ */
+export function BoxScore({
+  match,
+  periods,
+  label,
+  badge,
+  size = "sm",
+}: {
+  match: Pick<MatchSummary, "home" | "away" | "home_score" | "away_score">;
+  periods: PeriodScore[];
+  label?: React.ReactNode;
+  badge?: React.ReactNode;
+  size?: "sm" | "lg";
+}) {
+  const cols = periodColumns(periods);
+  const home = match.home_score ?? 0;
+  const away = match.away_score ?? 0;
+  const lg = size === "lg";
+  const team = cx("truncate font-semibold tracking-[-0.02em]", lg ? "text-[17px] sm:text-[20px]" : "text-[16px] sm:text-[17px]");
+  const quarter = cx("scoreboard text-center", lg ? "text-[15px] sm:text-[17px]" : "text-[13px] sm:text-[14px]");
+  const total = cx("scoreboard text-right font-semibold leading-none", lg ? "text-[30px] sm:text-[40px]" : "text-[22px]");
+  const head = cx("text-center text-[11px] font-semibold", lg ? "pb-2 sm:text-[12px]" : "pb-0.5");
+  const qWidth = lg ? "minmax(1.75rem,3rem)" : "1.5rem";
+  const style = { gridTemplateColumns: `minmax(0,1fr) repeat(${cols.length}, ${qWidth}) ${lg ? "4.25rem" : "2.5rem"}` };
+
+  return (
+    <div className={cx("grid items-center gap-x-1 sm:gap-x-2", lg ? "gap-y-1.5" : "gap-y-0.5")} style={style}>
+      <div className={cx("flex min-w-0 items-center gap-x-2.5 truncate text-[12px] font-semibold text-fg-faint", lg && "pb-2")}>
+        {label && <span className="truncate">{label}</span>}
+        {badge}
+      </div>
+      {cols.map((c) => (
+        <span key={c.period} className={cx(head, "text-fg-faint")}>
+          {periodShort(c.period)}
+        </span>
+      ))}
+      <span className={cx(head, "text-right text-fg-faint")}>Uk.</span>
+
+      {(["home", "away"] as const).map((side) => {
+        const points = side === "home" ? home : away;
+        const other = side === "home" ? away : home;
+        const leads = points > other;
+        const key = side === "home" ? "home_points" : "away_points";
+        return [
+          <span key={`${side}-name`} className={cx(team, !leads && points !== other && "text-fg-muted")}>
+            {match[side]?.name}
+          </span>,
+          ...cols.map((c) => {
+            const v = c[key];
+            const won = v != null && v > (side === "home" ? c.away_points ?? 0 : c.home_points ?? 0);
+            return (
+              <span key={`${side}-${c.period}`} className={cx(quarter, v == null ? "text-line-strong" : won ? "font-semibold text-fg" : "text-fg-muted")}>
+                {v ?? "–"}
+              </span>
+            );
+          }),
+          <span key={`${side}-total`} className={cx(total, leads ? "text-brand" : "text-fg")}>
+            {points}
+          </span>,
+        ];
+      })}
     </div>
   );
 }

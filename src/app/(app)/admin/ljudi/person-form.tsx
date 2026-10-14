@@ -90,10 +90,10 @@ function Check({ name, label, defaultChecked }: { name: string; label: string; d
     <label
       className={cx(
         "flex h-12 flex-1 cursor-pointer items-center gap-2.5 rounded-md bg-panel-2 px-3.5 text-[15px] font-semibold sm:h-11",
-        "has-[:checked]:ring-2 has-[:checked]:ring-gold",
+        "has-[:checked]:ring-2 has-[:checked]:ring-brand",
       )}
     >
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="size-4 accent-[var(--gold)]" />
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="size-4 accent-[var(--brand)]" />
       {label}
     </label>
   );

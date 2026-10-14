@@ -51,7 +51,7 @@ async function Match({ params }: { params: Params }) {
   return (
     <div className="flex flex-col gap-10">
       {/* Semafor */}
-      <section className="rounded-lg border border-line bg-panel px-4 sm:px-5">
+      <section className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
           <span className="text-[13px] font-semibold text-fg-muted">
             {match.competition?.name}
@@ -107,7 +107,7 @@ async function Match({ params }: { params: Params }) {
 
       <section>
         <SectionTitle count={crew.length}>Službena lica</SectionTitle>
-        <ul className="divide-y divide-line rounded-lg border border-line bg-panel [&>*]:px-4 sm:[&>*]:px-6">
+        <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
           {crew.map((c) => (
             <li key={c.id} className="flex min-h-16 items-center gap-3 py-2.5">
               <div className="min-w-0 flex-1">
@@ -120,7 +120,7 @@ async function Match({ params }: { params: Params }) {
               {c.profile!.phone && (
                 <a
                   href={`tel:${c.profile!.phone}`}
-                  className="grid size-11 shrink-0 place-items-center rounded-md text-gold hover:bg-panel-2"
+                  className="grid size-11 shrink-0 place-items-center rounded-md text-brand hover:bg-panel-2"
                   aria-label={`Pozovi: ${c.profile!.full_name}`}
                   title={c.profile!.phone}
                 >
@@ -148,7 +148,7 @@ async function Match({ params }: { params: Params }) {
           {isCommissioner || isAdmin ? (
             <BiltenForm matchId={match.id} homeName={homeName} awayName={awayName} values={report} isAdmin={isAdmin} />
           ) : (
-            <p className="rounded-lg border border-line bg-panel px-4 sm:px-5 py-6 text-[15px] text-fg-muted">
+            <p className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-6 text-[15px] text-fg-muted">
               Komesar je poslao bilten.
             </p>
           )}

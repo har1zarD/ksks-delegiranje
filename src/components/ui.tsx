@@ -10,14 +10,14 @@ export function cx(...c: (string | false | null | undefined)[]) {
 type Variant = "primary" | "secondary" | "plain" | "destructive" | "danger";
 
 const BUTTON_BASE =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-[14px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-40 sm:h-9";
+  "inline-flex h-11 shrink-0 select-none items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-semibold tracking-[-0.01em] transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:h-10 sm:text-[14px]";
 
 const BUTTON_VARIANT: Record<Variant, string> = {
-  primary: "bg-gold text-[color:var(--gold-ink)] hover:bg-white",
-  secondary: "border border-line-strong bg-panel text-fg hover:bg-panel-2",
+  primary: "bg-brand text-[color:var(--brand-ink)] shadow-panel hover:bg-brand-hover",
+  secondary: "border border-line-strong bg-panel text-fg shadow-panel hover:border-[#c4c1d3] hover:bg-panel-2",
   plain: "px-2 text-fg-muted hover:text-fg",
-  destructive: "px-2 text-crest hover:opacity-75",
-  danger: "bg-crest-deep text-white hover:bg-[#a32437]",
+  destructive: "px-2 text-crest hover:bg-crest/[0.06]",
+  danger: "bg-crest-deep text-white shadow-panel hover:bg-[#99201a]",
 };
 
 export function buttonClass(variant: Variant = "primary", className?: string) {
@@ -39,7 +39,7 @@ export function ButtonLink({
 // ───────── Polja ─────────
 
 export const inputClass =
-  "h-10 w-full rounded-md border border-line-strong bg-panel px-3 text-[16px] text-fg placeholder:text-faint outline-none transition-[border-color,box-shadow] hover:border-[#454545] focus:border-[#52a8ff] focus:ring-2 focus:ring-[#52a8ff]/30 disabled:opacity-50 sm:h-9 sm:text-[14px]";
+  "h-11 w-full rounded-lg border border-line-strong bg-panel px-3 text-[16px] text-fg placeholder:text-faint outline-none transition-[border-color,box-shadow] hover:border-[#c4c1d3] focus:border-brand focus:ring-4 focus:ring-brand/12 disabled:bg-panel-2 disabled:opacity-60 sm:h-10 sm:text-[14px]";
 
 function Label({ label, hint, children, className }: { label: string; hint?: string; children: ReactNode; className?: string }) {
   return (
@@ -82,7 +82,7 @@ export function Select({
 
 // Strelica za select (SVG u boji --muted)
 const SELECT_ARROW =
-  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3abc6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]";
+  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f5c74' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]";
 
 export function Textarea({
   label,
@@ -119,8 +119,8 @@ export function PageHeader({
   );
 }
 
-/** Kartica (Vercel): tanka ivica, radius 8px, bez sjene */
-export const CARD = "rounded-lg border border-line bg-panel";
+/** Kartica: bijela površina, tanka ivica, radius 8px, jedva vidljiva sjena */
+export const CARD = "rounded-lg border border-line bg-panel shadow-panel";
 
 export function Panel({ className, ...props }: ComponentProps<"section">) {
   return <section className={cx(CARD, "px-4 sm:px-6", className)} {...props} />;
@@ -140,7 +140,7 @@ export function SectionTitle({ children, count, action }: { children: ReactNode;
 }
 
 /** Lista u kartici: redovi razdvojeni linijom preko cijele širine */
-export const ROWS = "divide-y divide-line rounded-lg border border-line bg-panel [&>*]:px-4 sm:[&>*]:px-6";
+export const ROWS = "divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6";
 
 /** Lista redova unutar panela, razdvojenih linijom */
 export function Rows({ className, ...props }: ComponentProps<"ul">) {
@@ -160,7 +160,7 @@ export function Loading() {
   return (
     <div className="flex flex-col gap-3" aria-busy="true" aria-label="Učitavam">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-16 animate-pulse rounded-lg border border-line bg-panel" />
+        <div key={i} className="h-20 animate-pulse rounded-lg border border-line bg-panel" />
       ))}
     </div>
   );
@@ -170,20 +170,30 @@ export function Loading() {
 
 type Tone = "gold" | "mint" | "orange" | "crest" | "muted";
 
+/** Boja tačke stanja */
+const DOT: Record<Tone, string> = {
+  gold: "bg-amber",
+  mint: "bg-mint",
+  orange: "bg-orange",
+  crest: "bg-crest",
+  muted: "bg-fg-faint",
+};
+
+/** Boja broja/teksta u tom stanju (tamnije, čitljivo na bijelom) */
 const TONE: Record<Tone, string> = {
-  gold: "text-amber",
+  gold: "text-[#9a6700]",
   mint: "text-mint",
   orange: "text-orange",
   crest: "text-crest",
   muted: "text-fg-muted",
 };
 
-/** Stanje kao na Vercelu: mala tačka u boji + tekst (pulse = utakmica uživo) */
+/** Stanje: mala tačka u boji + tekst (pulse = utakmica uživo) */
 export function Status({ tone, children, pulse }: { tone: Tone; children: ReactNode; pulse?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-[13px] text-fg-muted">
-      <span className={cx("size-2 rounded-full bg-current", TONE[tone], pulse && "animate-pulse")} aria-hidden />
-      <span className={tone === "muted" ? undefined : "text-fg"}>{children}</span>
+      <span className={cx("size-2 shrink-0 rounded-full", DOT[tone], pulse && "animate-pulse")} aria-hidden />
+      <span className={tone === "muted" ? undefined : "font-medium text-fg"}>{children}</span>
     </span>
   );
 }
@@ -206,7 +216,7 @@ export function Stat({ label, value, unit, tone }: { label: string; value: React
 export function Segments({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div className={cx("-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0", className)}>
-      <div className="inline-flex gap-0.5 rounded-md border border-line bg-panel p-0.5">{children}</div>
+      <div className="inline-flex gap-0.5 rounded-lg bg-[#e9e8f0] p-[3px]">{children}</div>
     </div>
   );
 }
@@ -217,8 +227,8 @@ export function Segment({ href, active, children }: { href: string; active: bool
       href={href}
       aria-current={active ? "page" : undefined}
       className={cx(
-        "whitespace-nowrap rounded-[5px] px-3 py-1 text-[14px] font-medium transition-colors",
-        active ? "bg-panel-3 text-fg" : "text-fg-muted hover:text-fg",
+        "whitespace-nowrap rounded-md px-3.5 py-1.5 text-[14px] font-semibold transition-colors",
+        active ? "bg-panel-3 text-fg shadow-[0_1px_2px_rgb(23_20_46/0.08),0_0_0_0.5px_rgb(23_20_46/0.06)]" : "text-fg-muted hover:text-fg",
       )}
     >
       {children}

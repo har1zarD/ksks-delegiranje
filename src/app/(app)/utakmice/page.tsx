@@ -41,7 +41,7 @@ async function MyMatches() {
         ) : (
           <ul className="flex flex-col gap-3">
             {upcoming.map((a) => (
-              <li key={a.id} className="rounded-lg border border-line bg-panel px-4 sm:px-5">
+              <li key={a.id} className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
                 <Link href={`/utakmice/${a.match.id}`} className="-mx-3 px-3 rounded-md flex items-center gap-3 py-4 hover:bg-panel-2 sm:py-5">
                   <MatchLine
                     match={a.match}
@@ -58,7 +58,7 @@ async function MyMatches() {
       {past.length > 0 && (
         <section>
           <SectionTitle count={past.length}>Odsuđene</SectionTitle>
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {past.map((a) => (
               <li key={a.id}>
                 <Link href={`/utakmice/${a.match.id}`} className="-mx-3 px-3 rounded-md flex py-4 hover:bg-panel-2 sm:py-5">
@@ -88,7 +88,7 @@ function CrewList({ crew, mine }: { crew: Crew; mine: Crew[number]["position"] }
           <li key={c.position} className="flex min-h-14 items-center gap-3 py-2.5">
             <div className="min-w-0 flex-1">
               <div className="text-[12px] font-semibold text-fg-faint">{POSITION_LABEL[c.position]}</div>
-              <div className={cx("truncate text-[15px] font-semibold", me ? "text-gold" : "text-fg")}>
+              <div className={cx("truncate text-[15px] font-semibold", me ? "text-brand" : "text-fg")}>
                 {me ? "Ti" : c.name}
                 {c.status === "pending" && <span className="ml-2 text-[12px] font-medium text-fg-faint">čeka odgovor</span>}
               </div>
@@ -96,7 +96,7 @@ function CrewList({ crew, mine }: { crew: Crew; mine: Crew[number]["position"] }
             {c.phone && !me && (
               <a
                 href={`tel:${c.phone}`}
-                className="grid size-11 shrink-0 place-items-center rounded-md text-gold hover:bg-panel-2"
+                className="grid size-11 shrink-0 place-items-center rounded-md text-brand hover:bg-panel-2"
                 aria-label={`Pozovi: ${c.name}`}
                 title={c.phone}
               >

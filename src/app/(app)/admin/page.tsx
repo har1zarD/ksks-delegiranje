@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { getAdminMatches } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
 import { POSITION_LABEL } from "@/lib/format";
+import { LiveRefresh } from "@/components/live-refresh";
 import { MatchLine } from "@/components/match-line";
 import { StaffingBadge } from "@/components/staffing-badge";
 import { ButtonLink, Empty, Loading, PageHeader, Panel, Rows, SectionTitle, Stat, Status } from "@/components/ui";
@@ -30,6 +31,7 @@ async function Overview() {
     getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }),
     getAdminMatches({ when: "upcoming" }),
   ]);
+  const live = upcoming.filter((m) => m.status === "live");
   const active = soon.filter((m) => m.status === "scheduled" || m.status === "live");
   const open = active.filter((m) => m.staffing.missing.length > 0);
   const waiting = active.reduce((n, m) => n + m.staffing.pending, 0);
@@ -40,6 +42,30 @@ async function Overview() {
 
   return (
     <div className="flex flex-col gap-10">
+      {live.length > 0 && (
+        <section>
+          <LiveRefresh matchIds={live.map((m) => m.id)} />
+          <SectionTitle count={live.length}>Uživo</SectionTitle>
+          <Rows>
+            {live.map((m) => (
+              <li key={m.id}>
+                <Link href={`/admin/utakmice/${m.id}`} className="-mx-3 flex items-center gap-3 rounded-md px-3 py-4 hover:bg-panel-2">
+                  <MatchLine
+                    match={m}
+                    periods={m.periods}
+                    badge={
+                      <Status tone="crest" pulse>
+                        Uživo
+                      </Status>
+                    }
+                  />
+                </Link>
+              </li>
+            ))}
+          </Rows>
+        </section>
+      )}
+
       <Panel className="overflow-hidden">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
           <Stat label={`Utakmica u ${DAYS_AHEAD} dana`} value={active.length} />

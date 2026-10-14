@@ -60,7 +60,7 @@ export function Check({ label, className, ...props }: React.ComponentProps<"inpu
         className,
       )}
     >
-      <input type="checkbox" className="size-5 shrink-0 accent-[var(--gold)]" {...props} />
+      <input type="checkbox" className="size-5 shrink-0 accent-[var(--brand)]" {...props} />
       {label}
     </label>
   );

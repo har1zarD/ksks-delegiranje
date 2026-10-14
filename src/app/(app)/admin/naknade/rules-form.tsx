@@ -211,7 +211,7 @@ function Toggle({
           className={cx(
             "scoreboard whitespace-nowrap grid size-9 place-items-center rounded-md text-[18px] font-semibold transition-colors",
             value === n
-              ? "bg-gold text-[color:var(--gold-ink)]"
+              ? "bg-brand text-[color:var(--brand-ink)]"
               : "text-fg-muted hover:text-fg",
           )}
         >
@@ -240,7 +240,7 @@ function Cost({
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[13px] font-semibold text-fg-muted">
           {title}
-          {highlight && <span className="text-gold">, obično</span>}
+          {highlight && <span className="text-brand">, obično</span>}
         </span>
         <span className="scoreboard whitespace-nowrap text-[26px] font-semibold">
           {formatKM(cost.total)}

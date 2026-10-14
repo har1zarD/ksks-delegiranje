@@ -12,7 +12,7 @@ export function AbsenceForm({ today }: { today: string }) {
     <form
       key={state.ok}
       action={action}
-      className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-panel px-4 sm:px-5 py-5 lg:grid-cols-[1fr_1fr_2fr_auto] lg:items-end"
+      className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-5 lg:grid-cols-[1fr_1fr_2fr_auto] lg:items-end"
     >
       <Field label="Od" name="from" type="date" min={today} required />
       <Field label="Do" name="to" type="date" min={today} hint="Prazno = jedan dan" />

@@ -108,7 +108,7 @@ export function BiltenForm({
             <button
               type="button"
               onClick={() => setTechnicals((prev) => [...prev, { team: "home", player: "", minute: null, type: "T" }])}
-              className="-mx-3 px-3 rounded-md mt-3 inline-flex h-11 items-center gap-2 rounded-md text-[15px] font-semibold text-gold hover:bg-panel-2"
+              className="-mx-3 px-3 rounded-md mt-3 inline-flex h-11 items-center gap-2 rounded-md text-[15px] font-semibold text-brand hover:bg-panel-2"
             >
               <Plus className="size-5" /> Dodaj grešku
             </button>

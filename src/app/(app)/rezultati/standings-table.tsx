@@ -6,7 +6,7 @@ const NUM = "scoreboard whitespace-nowrap px-1.5 py-3 text-right text-[18px] fon
 /** Tabela takmičenja. Na mobitelu se kriju porazi i postignuti/primljeni koševi. */
 export function StandingsTable({ rows }: { rows: StandingRow[] }) {
   return (
-    <div className="rounded-lg border border-line bg-panel px-4 sm:px-5">
+    <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-panel">
       <table className="w-full">
         <thead>
           <tr className="border-b border-line text-left text-[12px] font-semibold text-fg-faint">
@@ -25,15 +25,9 @@ export function StandingsTable({ rows }: { rows: StandingRow[] }) {
           {rows.map((r, i) => {
             const rank = i + 1;
             return (
-              <tr key={r.teamId} className={cx(rank === 1 && "bg-gold/[0.06]")}>
-                <td className="relative py-3 pl-4 sm:pl-5">
-                  {rank <= 3 && (
-                    <span
-                      className={cx("absolute inset-y-2 left-0 w-[3px] rounded-r-full", "bg-gold")}
-                      aria-hidden
-                    />
-                  )}
-                  <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold", rank === 1 ? "text-gold" : "text-fg-faint")}>{rank}</span>
+              <tr key={r.teamId} className={cx(rank === 1 && "bg-brand-soft/60")}>
+                <td className="py-3 pl-4 sm:pl-5">
+                  <span className={cx("scoreboard whitespace-nowrap text-[20px] font-semibold", rank === 1 ? "text-brand" : rank <= 3 ? "text-fg" : "text-fg-faint")}>{rank}</span>
                 </td>
                 <td className="max-w-0 truncate py-3 pr-2 font-display text-[18px] font-semibold sm:text-[20px]">{r.name}</td>
                 <td className={cx(NUM, "text-fg-muted")}>{r.played}</td>
@@ -44,7 +38,7 @@ export function StandingsTable({ rows }: { rows: StandingRow[] }) {
                 <td className={cx(NUM, r.diff > 0 ? "text-mint" : r.diff < 0 ? "text-crest" : "text-fg-muted")}>
                   {r.diff > 0 ? `+${r.diff}` : r.diff}
                 </td>
-                <td className={cx(NUM, "pr-4 text-[22px] sm:pr-5", rank === 1 ? "text-gold" : "text-fg")}>{r.points}</td>
+                <td className={cx(NUM, "pr-4 text-[22px] sm:pr-5", rank === 1 ? "text-brand" : "text-fg")}>{r.points}</td>
               </tr>
             );
           })}

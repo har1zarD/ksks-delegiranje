@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { getAdminMatches, getCompetitions } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
+import { LiveRefresh } from "@/components/live-refresh";
 import { MatchLine } from "@/components/match-line";
 import { StaffingBadge } from "@/components/staffing-badge";
 import { ButtonLink, Empty, Loading, PageHeader, Rows, Segment, Segments, Status } from "@/components/ui";
@@ -63,8 +64,11 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
     days.set(day, [...(days.get(day) ?? []), m]);
   }
 
+  const live = matches.filter((m) => m.status === "live").map((m) => m.id);
+
   return (
     <div className="flex flex-col gap-8">
+      <LiveRefresh matchIds={live} />
       <div className="flex flex-col gap-3">
         <Segments>
           <Segment href={href({ prikaz: undefined })} active={!past}>
@@ -94,7 +98,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
         [...days].map(([day, list]) => (
           <section key={day}>
             <h2 className="flex items-baseline justify-between gap-3 pb-3">
-              <span className="font-display text-[22px] font-semibold tracking-tight">{formatDay(day)}</span>
+              <span className="font-display text-[20px] font-semibold tracking-[-0.02em] sm:text-[22px]">{formatDay(day)}</span>
               <span className="text-[13px] font-semibold text-fg-faint">
                 {matchesLabel(list.length)}
               </span>
@@ -105,19 +109,23 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                   <Link href={`/admin/utakmice/${m.id}`} className="-mx-3 px-3 rounded-md flex items-center gap-3 py-4 transition-colors hover:bg-panel-2">
                     <MatchLine
                       match={m}
+                      periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
                       showScore={past}
+                      badge={
+                        m.status === "live" ? (
+                          <Status tone="crest" pulse>
+                            Uživo
+                          </Status>
+                        ) : m.status === "finished" && m.periods.length > 0 ? (
+                          <Status tone="muted">Kraj</Status>
+                        ) : undefined
+                      }
                       aside={
-                        m.status === "scheduled" || m.status === "live" ? (
-                          m.status === "live" ? (
-                            <Status tone="crest" pulse>
-                              Uživo
-                            </Status>
-                          ) : (
-                            <StaffingBadge staffing={m.staffing} />
-                          )
-                        ) : (
+                        m.status === "scheduled" ? (
+                          <StaffingBadge staffing={m.staffing} />
+                        ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
                           <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
-                        )
+                        ) : undefined
                       }
                     />
                   </Link>

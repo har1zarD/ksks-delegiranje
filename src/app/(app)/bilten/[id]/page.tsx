@@ -60,7 +60,7 @@ async function Bilten({ params }: { params: Params }) {
         <PrintButton />
       </div>
       {/* Papir: bijeli A4 list na ekranu, čista stranica na štampi */}
-      <article className="bilten overflow-x-auto rounded-md bg-white p-5 text-[14px] leading-snug text-black [color-scheme:light] sm:p-[14mm]">
+      <article className="bilten overflow-x-auto rounded-lg border border-line bg-white p-5 shadow-panel text-[14px] leading-snug text-black [color-scheme:light] sm:p-[14mm]">
         <header className="flex items-center gap-4 border-b border-black/30 pb-4">
           <Image src="/brand/ksks-logo.svg" alt="KSKS" width={64} height={64} />
           <div className="flex-1">

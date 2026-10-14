@@ -19,9 +19,12 @@ export const COMPETITION_SELECT =
 const MATCH_FEE_RULES =
   "rules:competitions!matches_competition_id_fkey ( fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_commissioner_km )" as const;
 
-export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, assignments ( position, status )` as const;
+/** Rezultat po četvrtinama (box score na listi i detalju) */
+const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points )" as const;
 
-export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
+export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( position, status )` as const;
+
+export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
 
 export const DELEGATION_ASSIGNMENT_SELECT =
   "id, position, status, decline_reason, notified_at, responded_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email )" as const;

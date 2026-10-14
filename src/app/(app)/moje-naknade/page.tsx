@@ -31,7 +31,7 @@ async function MyPay({ searchParams }: { searchParams: SearchParams }) {
       {!me ? (
         <Empty>Nemaš odsuđenih utakmica u {formatMonth(month)}.</Empty>
       ) : (
-        <div className="rounded-lg border border-line bg-panel px-4 sm:px-5">
+        <div className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
           <div className="flex items-end justify-between gap-4 border-b border-line py-4 sm:py-6">
             <div>
               <div className="text-[13px] font-semibold text-fg-muted">Za {formatMonth(month)}</div>

@@ -5,7 +5,8 @@ import { ChevronDown, ChevronLeft, FileText, MapPin, Printer } from "lucide-reac
 import { getCompetitions, getDelegation, getHalls, type Candidate } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
 import { isoToSarajevo, MATCH_STATUS_LABEL, POSITION_LABEL, requiredPositions, type MatchStatus, type Position } from "@/lib/format";
-import { DateTile } from "@/components/match-line";
+import { LiveRefresh } from "@/components/live-refresh";
+import { BoxScore, DateTile } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
 import { buttonClass, cx, Loading, Panel, SectionTitle, Status } from "@/components/ui";
 import { deleteMatch } from "../actions";
@@ -88,6 +89,19 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </header>
 
+      {(match.status === "live" || (match.status === "finished" && match.periods.length > 0)) && (
+        <Panel className="py-4 sm:py-6">
+          {match.status === "live" && <LiveRefresh matchIds={[match.id]} />}
+          <BoxScore
+            size="lg"
+            match={match}
+            periods={match.periods}
+            label="Rezultat"
+            badge={match.status === "live" ? <span className="font-medium">osvježava se uživo</span> : undefined}
+          />
+        </Panel>
+      )}
+
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Pozicije */}
         <section>
@@ -100,7 +114,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           >
             Delegiranje
           </SectionTitle>
-          <ul className="divide-y divide-line rounded-lg border border-line bg-panel [&>*]:px-4 sm:[&>*]:px-6">
+          <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {positions.map((position) => {
               const current = active.find((a) => a.position === position);
               const declined = assignments.find((a) => a.position === position && a.status === "declined");
@@ -197,7 +211,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Izmjena utakmice */}
-      <details className="group rounded-lg border border-line bg-panel px-4 sm:px-5">
+      <details className="group rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
         <summary className="-mx-3 px-3 rounded-md flex cursor-pointer list-none items-center justify-between gap-3 py-4 font-display text-[20px] font-semibold hover:bg-panel-2 [&::-webkit-details-marker]:hidden">
           Uredi utakmicu
           <ChevronDown className="size-5 text-fg-faint transition-transform group-open:rotate-180" />

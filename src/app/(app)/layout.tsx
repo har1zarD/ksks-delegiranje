@@ -4,22 +4,22 @@ import { logout } from "@/app/prijava/actions";
 import { AppNav, type NavItem } from "./nav";
 
 const PERSONAL: NavItem[] = [
-  { href: "/nominacije", label: "Nominacije" },
-  { href: "/utakmice", label: "Utakmice" },
-  { href: "/rezultati", label: "Rezultati" },
-  { href: "/odsustva", label: "Odsustva" },
-  { href: "/moje-naknade", label: "Naknade" },
+  { href: "/nominacije", label: "Nominacije", icon: "nominations" },
+  { href: "/utakmice", label: "Utakmice", icon: "matches" },
+  { href: "/rezultati", label: "Rezultati", icon: "results" },
+  { href: "/odsustva", label: "Odsustva", icon: "absences" },
+  { href: "/moje-naknade", label: "Naknade", icon: "fees" },
 ];
 
 const NAV: Record<Role, NavItem[]> = {
   admin: [
-    { href: "/admin", label: "Pregled" },
-    { href: "/admin/utakmice", label: "Utakmice" },
-    { href: "/rezultati", label: "Rezultati" },
-    { href: "/admin/ljudi", label: "Ljudi" },
-    { href: "/admin/takmicenja", label: "Takmičenja" },
-    { href: "/admin/naknade", label: "Naknade" },
-    { href: "/admin/kotizacije", label: "Kotizacije" },
+    { href: "/admin", label: "Pregled", icon: "overview", primary: true },
+    { href: "/admin/utakmice", label: "Utakmice", icon: "matches", primary: true },
+    { href: "/rezultati", label: "Rezultati", icon: "results", primary: true },
+    { href: "/admin/ljudi", label: "Ljudi", icon: "people", primary: true },
+    { href: "/admin/takmicenja", label: "Takmičenja", icon: "competitions" },
+    { href: "/admin/naknade", label: "Naknade", icon: "fees" },
+    { href: "/admin/kotizacije", label: "Kotizacije", icon: "registrations" },
   ],
   official: PERSONAL,
   commissioner: PERSONAL,
@@ -34,10 +34,10 @@ const ROLE_LABEL: Record<Role, string> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Suspense fallback={<div className="h-[97px] border-b border-line" />}>
+      <Suspense fallback={<div className="h-14 border-b border-line bg-panel sm:h-16" />}>
         <UserNav />
       </Suspense>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-20 pt-8 sm:px-6 sm:pt-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 sm:px-6 sm:pt-10 md:pb-20">{children}</main>
     </>
   );
 }

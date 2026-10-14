@@ -13,7 +13,7 @@ export const metadata = { title: "Takmičenje — KSKS" };
 export default function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
-      <Link href="/admin/takmicenja" className="inline-flex items-center gap-1 text-[15px] font-semibold text-gold hover:opacity-75">
+      <Link href="/admin/takmicenja" className="inline-flex items-center gap-1 text-[15px] font-semibold text-brand hover:opacity-75">
         <ChevronLeft className="size-4" /> Takmičenja
       </Link>
       <Suspense fallback={<Loading />}>
@@ -37,7 +37,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         {c.parent && (
           <p className="mt-2 text-[14px] text-fg-muted">
             Faza takmičenja{" "}
-            <Link href={`/admin/takmicenja/${c.parent.id}`} className="font-semibold text-gold">
+            <Link href={`/admin/takmicenja/${c.parent.id}`} className="font-semibold text-brand">
               {c.parent.name}
             </Link>
             {c.carry_over_h2h && ", prenose se međusobni rezultati"}
@@ -49,7 +49,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
             {children.map((ch, i) => (
               <span key={ch.id}>
                 {i > 0 && ", "}
-                <Link href={`/admin/takmicenja/${ch.id}`} className="font-semibold text-gold">
+                <Link href={`/admin/takmicenja/${ch.id}`} className="font-semibold text-brand">
                   {ch.name}
                 </Link>
               </span>
@@ -74,7 +74,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         <Fact value={c.table_count_default} label="za zapisničkim stolom" />
         <p className="col-span-2 text-[13px] text-fg-muted sm:col-span-4">
           Broj sudija, stola i cijene naknada mijenjaš u{" "}
-          <Link href="/admin/naknade" className="font-semibold text-gold">
+          <Link href="/admin/naknade" className="font-semibold text-brand">
             Naknadama
           </Link>
           .
@@ -205,7 +205,7 @@ function Fact({ value, label }: { value: number; label: string }) {
 /** Panel koji se otvara klikom na naslov (rijetke radnje) */
 function Collapsible({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
   return (
-    <details className="group rounded-lg border border-line bg-panel px-4 sm:px-5">
+    <details className="group rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
       <summary className="flex cursor-pointer list-none items-center gap-4 py-4 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
           <span className="block font-display text-[22px] font-semibold tracking-tight">{title}</span>

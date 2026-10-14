@@ -26,7 +26,7 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
           {error}
         </p>
       )}
-      <Button type="submit" disabled={pending} className="mt-2 h-12 w-full text-[16px] sm:h-12">
+      <Button type="submit" disabled={pending} className="mt-1 h-12 w-full text-[16px] sm:h-12 sm:text-[15px]">
         {pending ? "Prijava…" : "Prijavi se"}
       </Button>
     </form>

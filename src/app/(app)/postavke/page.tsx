@@ -57,10 +57,10 @@ async function Tokens() {
         <TokenForm mcpUrl={mcpUrl} />
       </Panel>
       {tokens && tokens.length > 0 && (
-        <ul className="divide-y divide-line rounded-lg border border-line bg-panel [&>*]:px-4 sm:[&>*]:px-6">
+        <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
           {tokens.map((t) => (
             <li key={t.id} className="flex items-center gap-3 py-4">
-              <KeyRound className={cx("size-5 shrink-0", t.revoked_at ? "text-fg-faint" : "text-gold")} strokeWidth={1.9} />
+              <KeyRound className={cx("size-5 shrink-0", t.revoked_at ? "text-fg-faint" : "text-brand")} strokeWidth={1.9} />
               <div className="min-w-0 flex-1">
                 <div className={cx("truncate text-[15px] font-semibold", t.revoked_at && "text-fg-faint line-through")}>
                   {t.name} <span className="font-normal text-fg-muted">{t.prefix}…</span>

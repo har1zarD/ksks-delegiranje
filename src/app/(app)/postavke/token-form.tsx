@@ -17,7 +17,7 @@ export function TokenForm({ mcpUrl }: { mcpUrl: string }) {
     return (
       <div className="flex flex-col gap-5">
         <div className="rounded-lg border border-amber/40 bg-panel px-4 py-4">
-          <p className="text-[15px] font-semibold text-gold">Token je napravljen. Kopiraj ga sada, kasnije se više ne prikazuje.</p>
+          <p className="text-[15px] font-semibold text-brand">Token je napravljen. Kopiraj ga sada, kasnije se više ne prikazuje.</p>
           <CopyBlock text={state.token} />
         </div>
         <div>
@@ -54,7 +54,7 @@ function CopyBlock({ text }: { text: string }) {
           await navigator.clipboard.writeText(text);
           setCopied(true);
         }}
-        className="grid size-10 shrink-0 place-items-center rounded-md text-gold hover:bg-panel-2"
+        className="grid size-10 shrink-0 place-items-center rounded-md text-brand hover:bg-panel-2"
         aria-label={copied ? "Kopirano" : "Kopiraj"}
         title={copied ? "Kopirano" : "Kopiraj"}
       >
