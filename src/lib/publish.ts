@@ -32,6 +32,28 @@ export type PublishResult = {
   emailed: boolean;
 };
 
+type Row = NonNullable<Awaited<ReturnType<typeof loadRows>>>[number];
+const loadRows = async (db: Db, ids: string[]) => (await db.from("matches").select(PUBLISH_SELECT).in("id", ids).order("starts_at")).data;
+
+const toNomination = (m: Row): NominationMatch => ({
+  ...m,
+  crew: m.assignments
+    .filter((a) => (a.status === "pending" || a.status === "accepted") && a.profile)
+    .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email })),
+});
+
+/** Zamjena: nominacija te utakmice samo novoj osobi, njeno ime istaknuto crveno */
+export async function sendReplacementNomination(
+  db: Db,
+  { matchId, assignmentId, profileId, email }: { matchId: string; assignmentId: string; profileId: string; email: string },
+) {
+  const rows = await loadRows(db, [matchId]);
+  if (!rows?.length) return false;
+  const match = toNomination(rows[0]);
+  const doc = nominationEmail([match], nominationKindOf(match), siteUrl("/nominacije"), siteUrl("/icons/icon-192.png"), profileId);
+  return sendEmail({ to: email, kind: "nomination", profileId, assignmentId, ...doc });
+}
+
 export async function publishMatches(db: Db, matchIds: string[]): Promise<PublishResult> {
   const ids = [...new Set(matchIds)];
   if (ids.length === 0) return { matches: 0, revealed: 0, recipients: 0, documents: [], emailed: false };
@@ -49,12 +71,7 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
   const { error: e2 } = await db.from("matches").update({ published_at: now }).in("id", ids);
   if (e2) throw new Error(e2.message);
 
-  const matches: NominationMatch[] = rows.map((m) => ({
-    ...m,
-    crew: m.assignments
-      .filter((a) => (a.status === "pending" || a.status === "accepted") && a.profile)
-      .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email })),
-  }));
+  const matches = rows.map(toNomination);
 
   // 3: nominacija svima sa liste; omladinska liga i seniori (pomoćne sudije) kao odvojeni dokumenti
   const { data: list } = await db.from("profiles").select("email").eq("active", true).in("role", ["official", "commissioner"]);

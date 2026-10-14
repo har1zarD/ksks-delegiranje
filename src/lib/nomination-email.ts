@@ -44,9 +44,9 @@ function dateRange(matches: NominationMatch[]) {
   return days.length === 1 ? days[0] : `${days[0]} – ${days[days.length - 1]}`;
 }
 
-/** Redovi ekipe: pozicija → imena (statistika i više osoba u jednom redu, kao u dokumentu) */
+/** Redovi ekipe: pozicija → osobe (statistika i više osoba u jednom redu, kao u dokumentu) */
 function crewRows(m: NominationMatch, kind: NominationKind) {
-  const rows = new Map<string, string[]>();
+  const rows = new Map<string, { name: string; profileId: string }[]>();
   const sorted = [...m.crew].sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
   for (const c of sorted) {
     // Seniori: samo pomoćne sudije
@@ -60,9 +60,9 @@ function crewRows(m: NominationMatch, kind: NominationKind) {
         : positionName(c.position, m.digital_scoresheet);
     // Sudije su odvojeni redovi; ostale pozicije istog naziva idu u jedan red
     const key = c.position.startsWith("referee") ? `${label}:${c.position}` : label;
-    rows.set(key, [...(rows.get(key) ?? []), nominationName(c.name)]);
+    rows.set(key, [...(rows.get(key) ?? []), { name: nominationName(c.name), profileId: c.profileId }]);
   }
-  return [...rows].map(([key, names]) => ({ label: key.split(":")[0], names: names.join(", ") }));
+  return [...rows].map(([key, people]) => ({ label: key.split(":")[0], people }));
 }
 
 const dayTitle = new Intl.DateTimeFormat("bs-BA", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Sarajevo" });
@@ -97,10 +97,11 @@ const C = {
   panel: "#ffffff",
   head: "#f7f7f8",
   brand: "#18181b",
+  red: "#d1242f",
 };
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-function matchCard(m: NominationMatch, kind: NominationKind) {
+function matchCard(m: NominationMatch, kind: NominationKind, highlight?: string) {
   const rows = crewRows(m, kind);
   const left = `
     ${kind === "youth" ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
@@ -113,7 +114,9 @@ function matchCard(m: NominationMatch, kind: NominationKind) {
         .map(
           (r, i) => `<tr>
             <td style="padding:7px 12px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:13px;color:${C.muted};width:40%">${esc(r.label)}</td>
-            <td style="padding:7px 12px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:14px;font-weight:600;color:${C.ink}">${esc(r.names)}</td>
+            <td style="padding:7px 12px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:14px;font-weight:600;color:${C.ink}">${r.people
+              .map((p) => (p.profileId === highlight ? `<span style="color:${C.red}">${esc(p.name)}</span>` : esc(p.name)))
+              .join(", ")}</td>
           </tr>`,
         )
         .join("")
@@ -135,21 +138,25 @@ function matchCard(m: NominationMatch, kind: NominationKind) {
 </table>`;
 }
 
-/** Nominacija (omladinska liga) ili Nominacija – pomoćne sudije (seniori) */
-export function nominationEmail(matches: NominationMatch[], kind: NominationKind, link: string, logo: string) {
+/**
+ * Nominacija (omladinska liga) ili Nominacija – pomoćne sudije (seniori).
+ * highlight: zamjena; ime te osobe je crveno, a dokument ide samo njoj.
+ */
+export function nominationEmail(matches: NominationMatch[], kind: NominationKind, link: string, logo: string, highlight?: string) {
   const title = kind === "youth" ? "Nominacija" : "Nominacija – pomoćne sudije";
-  const subject = `${title} ${dateRange(matches)}`;
+  const subject = `${title}${highlight ? " (zamjena)" : ""} ${dateRange(matches)}`;
 
   const text = [
     `${title.toUpperCase()} ${dateRange(matches)}`,
     "Košarkaški savez Kantona Sarajevo",
     "",
+    ...(highlight ? ["Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti.", ""] : []),
     ...groups(matches).flatMap(([group, list]) => [
       ...(group ? [group, ""] : []),
       ...list.flatMap((m) => [
         `${formatTime(m.starts_at)}  ${kind === "youth" ? `UTAKMICA ${pad(m.number)}, ` : ""}${competitionLine(m)}, ${m.hall?.name ?? "dvorana nije određena"}`,
         `${(m.home?.name ?? "?").toUpperCase()} – ${(m.away?.name ?? "?").toUpperCase()}`,
-        ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.names}`),
+        ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`),
         "",
       ]),
     ]),
@@ -171,12 +178,13 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
       </td>
     </tr></table>
     <div style="margin-top:10px;font-size:15px;color:${C.muted}">${esc(dateRange(matches))}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}</div>
+    ${highlight ? `<div style="margin-top:6px;font-size:15px;color:${C.ink}">Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti (crveno).</div>` : ""}
   </td></tr>
   ${groups(matches)
     .map(
       ([group, list]) => `<tr><td style="padding:0 0 4px">
     ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
-    ${list.map((m) => matchCard(m, kind)).join("")}
+    ${list.map((m) => matchCard(m, kind, highlight)).join("")}
   </td></tr>`,
     )
     .join("")}

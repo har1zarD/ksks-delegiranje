@@ -6,6 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { sendEmail } from "@/lib/email";
+import { sendReplacementNomination } from "@/lib/publish";
 import { cancellationEmail, declinedEmail } from "@/lib/emails";
 import { CREW_COLUMNS, crewOf, crewPositions, skillFor } from "@/lib/crew";
 import type { MatchStatus, Position } from "@/lib/format";
@@ -28,18 +29,24 @@ export function eligibleFor(position: Position, p: { role: string; is_referee: b
   return official && p.is_referee;
 }
 
-export async function assignPerson(
-  db: Db,
-  { matchId, profileId, position, createdBy }: { matchId: string; profileId: string; position: Position; createdBy: string },
-) {
+/** Smije li osoba na poziciju ove utakmice (baca DelegationError s razlogom) */
+async function checkAssignable(db: Db, matchId: string, profileId: string, position: Position) {
   const [{ data: match }, { data: person }] = await Promise.all([
     db.from("matches").select(CREW_COLUMNS).eq("id", matchId).maybeSingle(),
-    db.from("profiles").select("full_name, role, is_referee, is_table, table_skills, active").eq("id", profileId).maybeSingle(),
+    db.from("profiles").select("full_name, email, role, is_referee, is_table, table_skills, active").eq("id", profileId).maybeSingle(),
   ]);
   if (!match) throw new DelegationError("Utakmica nije pronađena.");
   if (!person?.active) throw new DelegationError("Osoba nije pronađena ili nije aktivna.");
   if (!crewPositions(crewOf(match)).includes(position)) throw new DelegationError("Ova utakmica nema tu poziciju.");
   if (!eligibleFor(position, person)) throw new DelegationError("Osoba nije registrovana za ovu poziciju.");
+  return person;
+}
+
+export async function assignPerson(
+  db: Db,
+  { matchId, profileId, position, createdBy }: { matchId: string; profileId: string; position: Position; createdBy: string },
+) {
+  const person = await checkAssignable(db, matchId, profileId, position);
 
   // Odbijene/otkazane nominacije na istoj poziciji ili iste osobe oslobađaju mjesto
   const { error: cleanupError } = await db
@@ -90,7 +97,30 @@ export async function removeAssignment(db: Db, assignmentId: string) {
   return { matchId: a.match_id, name: a.profile?.full_name ?? null, cancelled: true, emailed };
 }
 
-/** Šalje email svima na utakmici kojima nominacija još nije poslana */
+/**
+ * Zamjena osobe na poziciji (npr. ne odgovara). Stara nominacija se briše bez emaila.
+ * Ako je stara već bila poslana, nova je odmah vidljiva i nova osoba dobija nominaciju
+ * utakmice emailom (svoje ime crveno); neaktivirana se samo zamijeni.
+ */
+export async function replaceAssignment(
+  db: Db,
+  { assignmentId, profileId, createdBy }: { assignmentId: string; profileId: string; createdBy: string },
+) {
+  const { data: old } = await db.from("assignments").select("id, match_id, position, status, notified_at, profile_id").eq("id", assignmentId).maybeSingle();
+  if (!old || (old.status !== "pending" && old.status !== "accepted")) throw new DelegationError("Delegiranje nije pronađeno.");
+  if (old.profile_id === profileId) throw new DelegationError("Izaberi drugu osobu.");
+  const person = await checkAssignable(db, old.match_id, profileId, old.position);
+
+  const { error: delError } = await db.from("assignments").delete().eq("id", old.id);
+  if (delError) throw new Error(delError.message);
+  const { id } = await assignPerson(db, { matchId: old.match_id, profileId, position: old.position, createdBy });
+
+  if (!old.notified_at) return { matchId: old.match_id, name: person.full_name, emailed: false };
+  await db.from("assignments").update({ notified_at: new Date().toISOString() }).eq("id", id);
+  const emailed = await sendReplacementNomination(db, { matchId: old.match_id, assignmentId: id, profileId, email: person.email });
+  return { matchId: old.match_id, name: person.full_name, emailed };
+}
+
 /**
  * Odgovor na vlastitu, poslanu nominaciju. Odbijanje (i otkazivanje prihvaćene) javlja adminima.
  * Vraća funkciju za slanje obavijesti, da je web može pokrenuti nakon odgovora (after()).

@@ -14,6 +14,7 @@ import { deleteMatch } from "../actions";
 import { MatchForm } from "../match-form";
 import { unassign } from "./actions";
 import { AssignForm } from "./assign-form";
+import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
 
 export const metadata = { title: "Delegiranje — KSKS" };
@@ -137,7 +138,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                 <li key={position} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
                   <div className="text-[13px] font-semibold text-fg-muted sm:w-32 sm:shrink-0">{positionName(position, crew.digital)}</div>
                   {current ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[17px] font-semibold">{current.profile!.full_name}</div>
                         <div className="mt-0.5">
@@ -150,6 +151,13 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                           )}
                         </div>
                       </div>
+                      <ReplaceButton
+                        assignmentId={current.id}
+                        current={current.profile!.full_name}
+                        position={positionName(position, crew.digital)}
+                        notified={Boolean(current.notified_at)}
+                        candidates={candidates.filter((c) => eligibleFor(position, c) && !onMatch.has(c.id))}
+                      />
                       <form action={unassign}>
                         <input type="hidden" name="id" value={current.id} />
                         <button type="submit" className={buttonClass("destructive", "h-10 text-[14px]")}>
