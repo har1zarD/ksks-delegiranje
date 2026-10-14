@@ -16,3 +16,20 @@ update public.competitions c
    set fee_table_km = 30, fee_stats_km = 30
   from public.seasons s
  where c.name in ('A1 liga KSBiH', 'A2 liga jug KSBiH') and s.id = c.season_id and s.is_current;
+
+-- ABA liga i EuroCup: pomoćne sudije 50 KM po osobi
+update public.competitions c
+   set fee_table_km = 50, fee_stats_km = 50
+  from public.seasons s
+ where c.name in ('ABA liga', 'EuroCup') and s.id = c.season_id and s.is_current;
+
+-- Bez komesara: Minibasket, Unobasket i grupe 2 (pravilo i postojeće utakmice)
+update public.competitions c
+   set commissioner_default = false, fee_commissioner_km = null
+  from public.seasons s
+ where c.name in ('Minibasket', 'Unobasket', 'Pioniri — Grupa 2', 'Kadeti — Grupa 2') and s.id = c.season_id and s.is_current;
+
+update public.matches m
+   set has_commissioner = false
+  from public.competitions c
+ where m.competition_id = c.id and c.name in ('Minibasket', 'Unobasket', 'Pioniri — Grupa 2', 'Kadeti — Grupa 2') and m.has_commissioner;
