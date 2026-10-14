@@ -2,7 +2,7 @@
 import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS } from "@/lib/crew";
 
 export const MATCH_SELECT = `
-  id, number, kind, kind_label, starts_at, round, status, ${CREW_COLUMNS}, home_score, away_score,
+  id, number, kind, kind_label, starts_at, round, status, published_at, ${CREW_COLUMNS}, home_score, away_score,
   competition:competitions!matches_competition_id_fkey ( id, name, short_name ),
   home:teams!matches_home_team_id_fkey ( id, name ),
   away:teams!matches_away_team_id_fkey ( id, name ),

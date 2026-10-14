@@ -14,7 +14,7 @@ import { deleteMatch } from "../actions";
 import { MatchForm } from "../match-form";
 import { unassign } from "./actions";
 import { AssignForm } from "./assign-form";
-import { SendForm } from "./send-form";
+import { PublishMatch } from "@/components/publish";
 
 export const metadata = { title: "Delegiranje — KSKS" };
 
@@ -146,7 +146,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                           ) : current.notified_at ? (
                             <Status tone="gold">Čeka odgovor</Status>
                           ) : (
-                            <Status tone="muted">Nije poslano</Status>
+                            <Status tone="muted">Nije aktivirano</Status>
                           )}
                         </div>
                       </div>
@@ -185,16 +185,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
         {/* Bočno: slanje, trošak, bilten */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
           <Panel className="flex flex-col gap-4 py-4 sm:py-5">
-            {groups.map((g) =>
-              g.key ? (
-                <div key={g.key}>
-                  <p className="pb-2 text-[13px] font-semibold text-fg-muted">{NOMINATION_GROUP_LABEL[g.key]}</p>
-                  <SendForm matchId={match.id} unsent={unsentIn(g.key)} group={g.key} label="Pošalji" />
-                </div>
-              ) : (
-                <SendForm key="all" matchId={match.id} unsent={unsentIn(null)} />
-              ),
-            )}
+            <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} />
             <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
           </Panel>
 

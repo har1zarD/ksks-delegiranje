@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { crewFromForm, crewToRow } from "@/lib/crew";
+import { publishMatches, type PublishResult } from "@/lib/publish";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { MATCH_KIND_LABEL, sarajevoToISO, type MatchKind, type MatchStatus } from "@/lib/format";
 
@@ -72,4 +74,23 @@ export async function deleteMatch(formData: FormData) {
     { table: "match_reports", match: id },
   );
   redirect("/admin/utakmice");
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type PublishState = { error?: string; result?: PublishResult };
+
+/** Aktiviraj utakmice: nominacija postaje vidljiva i šalje se emailom (vidi lib/publish.ts) */
+export async function publish(ids: string[]): Promise<PublishState> {
+  await requireRole("admin");
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || !ids.every((id) => UUID.test(id))) {
+    return { error: "Označi bar jednu utakmicu." };
+  }
+  try {
+    return { result: await publishMatches(createAdminClient(), ids) };
+  } catch {
+    return { error: "Objava nije uspjela. Pokušaj ponovo." };
+  } finally {
+    invalidate(...ids.flatMap((match) => [{ table: "matches" as const, match }, { table: "assignments" as const, match }]));
+  }
 }

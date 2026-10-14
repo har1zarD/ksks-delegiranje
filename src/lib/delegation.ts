@@ -6,8 +6,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { sendEmail } from "@/lib/email";
-import { cancellationEmail, declinedEmail, nominationEmail } from "@/lib/emails";
-import { CREW_COLUMNS, crewOf, crewPositions, nominationGroupOf, skillFor, type NominationGroup } from "@/lib/crew";
+import { cancellationEmail, declinedEmail } from "@/lib/emails";
+import { CREW_COLUMNS, crewOf, crewPositions, skillFor } from "@/lib/crew";
 import type { MatchStatus, Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -89,35 +89,6 @@ export async function removeAssignment(db: Db, assignmentId: string) {
 }
 
 /** Šalje email svima na utakmici kojima nominacija još nije poslana */
-/**
- * Šalje neposlane nominacije utakmice (opcionalno samo jednu grupu: sudije i komesar / pomoćne sudije).
- * Nominacija je poslana čim je savez pošalje (vidi se u aplikaciji); email je obavijest i može ne proći (npr. email nije podešen).
- */
-export async function sendMatchNominations(db: Db, matchId: string, group?: NominationGroup) {
-  const { data, error } = await db
-    .from("assignments")
-    .select(WITH_PERSON_AND_MATCH)
-    .eq("match_id", matchId)
-    .eq("status", "pending")
-    .is("notified_at", null);
-  if (error) throw new Error(error.message);
-
-  const results: { name: string; position: Position; sent: boolean }[] = [];
-  for (const a of (data ?? []).filter((a) => !group || nominationGroupOf(a.position) === group)) {
-    if (!a.profile || !a.match) continue;
-    await db.from("assignments").update({ notified_at: new Date().toISOString() }).eq("id", a.id);
-    const sent = await sendEmail({
-      to: a.profile.email,
-      kind: "nomination",
-      profileId: a.profile.id,
-      assignmentId: a.id,
-      ...nominationEmail(a.profile.full_name, a.position, a.match),
-    });
-    results.push({ name: a.profile.full_name, position: a.position, sent });
-  }
-  return results;
-}
-
 /**
  * Odgovor na vlastitu, poslanu nominaciju. Odbijanje (i otkazivanje prihvaćene) javlja adminima.
  * Vraća funkciju za slanje obavijesti, da je web može pokrenuti nakon odgovora (after()).

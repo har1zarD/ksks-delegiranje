@@ -15,9 +15,12 @@ function getTransport() {
 
 export type Email = {
   to: string;
+  /** Skriveni primaoci (nominacija kola: svi sa liste u jednom emailu) */
+  bcc?: string[];
   subject: string;
   text: string;
-  kind: "nomination" | "cancellation" | "reminder" | "pending_reminder" | "declined";
+  html?: string;
+  kind: "nomination" | "nomination_list" | "cancellation" | "reminder" | "pending_reminder" | "declined";
   profileId?: string;
   assignmentId?: string;
 };
@@ -35,8 +38,10 @@ export async function sendEmail(email: Email): Promise<boolean> {
       const info = await t.sendMail({
         from: { name: "KSKS Delegiranje", address: process.env.GMAIL_USER! },
         to: email.to,
+        bcc: email.bcc,
         subject: email.subject,
         text: email.text,
+        html: email.html,
       });
       providerId = info.messageId;
     } catch (e) {
@@ -47,7 +52,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
   // email_log nema insert politiku za korisnike; piše servisni klijent
   await createAdminClient().from("email_log").insert({
     kind: email.kind,
-    to_email: email.to,
+    to_email: email.bcc?.length ? `${email.to} (+${email.bcc.length} skriveno)` : email.to,
     profile_id: email.profileId ?? null,
     assignment_id: email.assignmentId ?? null,
     provider_id: providerId,

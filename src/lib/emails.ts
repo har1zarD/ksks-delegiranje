@@ -24,22 +24,6 @@ function describe(m: MatchInfo) {
     .join("\n");
 }
 
-export function nominationEmail(name: string, position: Position, match: MatchInfo) {
-  return {
-    subject: `Nominacija: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
-    text: `Zdravo ${name},
-
-delegiran si kao ${positionName(position, match.digital_scoresheet).toLowerCase()} na utakmicu:
-
-${describe(match)}
-
-Prihvati ili odbij nominaciju ovdje:
-${siteUrl("/nominacije")}
-
-Košarkaški savez Kantona Sarajevo`,
-  };
-}
-
 export function cancellationEmail(name: string, position: Position, match: MatchInfo) {
   return {
     subject: `Otkazano: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,

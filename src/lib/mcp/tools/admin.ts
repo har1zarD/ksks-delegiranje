@@ -2,7 +2,8 @@ import { z } from "zod";
 import { invalidateFromRoute } from "@/lib/cache";
 import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewOf, crewPositions, crewToRow, type Crew } from "@/lib/crew";
 import { ADMIN_MATCH_SELECT, ASSIGNMENT_WITH_TIME_SELECT, MATCH_SELECT } from "@/lib/data/selects";
-import { assignPerson, eligibleFor, removeAssignment, sendMatchNominations } from "@/lib/delegation";
+import { assignPerson, eligibleFor, removeAssignment } from "@/lib/delegation";
+import { publishMatches } from "@/lib/publish";
 import {
   addDays,
   addMonths,
@@ -365,19 +366,24 @@ export const unassign = defineTool({
 
 export const sendNominations = defineTool({
   name: "send_nominations",
-  description: "Pošalji email svima na utakmici kojima nominacija još nije poslana.",
+  description:
+    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija kola emailom, a delegiranima i lični pregled.",
   roles: [...ADMIN],
-  input: { utakmica_id: uuidSchema },
-  async run({ utakmica_id }, { db }) {
-    let results;
+  input: { utakmice: z.array(uuidSchema).min(1).max(100).describe("id utakmica koje se objavljuju") },
+  async run({ utakmice }, { db }) {
+    let r;
     try {
-      results = await sendMatchNominations(db, utakmica_id);
+      r = await publishMatches(db, utakmice);
     } finally {
-      // notified_at se upisuje za svaku poslanu nominaciju, pa i kad kasnije nešto pukne
-      invalidateFromRoute({ table: "assignments", match: utakmica_id });
+      // Vidljivost se upisuje prije slanja emaila, pa i kad slanje pukne
+      invalidateFromRoute(...utakmice.map((match) => ({ table: "assignments" as const, match })), ...utakmice.map((match) => ({ table: "matches" as const, match })));
     }
-    if (results.length === 0) return { poruka: "Nema neposlanih nominacija." };
-    return results.map((r) => ({ osoba: r.name, pozicija: POSITION_LABEL[r.position], poslano: r.sent }));
+    return {
+      objavljeno_utakmica: r.matches,
+      vidljivih_delegiranja: r.revealed,
+      nominacija_kola: r.emailed ? `poslana na ${r.recipients} adresa` : "email nije poslan (nije podešen)",
+      licni_emailovi: `${r.personal.sent}/${r.personal.total}`,
+    };
   },
 });
 

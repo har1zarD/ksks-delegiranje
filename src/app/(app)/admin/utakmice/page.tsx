@@ -5,6 +5,7 @@ import { getAdminMatches, getCompetitions } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
+import { PublishSelection, SelectAll, SelectMatch } from "@/components/publish";
 import { MatchLine } from "@/components/match-line";
 import { StaffingBadge } from "@/components/staffing-badge";
 import { ButtonLink, Empty, Loading, PageHeader, Rows, Segment, Segments, Status } from "@/components/ui";
@@ -65,8 +66,10 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   }
 
   const live = matches.filter((m) => m.status === "live").map((m) => m.id);
+  // Aktiviranje (objava nominacije) ima smisla samo za utakmice koje tek dolaze
+  const unpublished = (list: typeof matches) => list.filter((m) => m.status === "scheduled" && !m.published_at).map((m) => m.id);
 
-  return (
+  const content = (
     <div className="flex flex-col gap-8">
       <LiveRefresh matchIds={live} />
       <div className="flex flex-col gap-3">
@@ -97,16 +100,18 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
       ) : (
         [...days].map(([day, list]) => (
           <section key={day}>
-            <h2 className="flex items-baseline justify-between gap-3 pb-3">
+            <h2 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
               <span className="font-display text-[20px] font-semibold tracking-[-0.02em] sm:text-[22px]">{formatDay(day)}</span>
-              <span className="text-[13px] font-semibold text-fg-faint">
-                {matchesLabel(list.length)}
+              <span className="flex items-baseline gap-4">
+                {!past && <SelectAll ids={unpublished(list)} />}
+                <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(list.length)}</span>
               </span>
             </h2>
             <Rows>
               {list.map((m) => (
-                <li key={m.id}>
-                  <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
+                <li key={m.id} className="flex items-center gap-1 transition-colors hover:bg-panel-2">
+                  {!past && m.status === "scheduled" && <SelectMatch id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
+                  <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
                     <MatchLine
                       match={m}
                       periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
@@ -118,6 +123,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                           </Status>
                         ) : m.status === "finished" && m.periods.length > 0 ? (
                           <Status tone="muted">Kraj</Status>
+                        ) : m.status === "scheduled" && !m.published_at ? (
+                          <Status tone="muted">Nije aktivirano</Status>
                         ) : undefined
                       }
                       aside={
@@ -137,4 +144,6 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
       )}
     </div>
   );
+
+  return past ? content : <PublishSelection>{content}</PublishSelection>;
 }

@@ -2,7 +2,7 @@
 
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
-import { assignPerson, DelegationError, removeAssignment, sendMatchNominations } from "@/lib/delegation";
+import { assignPerson, DelegationError, removeAssignment } from "@/lib/delegation";
 import { POSITION_ORDER, type Position } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -36,26 +36,4 @@ export async function unassign(formData: FormData) {
   } catch (e) {
     if (!(e instanceof DelegationError)) throw e;
   }
-}
-
-export type SendState = { error?: string; warning?: string; sent?: number };
-
-export async function sendNominations(_prev: SendState, formData: FormData): Promise<SendState> {
-  await requireRole("admin");
-  const matchId = String(formData.get("match_id") ?? "");
-  const g = String(formData.get("group") ?? "");
-  const group = g === "officials" || g === "table" ? g : undefined;
-  let results;
-  try {
-    results = await sendMatchNominations(createAdminClient(), matchId, group);
-  } catch {
-    return { error: "Nominacije nisu učitane." };
-  } finally {
-    // notified_at se upisuje za svaku poslanu nominaciju, pa i kad kasnije nešto pukne
-    invalidate({ table: "assignments", match: matchId });
-  }
-  // Nominacije su poslane (vide se u aplikaciji); email je samo obavijest
-  const emailed = results.filter((r) => r.sent).length;
-  const noEmail = results.length - emailed;
-  return { sent: results.length, ...(noEmail > 0 ? { warning: `${noEmail} bez email obavijesti (email nije podešen ili nije prošao). Nominacije se vide u aplikaciji.` } : {}) };
 }
