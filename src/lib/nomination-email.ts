@@ -65,23 +65,25 @@ function crewRows(m: NominationMatch, kind: NominationKind) {
   return [...rows].map(([key, names]) => ({ label: key.split(":")[0], names: names.join(", ") }));
 }
 
-/** Omladinska liga: grupe "N. KOLO – TAKMIČENJE"; seniori: jedna lista po terminu */
-function groups(matches: NominationMatch[], kind: NominationKind) {
-  const sorted = [...matches].sort(
-    (a, b) =>
-      (kind === "youth" ? (a.competition?.sort ?? 0) - (b.competition?.sort ?? 0) || (a.round ?? 999) - (b.round ?? 999) : 0) ||
-      a.starts_at.localeCompare(b.starts_at),
-  );
-  if (kind === "seniors") return [["", sorted] as const];
+const dayTitle = new Intl.DateTimeFormat("bs-BA", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Sarajevo" });
+
+/** Hronološki: po danu, a unutar dana po satu (8:00, 9:00, 10:00…) */
+function groups(matches: NominationMatch[]) {
+  const sorted = [...matches].sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.number - b.number);
   const map = new Map<string, NominationMatch[]>();
   for (const m of sorted) {
-    const title = [m.round ? `${m.round}. kolo` : null, m.competition?.name, matchKindLabel(m.kind, m.kind_label) || null]
-      .filter(Boolean)
-      .join(" – ")
-      .toLocaleUpperCase("bs");
+    const title = dayTitle.format(new Date(m.starts_at)).toLocaleUpperCase("bs");
     map.set(title, [...(map.get(title) ?? []), m]);
   }
   return [...map];
+}
+
+/** "4. KOLO – MINIBASKET" (na kartici utakmice) */
+function competitionLine(m: NominationMatch) {
+  return [m.round ? `${m.round}. kolo` : null, m.competition?.name, matchKindLabel(m.kind, m.kind_label) || null]
+    .filter(Boolean)
+    .join(" – ")
+    .toLocaleUpperCase("bs");
 }
 
 // ───────── Email ─────────
@@ -103,8 +105,8 @@ function matchCard(m: NominationMatch, kind: NominationKind) {
   const left = `
     ${kind === "youth" ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
     <div style="font-size:22px;font-weight:700;color:${C.ink};line-height:1.1;margin-bottom:10px">${pad(m.number)}</div>` : ""}
-    <div style="font-size:14px;font-weight:700;color:${C.ink}">${esc(date(m.starts_at))}</div>
-    <div style="font-size:14px;color:${C.ink}">${esc(formatTime(m.starts_at))}</div>
+    <div style="font-size:20px;font-weight:700;color:${C.ink};line-height:1.1">${esc(formatTime(m.starts_at))}</div>
+    <div style="font-size:13px;color:${C.muted};margin-top:2px">${esc(date(m.starts_at))}</div>
     <div style="font-size:13px;color:${C.muted};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>`;
   const crew = rows.length
     ? rows
@@ -122,9 +124,9 @@ function matchCard(m: NominationMatch, kind: NominationKind) {
     <td valign="top" style="width:120px;padding:14px 14px;border-right:1px solid ${C.line};background:${C.head};border-radius:8px 0 0 8px">${left}</td>
     <td valign="top" style="padding:0">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr><td colspan="2" style="padding:10px 12px 0;font-size:11px;font-weight:700;letter-spacing:.05em;color:${C.faint}">${esc(competitionLine(m))}</td></tr>
         <tr>
-          <td style="padding:12px 12px;border-bottom:1px solid ${C.line};font-size:14px;font-weight:700;color:${C.ink};text-transform:uppercase;width:50%">${esc(m.home?.name ?? "?")}</td>
-          <td style="padding:12px 12px;border-bottom:1px solid ${C.line};border-left:1px solid ${C.line};font-size:14px;font-weight:700;color:${C.ink};text-transform:uppercase">${esc(m.away?.name ?? "?")}</td>
+          <td colspan="2" style="padding:4px 12px 12px;border-bottom:1px solid ${C.line};font-size:15px;font-weight:700;color:${C.ink};text-transform:uppercase">${esc(m.home?.name ?? "?")} – ${esc(m.away?.name ?? "?")}</td>
         </tr>
         <tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}</table></td></tr>
       </table>
@@ -142,10 +144,10 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
     `${title.toUpperCase()} ${dateRange(matches)}`,
     "Košarkaški savez Kantona Sarajevo",
     "",
-    ...groups(matches, kind).flatMap(([group, list]) => [
+    ...groups(matches).flatMap(([group, list]) => [
       ...(group ? [group, ""] : []),
       ...list.flatMap((m) => [
-        `${kind === "youth" ? `UTAKMICA ${pad(m.number)}  ` : ""}${date(m.starts_at)} ${formatTime(m.starts_at)}, ${m.hall?.name ?? "dvorana nije određena"}`,
+        `${formatTime(m.starts_at)}  ${kind === "youth" ? `UTAKMICA ${pad(m.number)}, ` : ""}${competitionLine(m)}, ${m.hall?.name ?? "dvorana nije određena"}`,
         `${(m.home?.name ?? "?").toUpperCase()} – ${(m.away?.name ?? "?").toUpperCase()}`,
         ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.names}`),
         "",
@@ -170,7 +172,7 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
     </tr></table>
     <div style="margin-top:10px;font-size:15px;color:${C.muted}">${esc(dateRange(matches))}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}</div>
   </td></tr>
-  ${groups(matches, kind)
+  ${groups(matches)
     .map(
       ([group, list]) => `<tr><td style="padding:0 0 4px">
     ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
