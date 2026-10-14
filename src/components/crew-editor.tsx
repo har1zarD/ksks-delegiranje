@@ -7,13 +7,23 @@ import type { Crew } from "@/lib/crew";
  * Sastav ekipe: sudije, komesar, pomoćne sudije za stolom, statistika, digitalni zapisnik.
  * Kontrolisan (value/onChange); šalje se kao skrivena polja crew_* (čita ih crewFromForm).
  */
-export function CrewEditor({ value, onChange }: { value: Crew; onChange: (c: Crew) => void }) {
+export function CrewEditor({
+  value,
+  onChange,
+  tableOnly,
+}: {
+  value: Crew;
+  onChange: (c: Crew) => void;
+  /** Takmičenje bez sudija i komesara (npr. EuroCup, seniori): prikazuju se samo pomoćne sudije */
+  tableOnly?: boolean;
+}) {
   const set = (patch: Partial<Crew>) => onChange({ ...value, ...patch });
 
   return (
     <div className="flex flex-col gap-4">
       <CrewHiddenFields crew={value} />
 
+      {!tableOnly && (
       <Row label="Sudije">
         <Choice
           options={[
@@ -24,6 +34,7 @@ export function CrewEditor({ value, onChange }: { value: Crew; onChange: (c: Cre
         />
         <Toggle label="Komesar" on={value.commissioner} onClick={() => set({ commissioner: !value.commissioner })} />
       </Row>
+      )}
 
       <Row label="Sto">
         <Toggle label={value.digital ? "Dig. zapisnik" : "Zapisnik"} on={value.scorer} onClick={() => set({ scorer: !value.scorer })} />

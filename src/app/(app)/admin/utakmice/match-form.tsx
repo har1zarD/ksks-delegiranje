@@ -198,9 +198,18 @@ export function MatchForm({
         <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:col-span-2 sm:px-5 sm:py-5">
           <div>
             <p className="text-[15px] font-semibold">Sastav ekipe</p>
-            <p className="mt-0.5 text-[13px] text-fg-muted">Ko se delegira na ovu utakmicu. Podrazumijevano iz pravila takmičenja.</p>
+            <p className="mt-0.5 text-[13px] text-fg-muted">
+              {competition && !competition.referees_default && !competition.commissioner_default
+                ? "U ovom takmičenju se delegiraju samo pomoćne sudije."
+                : "Ko se delegira na ovu utakmicu. Podrazumijevano iz pravila takmičenja."}
+            </p>
           </div>
-          <CrewEditor value={crew} onChange={setCrew} />
+          <CrewEditor
+            value={crew}
+            onChange={setCrew}
+            // Takmičenje bez sudija i komesara: samo pomoćne sudije (red sa sudijama se ne prikazuje)
+            tableOnly={Boolean(competition && !competition.referees_default && !competition.commissioner_default && !crew.referees && !crew.commissioner)}
+          />
           <div className="flex items-baseline justify-between gap-3 border-t border-line pt-4">
             <span className="text-[13px] text-fg-muted">
               Trošak utakmice

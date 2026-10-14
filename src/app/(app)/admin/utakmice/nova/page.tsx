@@ -18,7 +18,7 @@ export default function NewMatchPage() {
         title="Nova utakmica"
         subtitle="Broj utakmice, termin, dvorana i sastav ekipe. Sastav dolazi iz pravila takmičenja i može se promijeniti."
       />
-      <Panel className="max-w-3xl py-4 sm:py-6">
+      <Panel className="py-4 sm:py-6">
         <Suspense fallback={<Loading />}>
           <NewMatch />
         </Suspense>
