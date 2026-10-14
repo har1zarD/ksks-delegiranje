@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser, requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
+import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES, crewDefaultsOf } from "@/lib/crew";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
 import { todayISO } from "@/lib/format";
@@ -14,10 +15,10 @@ const FEE_COMPETITION_SELECT = `
     fee_payments ( id, amount_km, paid_on, note ) )
 ` as const;
 
-const FEE_RULES = "fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_commissioner_km" as const;
+const FEE_RULES = "fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km" as const;
 
 const RULES_COMPETITION_SELECT =
-  `id, name, short_name, referee_count_default, table_count_default, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
+  `id, name, short_name, ${CREW_DEFAULT_COLUMNS}, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
 
 const PAYROLL_SELECT = `
   id, position, paid_at,
@@ -35,7 +36,13 @@ async function feeRows() {
   cacheLife(LIFE.live);
   cacheTag(TAG.competitions, TAG.teams, TAG.clubs, TAG.payments);
   return rows(
-    await createAdminClient().from("competitions").select(FEE_COMPETITION_SELECT).eq("season.is_current", true).order("sort"),
+    await createAdminClient()
+      .from("competitions")
+      .select(FEE_COMPETITION_SELECT)
+      .eq("season.is_current", true)
+      // Kotizacije plaćaju samo ekipe omladinskih liga KSKS
+      .not("category", "in", `(${SENIOR_CATEGORIES.join(",")})`)
+      .order("sort"),
   );
 }
 
@@ -116,12 +123,13 @@ export async function getFeeRules() {
     id: c.id,
     name: c.name,
     shortName: c.short_name ?? c.name,
-    refereeCountDefault: c.referee_count_default,
-    tableCountDefault: c.table_count_default,
+    crew: crewDefaultsOf(c),
+    split: c.split_nominations,
     rules: {
       fee_referee_2_km: num(c.fee_referee_2_km),
       fee_referee_3_km: num(c.fee_referee_3_km),
       fee_table_km: num(c.fee_table_km),
+      fee_stats_km: num(c.fee_stats_km),
       fee_commissioner_km: num(c.fee_commissioner_km),
     },
   }));

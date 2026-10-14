@@ -1,8 +1,9 @@
-import { formatDayMonth, formatTime, formatWeekday, matchNo, POSITION_LABEL, type Position } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, positionName, type Position } from "@/lib/format";
 import { siteUrl } from "@/lib/email";
 
 type MatchInfo = {
   number?: number;
+  digital_scoresheet?: boolean;
   starts_at: string;
   home: { name: string } | null;
   away: { name: string } | null;
@@ -28,7 +29,7 @@ export function nominationEmail(name: string, position: Position, match: MatchIn
     subject: `Nominacija: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
     text: `Zdravo ${name},
 
-delegiran si kao ${POSITION_LABEL[position].toLowerCase()} na utakmicu:
+delegiran si kao ${positionName(position, match.digital_scoresheet).toLowerCase()} na utakmicu:
 
 ${describe(match)}
 
@@ -44,7 +45,7 @@ export function cancellationEmail(name: string, position: Position, match: Match
     subject: `Otkazano: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
     text: `Zdravo ${name},
 
-tvoja nominacija (${POSITION_LABEL[position].toLowerCase()}) za utakmicu je otkazana:
+tvoja nominacija (${positionName(position, match.digital_scoresheet).toLowerCase()}) za utakmicu je otkazana:
 
 ${describe(match)}
 
@@ -55,7 +56,7 @@ Košarkaški savez Kantona Sarajevo`,
 export function declinedEmail(person: string, position: Position, reason: string, match: MatchInfo & { id: string }) {
   return {
     subject: `Odbijena nominacija: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
-    text: `${person} je odbio nominaciju (${POSITION_LABEL[position].toLowerCase()}):
+    text: `${person} je odbio nominaciju (${positionName(position, match.digital_scoresheet).toLowerCase()}):
 
 ${describe(match)}
 
@@ -71,7 +72,7 @@ export function reminderEmail(name: string, position: Position, match: MatchInfo
     subject: `Podsjetnik: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)} u ${formatTime(match.starts_at)}`,
     text: `Zdravo ${name},
 
-podsjetnik za utakmicu na kojoj si ${POSITION_LABEL[position].toLowerCase()}:
+podsjetnik za utakmicu na kojoj si ${positionName(position, match.digital_scoresheet).toLowerCase()}:
 
 ${describe(match)}
 
@@ -87,7 +88,7 @@ export function pendingReminderEmail(name: string, position: Position, match: Ma
     subject: `Čeka tvoj odgovor: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
     text: `Zdravo ${name},
 
-još nisi odgovorio na nominaciju (${POSITION_LABEL[position].toLowerCase()}):
+još nisi odgovorio na nominaciju (${positionName(position, match.digital_scoresheet).toLowerCase()}):
 
 ${describe(match)}
 

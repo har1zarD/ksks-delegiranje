@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentUser, requireRole } from "@/lib/auth";
+import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES } from "@/lib/crew";
 import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
@@ -34,6 +35,8 @@ async function currentCompetitionRows() {
       .from("competitions")
       .select(COMPETITION_LIST_SELECT)
       .eq("season.is_current", true)
+      // Seniori: savez delegira, ali tabele vodi viši savez
+      .not("category", "in", `(${SENIOR_CATEGORIES.join(",")})`)
       .order("sort")
       .order("name"),
   );
@@ -136,7 +139,7 @@ async function competitionAdminData(id: string) {
     db
       .from("competitions")
       .select(
-        "id, season_id, name, short_name, category, gender, starts_on, format, fee_km, fee_first_km, fee_due_on, periods, period_min, parent_id, carry_over_h2h, referee_count_default, table_count_default",
+        `id, season_id, name, short_name, category, gender, starts_on, format, fee_km, fee_first_km, fee_due_on, periods, period_min, parent_id, carry_over_h2h, ${CREW_DEFAULT_COLUMNS}`,
       )
       .eq("id", id)
       .maybeSingle(),

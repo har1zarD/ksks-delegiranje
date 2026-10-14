@@ -1,16 +1,17 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { CrewEditor } from "@/components/crew-editor";
 import { Button, cx, Field, Select } from "@/components/ui";
+import { crewDefaultsOf, type Crew } from "@/lib/crew";
 import { formatKM, matchCost, type FeeRules } from "@/lib/finance";
 import { MATCH_KIND_LABEL, MATCH_STATUS_LABEL, type MatchKind, type MatchStatus } from "@/lib/format";
 import { saveMatch, type MatchFormState } from "./actions";
 
-type Competition = FeeRules & {
+type Competition = FeeRules &
+  Parameters<typeof crewDefaultsOf>[0] & {
   id: string;
   name: string;
-  referee_count_default: number;
-  table_count_default: number;
   teams: { id: string; name: string; club: { hall_id: string | null } | null }[];
 };
 
@@ -26,8 +27,7 @@ export type MatchFormValues = {
   hall_id?: string | null;
   date?: string;
   time?: string;
-  referee_count?: number;
-  table_count?: number;
+  crew?: Crew;
   status?: MatchStatus;
   notes?: string | null;
 };
@@ -46,18 +46,15 @@ export function MatchForm({
   const competition = competitions.find((c) => c.id === competitionId);
   const [hallId, setHallId] = useState(values.hall_id ?? "");
   const [kind, setKind] = useState<MatchKind>(values.kind ?? "league");
-  // Nova utakmica preuzima broj sudija/stola iz pravila takmičenja; postojeća zadržava svoj
-  const [refs, setRefs] = useState(values.referee_count ?? competition?.referee_count_default ?? 2);
-  const [table, setTable] = useState(values.table_count ?? competition?.table_count_default ?? 2);
+  // Nova utakmica preuzima sastav iz pravila takmičenja; postojeća zadržava svoj
+  const [crew, setCrew] = useState<Crew | null>(values.crew ?? (competition ? crewDefaultsOf(competition) : null));
   const teams = competition?.teams ?? [];
   const isEdit = Boolean(values.id);
-  const cost = matchCost(competition ?? null, refs, table);
+  const cost = crew ? matchCost(competition ?? null, crew) : null;
 
   return (
     <form action={action} className="grid gap-4 sm:grid-cols-2">
       {values.id && <input type="hidden" name="id" value={values.id} />}
-      <input type="hidden" name="referee_count" value={refs} />
-      <input type="hidden" name="table_count" value={table} />
       <input type="hidden" name="kind" value={kind} />
 
       <Field
@@ -114,10 +111,7 @@ export function MatchForm({
         onChange={(e) => {
           setCompetitionId(e.target.value);
           const next = competitions.find((c) => c.id === e.target.value);
-          if (next && !isEdit) {
-            setRefs(next.referee_count_default);
-            setTable(next.table_count_default);
-          }
+          if (next && !isEdit) setCrew(crewDefaultsOf(next));
         }}
         required
       >
@@ -190,20 +184,23 @@ export function MatchForm({
         <Field label="Napomena" name="notes" defaultValue={values.notes ?? ""} />
       )}
 
-      {/* Ekipa službenih lica i trošak po pravilima takmičenja */}
-      <div className="flex flex-col gap-4 rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-4 sm:col-span-2 sm:flex-row sm:items-center">
-        <div className="flex flex-wrap gap-2">
-          <Count label="Sudije" value={refs} onChange={setRefs} />
-          <Count label="Sto" value={table} onChange={setTable} />
+      {/* Sastav ekipe (iz pravila takmičenja, može se promijeniti) i trošak */}
+      {crew && cost && (
+        <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:col-span-2 sm:px-5 sm:py-5">
+          <div>
+            <p className="text-[15px] font-semibold">Sastav ekipe</p>
+            <p className="mt-0.5 text-[13px] text-fg-muted">Ko se delegira na ovu utakmicu. Podrazumijevano iz pravila takmičenja.</p>
+          </div>
+          <CrewEditor value={crew} onChange={setCrew} />
+          <div className="flex items-baseline justify-between gap-3 border-t border-line pt-4">
+            <span className="text-[13px] text-fg-muted">
+              Trošak utakmice
+              {cost.missing && <span className="text-orange">, neke cijene nisu određene</span>}
+            </span>
+            <span className="scoreboard whitespace-nowrap text-[26px] font-semibold">{formatKM(cost.total)}</span>
+          </div>
         </div>
-        <div className="flex flex-1 items-baseline justify-between gap-3 sm:justify-end">
-          <span className="text-[13px] text-fg-muted">
-            Trošak utakmice
-            {cost.missing && <span className="text-orange"> · neke cijene nisu određene</span>}
-          </span>
-          <span className="scoreboard whitespace-nowrap text-[28px] font-semibold text-brand">{formatKM(cost.total)}</span>
-        </div>
-      </div>
+      )}
 
       {isEdit && <Field label="Napomena" name="notes" defaultValue={values.notes ?? ""} className="sm:col-span-2" />}
 
@@ -218,27 +215,5 @@ export function MatchForm({
         )}
       </div>
     </form>
-  );
-}
-
-function Count({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md bg-panel py-1 pl-3 pr-1" role="group" aria-label={label}>
-      <span className="text-[13px] font-semibold text-fg-muted">{label}</span>
-      {[2, 3].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          aria-pressed={value === n}
-          className={cx(
-            "scoreboard whitespace-nowrap grid size-10 place-items-center rounded-md text-[20px] font-semibold transition-colors",
-            value === n ? "bg-brand text-brand-ink" : "text-fg-muted hover:text-fg",
-          )}
-        >
-          {n}
-        </button>
-      ))}
-    </div>
   );
 }

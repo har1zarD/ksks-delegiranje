@@ -2,15 +2,18 @@
 
 import { useActionState, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { CrewEditor } from "@/components/crew-editor";
 import { Button, cx, inputClass } from "@/components/ui";
+import { crewSummary, type Crew } from "@/lib/crew";
 import { formatKM, matchCost, type FeeRules } from "@/lib/finance";
 import { saveFeeRules, type RulesState } from "./actions";
 
 export type CompetitionRules = {
   id: string;
   name: string;
-  refereeCountDefault: number;
-  tableCountDefault: number;
+  crew: Crew;
+  /** Seniori: sudije i pomoćne sudije se šalju odvojeno */
+  split: boolean;
   rules: FeeRules;
 };
 
@@ -26,6 +29,7 @@ const FIELDS: { key: keyof FeeRules; label: string; unit: string }[] = [
     unit: "po sudiji",
   },
   { key: "fee_table_km", label: "Zapisnički sto", unit: "po osobi" },
+  { key: "fee_stats_km", label: "Statistika", unit: "po osobi" },
   { key: "fee_commissioner_km", label: "Komesar", unit: "po utakmici" },
 ];
 
@@ -49,25 +53,25 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
         ]),
       ) as Record<keyof FeeRules, string>,
   );
-  const [refs, setRefs] = useState(competition.refereeCountDefault);
-  const [table, setTable] = useState(competition.tableCountDefault);
+  const [crew, setCrew] = useState(competition.crew);
+  const [split, setSplit] = useState(competition.split);
   const [dirty, setDirty] = useState(false);
 
   const rules: FeeRules = {
     fee_referee_2_km: toNumber(values.fee_referee_2_km),
     fee_referee_3_km: toNumber(values.fee_referee_3_km),
     fee_table_km: toNumber(values.fee_table_km),
+    fee_stats_km: toNumber(values.fee_stats_km),
     fee_commissioner_km: toNumber(values.fee_commissioner_km),
   };
-  const two = matchCost(rules, 2, table);
-  const three = matchCost(rules, 3, table);
+  const cost = matchCost(rules, crew);
   const saved = state.saved !== undefined && !dirty && !state.error;
 
   const km = (v: number | null) =>
     v == null ? "—" : formatKM(v).replace(",00", "");
   const summary = Object.values(competition.rules).every((v) => v == null)
     ? null
-    : `Dvojka ${km(competition.rules.fee_referee_2_km)}, trojka ${km(competition.rules.fee_referee_3_km)}, sto ${km(competition.rules.fee_table_km)}, komesar ${km(competition.rules.fee_commissioner_km)}`;
+    : `Dvojka ${km(competition.rules.fee_referee_2_km)}, trojka ${km(competition.rules.fee_referee_3_km)}, sto ${km(competition.rules.fee_table_km)}, statistika ${km(competition.rules.fee_stats_km ?? null)}, komesar ${km(competition.rules.fee_commissioner_km)}`;
 
   return (
     <details className="group">
@@ -96,34 +100,38 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
         className="flex flex-col gap-5 border-t border-line py-4 sm:py-6"
       >
         <input type="hidden" name="competition_id" value={competition.id} />
-        <input type="hidden" name="referee_count_default" value={refs} />
-        <input type="hidden" name="table_count_default" value={table} />
+        <input type="hidden" name="split_nominations" value={split ? "1" : "0"} />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-[13px] text-fg-muted">
-            Obično na utakmici
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <Toggle
-              label="Sudije"
-              value={refs}
-              onChange={(v) => {
-                setRefs(v);
-                setDirty(true);
-              }}
-            />
-            <Toggle
-              label="Sto"
-              value={table}
-              onChange={(v) => {
-                setTable(v);
-                setDirty(true);
-              }}
-            />
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-[15px] font-semibold">Obično na utakmici</p>
+            <p className="mt-0.5 text-[13px] text-fg-muted">Nova utakmica preuzima ovaj sastav; na svakoj se može promijeniti.</p>
           </div>
+          <CrewEditor
+            value={crew}
+            onChange={(c) => {
+              setCrew(c);
+              setDirty(true);
+            }}
+          />
+          <label className="flex cursor-pointer items-start gap-2.5 text-[14px]">
+            <input
+              type="checkbox"
+              checked={split}
+              onChange={(e) => {
+                setSplit(e.target.checked);
+                setDirty(true);
+              }}
+              className="mt-0.5 size-4 accent-[var(--brand)]"
+            />
+            <span>
+              <span className="font-semibold">Odvojene nominacije</span>
+              <span className="block text-fg-muted">Sudije i komesar se šalju posebno od pomoćnih sudija (seniori).</span>
+            </span>
+          </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {FIELDS.map((f) => (
             <label key={f.key} className="flex min-w-0 flex-col gap-1.5">
               <span className="text-[13px] font-medium leading-tight text-fg-muted">
@@ -152,19 +160,7 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
           ))}
         </div>
 
-        {/* Trošak jedne utakmice za obje varijante sudija */}
-        <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-          <Cost
-            title="Utakmica s dvojicom sudija"
-            cost={two}
-            highlight={refs === 2}
-          />
-          <Cost
-            title="Utakmica s trojicom sudija"
-            cost={three}
-            highlight={refs === 3}
-          />
-        </div>
+        <Cost title={`Utakmica: ${crewSummary(crew)}`} cost={cost} />
 
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={pending}>
@@ -186,50 +182,12 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
   );
 }
 
-function Toggle({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div
-      className="flex items-center gap-2 rounded-md bg-panel-2 py-1 pl-3 pr-1"
-      role="group"
-      aria-label={`${label}: koliko obično`}
-    >
-      <span className="text-[13px] font-semibold text-fg-muted">{label}</span>
-      {[2, 3].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          aria-pressed={value === n}
-          className={cx(
-            "scoreboard whitespace-nowrap grid size-9 place-items-center rounded-md text-[18px] font-semibold transition-colors",
-            value === n
-              ? "bg-brand text-brand-ink"
-              : "text-fg-muted hover:text-fg",
-          )}
-        >
-          {n}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function Cost({
   title,
   cost,
-  highlight,
 }: {
   title: string;
   cost: ReturnType<typeof matchCost>;
-  highlight: boolean;
 }) {
   return (
     <div
@@ -240,7 +198,6 @@ function Cost({
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[13px] font-semibold text-fg-muted">
           {title}
-          {highlight && <span className="text-brand">, obično</span>}
         </span>
         <span className="scoreboard whitespace-nowrap text-[26px] font-semibold">
           {formatKM(cost.total)}

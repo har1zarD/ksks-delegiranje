@@ -58,7 +58,7 @@ export function PeriodPicker({ period, basePath, params = {} }: { period: string
 const GROUPS = [
   { value: undefined, label: "Svi" },
   { value: "sudije", label: "Sudije" },
-  { value: "sto", label: "Zapisnički sto" },
+  { value: "sto", label: "Pomoćne sudije" },
   { value: "komesari", label: "Komesari" },
 ] as const;
 

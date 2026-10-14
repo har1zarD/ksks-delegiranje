@@ -2,6 +2,7 @@
 
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { crewFromForm, crewToDefaults } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 
 export type RulesState = { error?: string; saved?: number };
@@ -22,6 +23,7 @@ export async function saveFeeRules(prev: RulesState, formData: FormData): Promis
     fee_referee_2_km: amount(formData.get("fee_referee_2_km")),
     fee_referee_3_km: amount(formData.get("fee_referee_3_km")),
     fee_table_km: amount(formData.get("fee_table_km")),
+    fee_stats_km: amount(formData.get("fee_stats_km")),
     fee_commissioner_km: amount(formData.get("fee_commissioner_km")),
   };
   if (Object.values(fees).includes("invalid")) return { error: "Iznosi moraju biti brojevi od 0 do 10.000 KM." };
@@ -31,8 +33,8 @@ export async function saveFeeRules(prev: RulesState, formData: FormData): Promis
     .from("competitions")
     .update({
       ...(fees as Record<keyof typeof fees, number | null>),
-      referee_count_default: formData.get("referee_count_default") === "3" ? 3 : 2,
-      table_count_default: formData.get("table_count_default") === "3" ? 3 : 2,
+      ...crewToDefaults(crewFromForm(formData)),
+      split_nominations: formData.get("split_nominations") === "1",
     })
     .eq("id", id);
   if (error) return { error: "Pravila nisu sačuvana. Pokušaj ponovo." };

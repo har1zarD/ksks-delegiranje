@@ -1,4 +1,5 @@
 // Čisti proračuni za kotizacije i naknade (bez Next-a i baze, testabilno).
+import type { Crew } from "@/lib/crew";
 import { matchKindLabel, MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type MatchKind, type Position } from "@/lib/format";
 
 // ───────── Kotizacije ─────────
@@ -83,10 +84,13 @@ export type FeeRules = {
   fee_referee_2_km: number | null;
   fee_referee_3_km: number | null;
   fee_table_km: number | null;
+  /** Statistika po osobi (null = nije određeno) */
+  fee_stats_km?: number | null;
   fee_commissioner_km: number | null;
 };
 
-const TABLE: Position[] = ["scorer", "timer", "shot_clock"];
+const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock"];
+const STATS: Position[] = ["statistician_1", "statistician_2"];
 
 /** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica */
 export function feeFor(position: Position, refereeCount: number, rules: FeeRules | null): number | null {
@@ -94,18 +98,22 @@ export function feeFor(position: Position, refereeCount: number, rules: FeeRules
   const v =
     position === "commissioner"
       ? rules.fee_commissioner_km
-      : TABLE.includes(position)
-        ? rules.fee_table_km
-        : refereeCount === 3
-          ? rules.fee_referee_3_km
-          : rules.fee_referee_2_km;
+      : STATS.includes(position)
+        ? (rules.fee_stats_km ?? null)
+        : TABLE.includes(position)
+          ? rules.fee_table_km
+          : refereeCount === 3
+            ? rules.fee_referee_3_km
+            : rules.fee_referee_2_km;
   return v == null ? null : Number(v);
 }
 
 export type CostLine = { label: string; count: number; unit: number | null; total: number | null };
 
-/** Trošak utakmice po pravilima takmičenja: sudije, sto, komesar */
-export function matchCost(rules: FeeRules | null, refereeCount: number, tableCount: number) {
+/** Trošak utakmice po pravilima takmičenja i sastavu: sudije, sto, statistika, komesar */
+export function matchCost(rules: FeeRules | null, crew: Crew) {
+  const refereeCount = crew.refereeCount;
+  const tableCount = [crew.scorer, crew.assistantScorer, crew.timer, crew.shotClock].filter(Boolean).length;
   const line = (label: string, count: number, unit: number | null): CostLine => ({
     label,
     count,
@@ -113,10 +121,11 @@ export function matchCost(rules: FeeRules | null, refereeCount: number, tableCou
     total: unit == null ? null : round2(unit * count),
   });
   const lines = [
-    line(refereeCount === 3 ? "Sudije (trojka)" : "Sudije (dvojka)", refereeCount, feeFor("referee_1", refereeCount, rules)),
-    line("Zapisnički sto", tableCount, feeFor("scorer", refereeCount, rules)),
-    line("Komesar", 1, feeFor("commissioner", refereeCount, rules)),
-  ];
+    crew.referees && line(refereeCount === 3 ? "Sudije (trojka)" : "Sudije (dvojka)", refereeCount, feeFor("referee_1", refereeCount, rules)),
+    tableCount > 0 && line("Zapisnički sto", tableCount, feeFor("scorer", refereeCount, rules)),
+    crew.stats > 0 && line("Statistika", crew.stats, feeFor("statistician_1", refereeCount, rules)),
+    crew.commissioner && line("Komesar", 1, feeFor("commissioner", refereeCount, rules)),
+  ].filter((l): l is CostLine => Boolean(l));
   return {
     lines,
     total: round2(lines.reduce((s, l) => s + (l.total ?? 0), 0)),
@@ -178,13 +187,13 @@ export type PositionGroup = "referees" | "table" | "commissioners";
 
 export const POSITION_GROUP_LABEL: Record<PositionGroup, string> = {
   referees: "Sudije",
-  table: "Zapisnički sto",
+  table: "Pomoćne sudije",
   commissioners: "Komesari",
 };
 
 export function positionGroup(position: Position): PositionGroup {
   if (position === "commissioner") return "commissioners";
-  return TABLE.includes(position) ? "table" : "referees";
+  return TABLE.includes(position) || STATS.includes(position) ? "table" : "referees";
 }
 
 export type PaidFilter = "paid" | "unpaid";

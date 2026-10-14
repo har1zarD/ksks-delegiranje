@@ -24,20 +24,31 @@ export const POSITION_LABEL: Record<Position, string> = {
   referee_2: "2. sudija",
   referee_3: "3. sudija",
   scorer: "Zapisničar",
-  timer: "Mjerač vremena",
-  shot_clock: "24 sekunde",
+  assistant_scorer: "Pom. zapisničar",
+  timer: "Glavno vrijeme",
+  shot_clock: "24/14",
+  statistician_1: "Statistika",
+  statistician_2: "Statistika 2",
   commissioner: "Komesar",
 };
 
 export const POSITION_ORDER: Position[] = [
+  "commissioner",
   "referee_1",
   "referee_2",
   "referee_3",
   "scorer",
+  "assistant_scorer",
   "timer",
   "shot_clock",
-  "commissioner",
+  "statistician_1",
+  "statistician_2",
 ];
+
+/** Naziv pozicije na utakmici: zapisničar s digitalnim zapisnikom je "Dig. zapisnik" */
+export function positionName(position: Position, digital?: boolean | null) {
+  return position === "scorer" && digital ? "Dig. zapisnik" : POSITION_LABEL[position];
+}
 
 export const ASSIGNMENT_STATUS_LABEL: Record<AssignmentStatus, string> = {
   pending: "Čeka odgovor",
@@ -101,13 +112,6 @@ export function formatDate(date: string) {
 /** Današnji datum u Sarajevu kao "YYYY-MM-DD" (toISOString bi dao UTC datum) */
 export function todayISO() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
-}
-
-/** Pozicije na utakmici: 2 ili 3 sudije; sto 2 (zapisničar, mjerač vremena) ili 3 (+ 24 sekunde) */
-export function requiredPositions(refereeCount: number, tableCount = 2): Position[] {
-  return POSITION_ORDER.filter(
-    (p) => (p !== "referee_3" || refereeCount === 3) && (p !== "shot_clock" || tableCount === 3),
-  );
 }
 
 /** "2026-10-24" + "18:30" po sarajevskom vremenu → ISO u UTC */

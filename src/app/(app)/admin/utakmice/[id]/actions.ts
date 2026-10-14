@@ -38,21 +38,24 @@ export async function unassign(formData: FormData) {
   }
 }
 
-export type SendState = { error?: string; sent?: number };
+export type SendState = { error?: string; warning?: string; sent?: number };
 
 export async function sendNominations(_prev: SendState, formData: FormData): Promise<SendState> {
   await requireRole("admin");
   const matchId = String(formData.get("match_id") ?? "");
+  const g = String(formData.get("group") ?? "");
+  const group = g === "officials" || g === "table" ? g : undefined;
   let results;
   try {
-    results = await sendMatchNominations(createAdminClient(), matchId);
+    results = await sendMatchNominations(createAdminClient(), matchId, group);
   } catch {
     return { error: "Nominacije nisu učitane." };
   } finally {
     // notified_at se upisuje za svaku poslanu nominaciju, pa i kad kasnije nešto pukne
     invalidate({ table: "assignments", match: matchId });
   }
-  const sent = results.filter((r) => r.sent).length;
-  const failed = results.length - sent;
-  return failed > 0 ? { sent, error: `${failed} emailova nije poslano. Provjeri podešavanje emaila.` } : { sent };
+  // Nominacije su poslane (vide se u aplikaciji); email je samo obavijest
+  const emailed = results.filter((r) => r.sent).length;
+  const noEmail = results.length - emailed;
+  return { sent: results.length, ...(noEmail > 0 ? { warning: `${noEmail} bez email obavijesti (email nije podešen ili nije prošao). Nominacije se vide u aplikaciji.` } : {}) };
 }

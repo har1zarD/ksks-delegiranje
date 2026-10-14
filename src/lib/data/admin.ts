@@ -1,8 +1,9 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { crewOf, crewPositions, type Crew } from "@/lib/crew";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { addDays, addMonths, isoToSarajevo, requiredPositions, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
+import { addDays, addMonths, isoToSarajevo, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
   ADMIN_MATCH_SELECT,
@@ -65,10 +66,10 @@ export async function getNextMatchNumber() {
 
 export type StaffingSummary = { missing: Position[]; pending: number };
 
-function staffing(refereeCount: number, tableCount: number, assignments: { position: Position; status: AssignmentStatus }[]): StaffingSummary {
+function staffing(crew: Crew, assignments: { position: Position; status: AssignmentStatus }[]): StaffingSummary {
   const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
   return {
-    missing: requiredPositions(refereeCount, tableCount).filter((p) => !active.some((a) => a.position === p)),
+    missing: crewPositions(crew).filter((p) => !active.some((a) => a.position === p)),
     pending: active.filter((a) => a.status === "pending").length,
   };
 }
@@ -106,7 +107,8 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
     .slice(0, MATCH_LIMIT)
     .map(({ assignments, ...m }) => ({
       ...m,
-      staffing: staffing(m.referee_count, m.table_count, assignments),
+      crew: crewOf(m),
+      staffing: staffing(crewOf(m), assignments),
     }));
 }
 

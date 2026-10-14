@@ -4,11 +4,12 @@ import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileText, MapPin, Printer } from "lucide-react";
 import { getCompetitions, getDelegation, getHalls, type Candidate } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
-import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, requiredPositions, type MatchStatus, type Position } from "@/lib/format";
+import { crewOf, crewPositions, crewSummary, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
+import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile, KindTag } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
-import { buttonClass, cx, Loading, Panel, SectionTitle, Status } from "@/components/ui";
+import { buttonClass, cx, Empty, Loading, Panel, SectionTitle, Status } from "@/components/ui";
 import { deleteMatch } from "../actions";
 import { MatchForm } from "../match-form";
 import { unassign } from "./actions";
@@ -31,11 +32,9 @@ export default function DelegationPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-const TABLE: Position[] = ["scorer", "timer", "shot_clock"];
-
 function eligibleFor(position: Position, c: Candidate) {
   if (position === "commissioner") return c.isCommissioner;
-  if (TABLE.includes(position)) return c.canTable;
+  if (nominationGroupOf(position) === "table") return c.canTable;
   return c.canReferee;
 }
 
@@ -53,12 +52,21 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   if (!data) notFound();
   const { match, assignments, candidates } = data;
 
-  const positions = requiredPositions(match.referee_count, match.table_count);
+  const crew = crewOf(match);
+  const positions = crewPositions(crew);
+  const split = Boolean(match.rules?.split_nominations);
+  // Seniori: sudije + komesar i pomoćne sudije su odvojene nominacije; omladinska jedna lista
+  const groups: { key: NominationGroup | null; positions: Position[] }[] = split
+    ? (["officials", "table"] as const)
+        .map((g) => ({ key: g, positions: positions.filter((p) => nominationGroupOf(p) === g) }))
+        .filter((g) => g.positions.length > 0)
+    : [{ key: null, positions }];
+  const unsentIn = (g: NominationGroup | null) =>
+    assignments.filter((a) => a.status === "pending" && !a.notified_at && (!g || nominationGroupOf(a.position) === g)).length;
   const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
   const onMatch = new Set(active.map((a) => a.profile!.id));
   const filled = positions.filter((p) => active.some((a) => a.position === p)).length;
-  const unsent = assignments.filter((a) => a.status === "pending" && !a.notified_at).length;
-  const cost = matchCost(match.rules, match.referee_count, match.table_count);
+  const cost = matchCost(match.rules, crew);
 
   return (
     <div className="flex flex-col gap-8">
@@ -115,13 +123,19 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           >
             Delegiranje
           </SectionTitle>
+          <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+          <div key={group.key ?? "all"}>
+          {group.key && (
+            <h3 className="pb-2 text-[13px] font-semibold text-fg-muted">{NOMINATION_GROUP_LABEL[group.key]}</h3>
+          )}
           <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
-            {positions.map((position) => {
+            {group.positions.map((position) => {
               const current = active.find((a) => a.position === position);
               const declined = assignments.find((a) => a.position === position && a.status === "declined");
               return (
                 <li key={position} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="text-[13px] font-semibold text-fg-muted sm:w-32 sm:shrink-0">{POSITION_LABEL[position]}</div>
+                  <div className="text-[13px] font-semibold text-fg-muted sm:w-32 sm:shrink-0">{positionName(position, crew.digital)}</div>
                   {current ? (
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="min-w-0 flex-1">
@@ -162,12 +176,26 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
               );
             })}
           </ul>
+          </div>
+          ))}
+          {positions.length === 0 && <Empty>Sastav ove utakmice nema nijednu poziciju. Promijeni ga u „Uredi utakmicu”.</Empty>}
+          </div>
         </section>
 
         {/* Bočno: slanje, trošak, bilten */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
-          <Panel className="py-4 sm:py-5">
-            <SendForm matchId={match.id} unsent={unsent} />
+          <Panel className="flex flex-col gap-4 py-4 sm:py-5">
+            {groups.map((g) =>
+              g.key ? (
+                <div key={g.key}>
+                  <p className="pb-2 text-[13px] font-semibold text-fg-muted">{NOMINATION_GROUP_LABEL[g.key]}</p>
+                  <SendForm matchId={match.id} unsent={unsentIn(g.key)} group={g.key} label="Pošalji" />
+                </div>
+              ) : (
+                <SendForm key="all" matchId={match.id} unsent={unsentIn(null)} />
+              ),
+            )}
+            <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
           </Panel>
 
           <Panel className="py-4 sm:py-5">
@@ -257,8 +285,7 @@ async function EditMatch({
         hall_id: match.hall_id,
         date,
         time,
-        referee_count: match.referee_count,
-        table_count: match.table_count,
+        crew: crewOf(match),
         status: match.status,
         notes: match.notes,
       }}

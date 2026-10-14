@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { crewFromForm, crewToRow } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { MATCH_KIND_LABEL, sarajevoToISO, type MatchKind, type MatchStatus } from "@/lib/format";
 
@@ -29,8 +30,7 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
     hall_id: get("hall_id") || null,
     round: round ? Number(round) : null,
     ...(number ? { number: Number(number) } : {}),
-    referee_count: get("referee_count") === "3" ? 3 : 2,
-    table_count: get("table_count") === "3" ? 3 : 2,
+    ...crewToRow(crewFromForm(formData)),
     notes: get("notes") || null,
     kind,
     kind_label: kind === "custom" ? kindLabel : null,
@@ -49,7 +49,7 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   const { data, error } = id
     ? await supabase.from("matches").update(row).eq("id", id).select("id").single()
     : await supabase.from("matches").insert(row).select("id").single();
-  if (error?.code === "23505") return { error: `Utakmica ${number} već postoji u ovoj sezoni. Upiši drugi broj ili ostavi prazno.` };
+  if (error?.code === "23505") return { error: `Utakmica ${number} već postoji u ovom takmičenju. Upiši drugi broj ili ostavi prazno.` };
   if (error) return { error: "Utakmica nije sačuvana. Pokušaj ponovo." };
 
   // Prije redirecta: redirect prekida izvršavanje

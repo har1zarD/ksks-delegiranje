@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ChevronRight, Phone } from "lucide-react";
 import { getCrews, getMyAssignments, type Crew } from "@/lib/data/official";
-import { POSITION_LABEL, POSITION_ORDER } from "@/lib/format";
+import { positionName, POSITION_ORDER } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
 import { buttonClass, cx, Empty, Loading, PageHeader, SectionTitle, Status } from "@/components/ui";
 
@@ -45,7 +45,7 @@ async function MyMatches() {
                 <Link href={`/utakmice/${a.match.id}`} className="-mx-3 px-3 rounded-md flex items-center gap-3 py-4 hover:bg-panel-2 sm:py-5">
                   <MatchLine
                     match={a.match}
-                    meta={<Status tone="mint">{POSITION_LABEL[a.position]}</Status>}
+                    meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>}
                     aside={<ChevronRight className="size-5 text-fg-faint" />}
                   />
                 </Link>
@@ -65,7 +65,7 @@ async function MyMatches() {
                   <MatchLine
                     match={a.match}
                     showScore
-                    meta={<span className="text-[13px] text-fg-muted">{POSITION_LABEL[a.position]}</span>}
+                    meta={<span className="text-[13px] text-fg-muted">{positionName(a.position, a.match.digital_scoresheet)}</span>}
                   />
                 </Link>
               </li>
@@ -87,7 +87,7 @@ function CrewList({ crew, mine }: { crew: Crew; mine: Crew[number]["position"] }
         return (
           <li key={c.position} className="flex min-h-14 items-center gap-3 py-2.5">
             <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-semibold text-fg-faint">{POSITION_LABEL[c.position]}</div>
+              <div className="text-[12px] font-semibold text-fg-faint">{positionName(c.position)}</div>
               <div className={cx("truncate text-[15px] font-semibold", me ? "text-brand" : "text-fg")}>
                 {me ? "Ti" : c.name}
                 {c.status === "pending" && <span className="ml-2 text-[12px] font-medium text-fg-faint">čeka odgovor</span>}

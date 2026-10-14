@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { crewDefaultsOf, crewSummary } from "@/lib/crew";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronDown, ChevronLeft } from "lucide-react";
@@ -70,10 +71,12 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
       <Panel className="grid grid-cols-2 gap-x-4 gap-y-6 py-4 sm:grid-cols-4 sm:py-6">
         <Fact value={teams.length} label="ekipa" />
         <Fact value={matchCount} label="utakmica" />
-        <Fact value={c.referee_count_default} label="sudije po utakmici" />
-        <Fact value={c.table_count_default} label="za zapisničkim stolom" />
+        <div className="col-span-2 min-w-0">
+          <div className="text-[15px] font-semibold">{crewSummary(crewDefaultsOf(c))}</div>
+          <div className="mt-1 text-[13px] text-fg-muted">{c.split_nominations ? "sastav, sudije i sto odvojeno" : "sastav na utakmici"}</div>
+        </div>
         <p className="col-span-2 text-[13px] text-fg-muted sm:col-span-4">
-          Broj sudija, stola i cijene naknada mijenjaš u{" "}
+          Sastav ekipe i cijene naknada mijenjaš u{" "}
           <Link href="/admin/naknade" className="font-semibold text-brand">
             Naknadama
           </Link>
@@ -109,13 +112,14 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
                   <option value="" disabled>
                     Izaberi klub
                   </option>
+                  <option value="new">Novi klub (van KSKS-a)</option>
                   {clubs.map((cl) => (
                     <option key={cl.id} value={cl.id}>
                       {cl.name}
                     </option>
                   ))}
                 </Select>
-                <Field label="Naziv ekipe u takmičenju" name="name" placeholder="Npr. Ilidža Orange" required />
+                <Field label="Naziv ekipe u takmičenju" name="name" placeholder="Npr. Ilidža Orange, Čelik" required />
               </div>
             </ActionForm>
           </div>

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getMyAssignments } from "@/lib/data/official";
-import { POSITION_LABEL } from "@/lib/format";
+import { positionName } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
 import { Empty, Loading, PageHeader, SectionTitle, Status } from "@/components/ui";
 import { RespondForm } from "./respond-form";
@@ -36,7 +36,7 @@ async function Nominations() {
                 key={a.id}
                 className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center"
               >
-                <MatchLine match={a.match} meta={<Status tone="gold">{POSITION_LABEL[a.position]}</Status>} />
+                <MatchLine match={a.match} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
                 <RespondForm id={a.id} />
               </li>
             ))}
@@ -49,7 +49,7 @@ async function Nominations() {
           <ul className="divide-y divide-line rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
             {accepted.map((a) => (
               <li key={a.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:py-5">
-                <MatchLine match={a.match} meta={<Status tone="mint">{POSITION_LABEL[a.position]}</Status>} />
+                <MatchLine match={a.match} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
                 <RespondForm id={a.id} accepted />
               </li>
             ))}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { invalidateFromRoute } from "@/lib/cache";
+import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewOf, crewPositions, crewToRow, type Crew } from "@/lib/crew";
 import { ADMIN_MATCH_SELECT, ASSIGNMENT_WITH_TIME_SELECT, MATCH_SELECT } from "@/lib/data/selects";
 import { assignPerson, eligibleFor, removeAssignment, sendMatchNominations } from "@/lib/delegation";
 import {
@@ -7,7 +8,6 @@ import {
   addMonths,
   POSITION_LABEL,
   POSITION_ORDER,
-  requiredPositions,
   sarajevoToISO,
   type Position,
 } from "@/lib/format";
@@ -74,7 +74,7 @@ export const listMatches = defineTool({
     return rows
       .map(({ assignments, ...m }) => {
         const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
-        const missing = requiredPositions(m.referee_count, m.table_count).filter((p) => !active.some((a) => a.position === p));
+        const missing = crewPositions(crewOf(m)).filter((p) => !active.some((a) => a.position === p));
         return {
           ...matchView(m),
           nedostaje: missing.map((p) => POSITION_LABEL[p]),
@@ -94,10 +94,39 @@ const matchInput = {
   kolo: z.number().int().min(1).optional(),
   broj_utakmice: z.number().int().min(1).optional().describe("Broj utakmice u sezoni (\"Utakmica 66\"); izostavi za sljedeći slobodan"),
   dvorana_id: uuidSchema.optional().describe("Izostavi da se uzme dvorana kluba domaćina (ako je poznata)"),
-  broj_sudija: z.union([z.literal(2), z.literal(3)]).optional().describe("Izostavi za pravilo takmičenja"),
-  broj_stola: z.union([z.literal(2), z.literal(3)]).optional().describe("Ljudi za zapisničkim stolom: 2 (bez 24 sekunde) ili 3; izostavi za pravilo takmičenja"),
+  // Sastav ekipe: svako polje izostavi za pravilo takmičenja
+  broj_sudija: z.union([z.literal(0), z.literal(2), z.literal(3)]).optional().describe("0 = bez sudija (npr. seniori: samo pomoćne sudije), 2 ili 3"),
+  komesar: z.boolean().optional(),
+  zapisnik: z.boolean().optional(),
+  pom_zapisnik: z.boolean().optional().describe("Pomoćni zapisničar"),
+  glavno_vrijeme: z.boolean().optional(),
+  sat_24: z.boolean().optional().describe("Operator 24/14"),
+  statistika: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional().describe("Broj statističara"),
+  digitalni_zapisnik: z.boolean().optional(),
   napomena: z.string().max(500).optional(),
 };
+
+type CrewInput = Partial<Record<"komesar" | "zapisnik" | "pom_zapisnik" | "glavno_vrijeme" | "sat_24" | "digitalni_zapisnik", boolean>> & {
+  broj_sudija?: 0 | 2 | 3;
+  statistika?: 0 | 1 | 2;
+};
+
+/** Sastav iz MCP argumenata preko osnovnog (pravilo takmičenja ili postojeća utakmica) */
+function crewWith(base: Crew, a: CrewInput): Crew {
+  return {
+    referees: a.broj_sudija === undefined ? base.referees : a.broj_sudija > 0,
+    refereeCount: a.broj_sudija === 2 || a.broj_sudija === 3 ? a.broj_sudija : base.refereeCount,
+    commissioner: a.komesar ?? base.commissioner,
+    scorer: a.zapisnik ?? base.scorer,
+    assistantScorer: a.pom_zapisnik ?? base.assistantScorer,
+    timer: a.glavno_vrijeme ?? base.timer,
+    shotClock: a.sat_24 ?? base.shotClock,
+    stats: a.statistika ?? base.stats,
+    digital: a.digitalni_zapisnik ?? base.digital,
+  };
+}
+
+const CREW_KEYS = ["broj_sudija", "komesar", "zapisnik", "pom_zapisnik", "glavno_vrijeme", "sat_24", "statistika", "digitalni_zapisnik"] as const;
 
 async function checkTeams(db: McpContext["db"], competitionId: string, home: string, away: string) {
   if (home === away) throw new ToolError("Domaćin i gost moraju biti različite ekipe.");
@@ -116,7 +145,7 @@ export const createMatch = defineTool({
   async run(a, { db }) {
     const homeHall = await checkTeams(db, a.takmicenje_id, a.domacin_id, a.gost_id);
     const rules = must(
-      await db.from("competitions").select("referee_count_default, table_count_default").eq("id", a.takmicenje_id).single(),
+      await db.from("competitions").select(CREW_DEFAULT_COLUMNS).eq("id", a.takmicenje_id).single(),
     );
     const row = must(
       await db
@@ -129,8 +158,7 @@ export const createMatch = defineTool({
           round: a.kolo ?? null,
           ...(a.broj_utakmice ? { number: a.broj_utakmice } : {}),
           hall_id: a.dvorana_id ?? homeHall,
-          referee_count: a.broj_sudija ?? rules.referee_count_default,
-          table_count: a.broj_stola ?? rules.table_count_default,
+          ...crewToRow(crewWith(crewDefaultsOf(rules), a)),
           notes: a.napomena ?? null,
         })
         .select(MATCH_SELECT)
@@ -158,13 +186,19 @@ export const updateMatch = defineTool({
     broj_utakmice: matchInput.broj_utakmice,
     dvorana_id: matchInput.dvorana_id,
     broj_sudija: matchInput.broj_sudija,
-    broj_stola: matchInput.broj_stola,
+    komesar: matchInput.komesar,
+    zapisnik: matchInput.zapisnik,
+    pom_zapisnik: matchInput.pom_zapisnik,
+    glavno_vrijeme: matchInput.glavno_vrijeme,
+    sat_24: matchInput.sat_24,
+    statistika: matchInput.statistika,
+    digitalni_zapisnik: matchInput.digitalni_zapisnik,
     napomena: matchInput.napomena,
     status: z.enum(["scheduled", "live", "finished", "postponed", "cancelled"]).optional(),
   },
   async run(a, { db }) {
     const current = must(
-      await db.from("matches").select("competition_id, home_team_id, away_team_id").eq("id", a.utakmica_id).maybeSingle(),
+      await db.from("matches").select(`competition_id, home_team_id, away_team_id, ${CREW_COLUMNS}`).eq("id", a.utakmica_id).maybeSingle(),
       "Utakmica nije pronađena.",
     );
     if ((a.datum && !a.vrijeme) || (!a.datum && a.vrijeme)) throw new ToolError("Za promjenu termina navedi datum i vrijeme.");
@@ -182,8 +216,7 @@ export const updateMatch = defineTool({
       ...(a.kolo !== undefined ? { round: a.kolo } : {}),
       ...(a.broj_utakmice !== undefined ? { number: a.broj_utakmice } : {}),
       ...(a.dvorana_id !== undefined ? { hall_id: a.dvorana_id } : {}),
-      ...(a.broj_sudija !== undefined ? { referee_count: a.broj_sudija } : {}),
-      ...(a.broj_stola !== undefined ? { table_count: a.broj_stola } : {}),
+      ...(CREW_KEYS.some((k) => a[k] !== undefined) ? crewToRow(crewWith(crewOf(current), a)) : {}),
       ...(a.napomena !== undefined ? { notes: a.napomena } : {}),
       ...(a.status !== undefined ? { status: a.status } : {}),
     };

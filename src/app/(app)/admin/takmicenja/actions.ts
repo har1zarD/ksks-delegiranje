@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewToRow } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, sarajevoToISO } from "@/lib/format";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
@@ -58,11 +59,22 @@ export async function updateCompetition(prev: FormState, f: FormData): Promise<F
 export async function addTeam(prev: FormState, f: FormData): Promise<FormState> {
   await requireRole("admin");
   const competitionId = text(f, "competition_id");
-  const clubId = text(f, "club_id");
+  let clubId = text(f, "club_id");
   const name = text(f, "name");
   if (!clubId || !name) return { error: "Izaberi klub i upiši naziv ekipe." };
 
   const supabase = await createClient();
+  // Novi klub (npr. seniorska ekipa van KSKS-a): klub dobija naziv ekipe; postojeći istog naziva se koristi ponovo
+  if (clubId === "new") {
+    const { data: existing } = await supabase.from("clubs").select("id").eq("short_name", name).maybeSingle();
+    if (existing) clubId = existing.id;
+    else {
+      const { data: club, error } = await supabase.from("clubs").insert({ name: `KK ${name}`, short_name: name }).select("id").single();
+      if (error) return { error: "Klub nije napravljen." };
+      clubId = club.id;
+    }
+  }
+
   const { count } = await supabase
     .from("teams")
     .select("id", { count: "exact", head: true })
@@ -72,7 +84,7 @@ export async function addTeam(prev: FormState, f: FormData): Promise<FormState> 
     .insert({ competition_id: competitionId, club_id: clubId, name, sort: (count ?? 0) + 1 });
   if (error) return { error: error.code === "23505" ? "Ekipa s tim nazivom već postoji u takmičenju." : "Ekipa nije dodana." };
 
-  invalidate("teams");
+  invalidate("teams", "clubs");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -230,7 +242,7 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
   const supabase = await createClient();
   const [{ count }, { data: competition }, teams] = await Promise.all([
     supabase.from("matches").select("id", { count: "exact", head: true }).eq("competition_id", competitionId),
-    supabase.from("competitions").select("referee_count_default, table_count_default").eq("id", competitionId).single(),
+    supabase.from("competitions").select(CREW_DEFAULT_COLUMNS).eq("id", competitionId).single(),
     supabase
       .from("teams")
       .select("id, club:clubs!teams_club_id_fkey ( hall_id )")
@@ -250,9 +262,8 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
       away_team_id: away.id,
       hall_id: home.club?.hall_id ?? null,
       starts_at: sarajevoToISO(addDays(start, r * 7), time),
-      // Broj sudija i ljudi za stolom po pravilima takmičenja (Naknade)
-      referee_count: competition?.referee_count_default ?? 2,
-      table_count: competition?.table_count_default ?? 2,
+      // Sastav ekipe po pravilima takmičenja (Naknade)
+      ...(competition ? crewToRow(crewDefaultsOf(competition)) : {}),
     })),
   );
   const { error } = await supabase.from("matches").insert(rows);

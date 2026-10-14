@@ -7,7 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { sendEmail } from "@/lib/email";
 import { cancellationEmail, declinedEmail, nominationEmail } from "@/lib/emails";
-import { requiredPositions, type MatchStatus, type Position } from "@/lib/format";
+import { CREW_COLUMNS, crewOf, crewPositions, nominationGroupOf, type NominationGroup } from "@/lib/crew";
+import type { MatchStatus, Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Db = SupabaseClient<Database>;
@@ -15,7 +16,8 @@ type Db = SupabaseClient<Database>;
 /** Greška s porukom za korisnika */
 export class DelegationError extends Error {}
 
-const TABLE: Position[] = ["scorer", "timer", "shot_clock"];
+/** Pomoćne sudije: zapisnik, pom. zapisnik, glavno vrijeme, 24/14, statistika */
+const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2"];
 
 export function eligibleFor(position: Position, p: { role: string; is_referee: boolean; is_table: boolean }) {
   if (position === "commissioner") return p.role === "commissioner";
@@ -28,12 +30,12 @@ export async function assignPerson(
   { matchId, profileId, position, createdBy }: { matchId: string; profileId: string; position: Position; createdBy: string },
 ) {
   const [{ data: match }, { data: person }] = await Promise.all([
-    db.from("matches").select("referee_count, table_count").eq("id", matchId).maybeSingle(),
+    db.from("matches").select(CREW_COLUMNS).eq("id", matchId).maybeSingle(),
     db.from("profiles").select("full_name, role, is_referee, is_table, active").eq("id", profileId).maybeSingle(),
   ]);
   if (!match) throw new DelegationError("Utakmica nije pronađena.");
   if (!person?.active) throw new DelegationError("Osoba nije pronađena ili nije aktivna.");
-  if (!requiredPositions(match.referee_count, match.table_count).includes(position)) throw new DelegationError("Ova utakmica nema tu poziciju.");
+  if (!crewPositions(crewOf(match)).includes(position)) throw new DelegationError("Ova utakmica nema tu poziciju.");
   if (!eligibleFor(position, person)) throw new DelegationError("Osoba nije registrovana za ovu poziciju.");
 
   // Odbijene/otkazane nominacije na istoj poziciji ili iste osobe oslobađaju mjesto
@@ -86,7 +88,11 @@ export async function removeAssignment(db: Db, assignmentId: string) {
 }
 
 /** Šalje email svima na utakmici kojima nominacija još nije poslana */
-export async function sendMatchNominations(db: Db, matchId: string) {
+/**
+ * Šalje neposlane nominacije utakmice (opcionalno samo jednu grupu: sudije i komesar / pomoćne sudije).
+ * Nominacija je poslana čim je savez pošalje (vidi se u aplikaciji); email je obavijest i može ne proći (npr. email nije podešen).
+ */
+export async function sendMatchNominations(db: Db, matchId: string, group?: NominationGroup) {
   const { data, error } = await db
     .from("assignments")
     .select(WITH_PERSON_AND_MATCH)
@@ -96,8 +102,9 @@ export async function sendMatchNominations(db: Db, matchId: string) {
   if (error) throw new Error(error.message);
 
   const results: { name: string; position: Position; sent: boolean }[] = [];
-  for (const a of data ?? []) {
+  for (const a of (data ?? []).filter((a) => !group || nominationGroupOf(a.position) === group)) {
     if (!a.profile || !a.match) continue;
+    await db.from("assignments").update({ notified_at: new Date().toISOString() }).eq("id", a.id);
     const sent = await sendEmail({
       to: a.profile.email,
       kind: "nomination",
@@ -105,7 +112,6 @@ export async function sendMatchNominations(db: Db, matchId: string) {
       assignmentId: a.id,
       ...nominationEmail(a.profile.full_name, a.position, a.match),
     });
-    if (sent) await db.from("assignments").update({ notified_at: new Date().toISOString() }).eq("id", a.id);
     results.push({ name: a.profile.full_name, position: a.position, sent });
   }
   return results;
