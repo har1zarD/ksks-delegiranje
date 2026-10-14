@@ -58,9 +58,11 @@ export function MatchLine({
 }) {
   const competition = (
     <>
-      {match.number != null && <span className="text-fg-muted">{matchNo(match.number)}, </span>}
-      {match.competition?.short_name ?? match.competition?.name}
-      {match.round ? `, ${match.round}. kolo` : ""}
+      {match.number != null && <span className="whitespace-nowrap text-fg-muted">{matchNo(match.number)}, </span>}
+      <span className="whitespace-nowrap">
+        {match.competition?.short_name ?? match.competition?.name}
+        {match.round ? `, ${match.round}. kolo` : ""}
+      </span>
     </>
   );
   const hall = match.hall && (

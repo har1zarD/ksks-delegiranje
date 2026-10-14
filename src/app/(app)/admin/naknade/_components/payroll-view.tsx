@@ -29,7 +29,7 @@ export function PayrollItems({ person }: { person: PayrollPerson }) {
           <span className="scoreboard whitespace-nowrap w-12 shrink-0 text-[18px] font-semibold text-fg-muted">{formatDayMonth(i.startsAt)}</span>
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold">{i.teams}</span>
-            <span className="block truncate text-[13px] text-fg-muted">
+            <span className="block text-[13px] text-fg-muted">
               <span className="font-semibold text-fg">{matchNo(i.number)}</span>, {i.competition}, {POSITION_LABEL[i.position].toLowerCase()}
               {i.position.startsWith("referee") && (i.refereeCount === 3 ? " (trojka)" : " (dvojka)")}
             </span>
