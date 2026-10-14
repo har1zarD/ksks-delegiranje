@@ -273,3 +273,20 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
   return {};
 }
 
+
+/** Brisanje praznog takmičenja (bez ekipa i utakmica), npr. greškom napravljena liga */
+export async function deleteCompetition(_prev: FormState, f: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const id = text(f, "id");
+  const supabase = await createClient();
+  const [{ count: teams }, { count: matches }] = await Promise.all([
+    supabase.from("teams").select("id", { count: "exact", head: true }).eq("competition_id", id),
+    supabase.from("matches").select("id", { count: "exact", head: true }).eq("competition_id", id),
+  ]);
+  if (teams || matches) return { error: "Takmičenje ima ekipe ili utakmice. Prvo ih ukloni." };
+
+  const { error } = await supabase.from("competitions").delete().eq("id", id);
+  if (error) return { error: "Takmičenje nije obrisano." };
+  invalidate("competitions");
+  redirect("/admin/takmicenja");
+}

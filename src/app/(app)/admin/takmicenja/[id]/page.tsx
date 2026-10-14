@@ -7,7 +7,7 @@ import { getCompetitionAdmin } from "@/lib/data/results";
 import { ButtonLink, Field, Loading, Panel, SectionTitle, Textarea } from "@/components/ui";
 import { StandingsTable } from "@/app/(app)/rezultati/standings-table";
 import { ActionForm, Check, Select } from "../action-form";
-import { addTeam, createPhase, generateSchedule, removeTeam, updateCompetition } from "../actions";
+import { addTeam, createPhase, deleteCompetition, generateSchedule, removeTeam, updateCompetition } from "../actions";
 
 export const metadata = { title: "Takmičenje — KSKS" };
 
@@ -193,6 +193,15 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           <Textarea label="Sistem takmičenja" name="format" rows={3} defaultValue={c.format ?? ""} />
         </ActionForm>
       </Collapsible>
+
+      {teams.length === 0 && matchCount === 0 && (
+        <section className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+          <p className="text-[13px] text-fg-muted">Takmičenje nema ekipa ni utakmica i može se obrisati.</p>
+          <ActionForm action={deleteCompetition} submit="Obriši takmičenje" pendingLabel="Brišem…" variant="destructive">
+            <input type="hidden" name="id" value={c.id} />
+          </ActionForm>
+        </section>
+      )}
     </div>
   );
 }

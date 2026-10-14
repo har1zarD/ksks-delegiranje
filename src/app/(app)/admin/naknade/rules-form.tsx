@@ -65,13 +65,30 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
     fee_commissioner_km: toNumber(values.fee_commissioner_km),
   };
   const cost = matchCost(rules, crew);
+  // Polja samo za ono što se u ovom takmičenju delegira (npr. seniori: samo pomoćne sudije)
+  const fields = FIELDS.filter(
+    (f) =>
+      ((f.key !== "fee_referee_2_km" && f.key !== "fee_referee_3_km") || crew.referees) &&
+      (f.key !== "fee_commissioner_km" || crew.commissioner),
+  );
+  const officials = crew.referees || crew.commissioner;
   const saved = state.saved !== undefined && !dirty && !state.error;
 
   const km = (v: number | null) =>
     v == null ? "—" : formatKM(v).replace(",00", "");
-  const summary = Object.values(competition.rules).every((v) => v == null)
+  const r = competition.rules;
+  const c0 = competition.crew;
+  const summary = Object.values(r).every((v) => v == null)
     ? null
-    : `Dvojka ${km(competition.rules.fee_referee_2_km)}, trojka ${km(competition.rules.fee_referee_3_km)}, sto ${km(competition.rules.fee_table_km)}, statistika ${km(competition.rules.fee_stats_km ?? null)}, komesar ${km(competition.rules.fee_commissioner_km)}`;
+    : [
+        c0.referees && `dvojka ${km(r.fee_referee_2_km)}, trojka ${km(r.fee_referee_3_km)}`,
+        `sto ${km(r.fee_table_km)}`,
+        c0.stats > 0 && `statistika ${km(r.fee_stats_km ?? null)}`,
+        c0.commissioner && `komesar ${km(r.fee_commissioner_km)}`,
+      ]
+        .filter(Boolean)
+        .join(", ")
+        .replace(/^./, (ch) => ch.toUpperCase());
 
   return (
     <details className="group">
@@ -114,6 +131,7 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
               setDirty(true);
             }}
           />
+          {officials && (
           <label className="flex cursor-pointer items-start gap-2.5 text-[14px]">
             <input
               type="checkbox"
@@ -126,13 +144,14 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
             />
             <span>
               <span className="font-semibold">Odvojene nominacije</span>
-              <span className="block text-fg-muted">Sudije i komesar se šalju posebno od pomoćnih sudija (seniori).</span>
+              <span className="block text-fg-muted">Sudije i komesar se šalju posebno od pomoćnih sudija.</span>
             </span>
           </label>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          {FIELDS.map((f) => (
+          {fields.map((f) => (
             <label key={f.key} className="flex min-w-0 flex-col gap-1.5">
               <span className="text-[13px] font-medium leading-tight text-fg-muted">
                 {f.label}
