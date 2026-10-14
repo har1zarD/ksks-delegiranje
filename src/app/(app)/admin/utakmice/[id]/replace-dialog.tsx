@@ -68,7 +68,7 @@ export function ReplaceButton({
 
           <p className="text-[13px] text-fg-muted">
             {notified
-              ? `${current} se uklanja bez emaila. Nova osoba odmah vidi nominaciju i dobija je emailom, sa svojim imenom označenim crveno.`
+              ? `${current} dobija email da je nominacija otkazana. Nova osoba odmah vidi nominaciju i dobija je emailom, sa svojim imenom označenim crveno.`
               : "Utakmica još nije aktivirana, pa se ne šalje email."}
           </p>
 

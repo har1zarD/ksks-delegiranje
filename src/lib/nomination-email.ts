@@ -45,7 +45,7 @@ function dateRange(matches: NominationMatch[]) {
 }
 
 /** Redovi ekipe: pozicija → osobe (statistika i više osoba u jednom redu, kao u dokumentu) */
-function crewRows(m: NominationMatch, kind: NominationKind) {
+function crewRows(m: Pick<NominationMatch, "crew" | "digital_scoresheet">, kind: NominationKind) {
   const rows = new Map<string, { name: string; profileId: string }[]>();
   const sorted = [...m.crew].sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
   for (const c of sorted) {
@@ -79,7 +79,7 @@ function groups(matches: NominationMatch[]) {
 }
 
 /** "4. KOLO – MINIBASKET" (na kartici utakmice) */
-function competitionLine(m: NominationMatch) {
+function competitionLine(m: CardMatch) {
   return [m.round ? `${m.round}. kolo` : null, m.competition?.name, matchKindLabel(m.kind, m.kind_label) || null]
     .filter(Boolean)
     .join(" – ")
@@ -101,22 +101,32 @@ const C = {
 };
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-function matchCard(m: NominationMatch, kind: NominationKind, highlight?: string) {
-  const rows = crewRows(m, kind);
+type Row = ReturnType<typeof crewRows>[number];
+/** Polja utakmice potrebna kartici (nominacija i otkazivanje) */
+type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind" | "kind_label" | "home" | "away" | "hall"> & {
+  competition: { name: string } | null;
+};
+
+/** Kartica utakmice. Osoba iz `highlight` je crvena (zamjena), iz `removed` precrtana (otkazano). */
+function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed }: { showNumber: boolean; highlight?: string; removed?: string }) {
   const left = `
-    ${kind === "youth" ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
+    ${showNumber ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
     <div style="font-size:22px;font-weight:700;color:${C.ink};line-height:1.1;margin-bottom:10px">${pad(m.number)}</div>` : ""}
     <div style="font-size:20px;font-weight:700;color:${C.ink};line-height:1.1">${esc(formatTime(m.starts_at))}</div>
     <div style="font-size:13px;color:${C.muted};margin-top:2px">${esc(date(m.starts_at))}</div>
     <div style="font-size:13px;color:${C.muted};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>`;
+  const person = (p: Row["people"][number]) =>
+    p.profileId === removed
+      ? `<span style="color:${C.red};text-decoration:line-through">${esc(p.name)}</span>`
+      : p.profileId === highlight
+        ? `<span style="color:${C.red}">${esc(p.name)}</span>`
+        : esc(p.name);
   const crew = rows.length
     ? rows
         .map(
           (r, i) => `<tr>
             <td style="padding:7px 12px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:13px;color:${C.muted};width:40%">${esc(r.label)}</td>
-            <td style="padding:7px 12px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:14px;font-weight:600;color:${C.ink}">${r.people
-              .map((p) => (p.profileId === highlight ? `<span style="color:${C.red}">${esc(p.name)}</span>` : esc(p.name)))
-              .join(", ")}</td>
+            <td style="padding:7px 12px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:14px;font-weight:600;color:${C.ink}">${r.people.map(person).join(", ")}</td>
           </tr>`,
         )
         .join("")
@@ -138,6 +148,42 @@ function matchCard(m: NominationMatch, kind: NominationKind, highlight?: string)
 </table>`;
 }
 
+/** Okvir dokumenta saveza: grb, naslov, podnaslov, sadržaj, dugme */
+function documentHtml(o: { subject: string; title: string; subtitle: string; intro?: string; body: string; button: string; link: string; note: string; logo: string }) {
+  return `<!doctype html><html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(o.subject)}</title></head>
+<body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px">
+  <tr><td style="padding:4px 4px 20px">
+    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+      <td valign="middle" style="padding-right:12px"><img src="${esc(o.logo)}" width="44" height="44" alt="KSKS" style="display:block;border:0"></td>
+      <td valign="middle">
+        <div style="font-size:13px;color:${C.muted}">Košarkaški savez Kantona Sarajevo</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;color:${C.ink}">${esc(o.title)}</div>
+      </td>
+    </tr></table>
+    <div style="margin-top:10px;font-size:15px;color:${C.muted}">${esc(o.subtitle)}</div>
+    ${o.intro ? `<div style="margin-top:6px;font-size:15px;line-height:1.45;color:${C.ink}">${o.intro}</div>` : ""}
+  </td></tr>
+  ${o.body}
+  <tr><td style="padding:12px 0 8px">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td align="center" bgcolor="${C.brand}" style="border-radius:8px">
+        <a href="${esc(o.link)}" style="display:block;padding:16px 20px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">${esc(o.button)}</a>
+      </td>
+    </tr></table>
+    <p style="margin:12px 4px 0;font-size:13px;color:${C.muted};text-align:center">${esc(o.note)}</p>
+  </td></tr>
+  <tr><td style="padding:20px 4px 0;font-size:13px;color:${C.faint};text-align:center">Takmičarska komisija KSKS</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+}
+
+const textLine = (m: CardMatch, showNumber: boolean) =>
+  `${formatTime(m.starts_at)}  ${showNumber ? `UTAKMICA ${pad(m.number)}, ` : ""}${competitionLine(m)}, ${m.hall?.name ?? "dvorana nije određena"}`;
+const textTeams = (m: CardMatch) => `${(m.home?.name ?? "?").toUpperCase()} – ${(m.away?.name ?? "?").toUpperCase()}`;
+
 /**
  * Nominacija (omladinska liga) ili Nominacija – pomoćne sudije (seniori).
  * highlight: zamjena; ime te osobe je crveno, a dokument ide samo njoj.
@@ -145,6 +191,7 @@ function matchCard(m: NominationMatch, kind: NominationKind, highlight?: string)
 export function nominationEmail(matches: NominationMatch[], kind: NominationKind, link: string, logo: string, highlight?: string) {
   const title = kind === "youth" ? "Nominacija" : "Nominacija – pomoćne sudije";
   const subject = `${title}${highlight ? " (zamjena)" : ""} ${dateRange(matches)}`;
+  const showNumber = kind === "youth";
 
   const text = [
     `${title.toUpperCase()} ${dateRange(matches)}`,
@@ -154,8 +201,8 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
     ...groups(matches).flatMap(([group, list]) => [
       ...(group ? [group, ""] : []),
       ...list.flatMap((m) => [
-        `${formatTime(m.starts_at)}  ${kind === "youth" ? `UTAKMICA ${pad(m.number)}, ` : ""}${competitionLine(m)}, ${m.hall?.name ?? "dvorana nije određena"}`,
-        `${(m.home?.name ?? "?").toUpperCase()} – ${(m.away?.name ?? "?").toUpperCase()}`,
+        textLine(m, showNumber),
+        textTeams(m),
         ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`),
         "",
       ]),
@@ -165,41 +212,76 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
     "Takmičarska komisija KSKS",
   ].join("\n");
 
-  const html = `<!doctype html><html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(subject)}</title></head>
-<body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px">
-  <tr><td style="padding:4px 4px 20px">
-    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-      <td valign="middle" style="padding-right:12px"><img src="${esc(logo)}" width="44" height="44" alt="KSKS" style="display:block;border:0"></td>
-      <td valign="middle">
-        <div style="font-size:13px;color:${C.muted}">Košarkaški savez Kantona Sarajevo</div>
-        <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;color:${C.ink}">${esc(title)}</div>
-      </td>
-    </tr></table>
-    <div style="margin-top:10px;font-size:15px;color:${C.muted}">${esc(dateRange(matches))}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}</div>
-    ${highlight ? `<div style="margin-top:6px;font-size:15px;color:${C.ink}">Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti (crveno).</div>` : ""}
-  </td></tr>
-  ${groups(matches)
+  const body = groups(matches)
     .map(
       ([group, list]) => `<tr><td style="padding:0 0 4px">
     ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
-    ${list.map((m) => matchCard(m, kind, highlight)).join("")}
+    ${list.map((m) => matchCard(m, crewRows(m, kind), { showNumber, highlight })).join("")}
   </td></tr>`,
     )
-    .join("")}
-  <tr><td style="padding:12px 0 8px">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-      <td align="center" bgcolor="${C.brand}" style="border-radius:8px">
-        <a href="${esc(link)}" style="display:block;padding:16px 20px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">Prihvati nominaciju</a>
-      </td>
-    </tr></table>
-    <p style="margin:12px 4px 0;font-size:13px;color:${C.muted};text-align:center">Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Delegiranje.</p>
-  </td></tr>
-  <tr><td style="padding:20px 4px 0;font-size:13px;color:${C.faint};text-align:center">Takmičarska komisija KSKS</td></tr>
-</table>
-</td></tr></table>
-</body></html>`;
+    .join("");
+
+  const html = documentHtml({
+    subject,
+    title,
+    subtitle: `${dateRange(matches)}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`,
+    intro: highlight ? "Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti (crveno)." : undefined,
+    body,
+    button: "Prihvati nominaciju",
+    link,
+    note: "Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Delegiranje.",
+    logo,
+  });
+
+  return { subject, text, html };
+}
+
+/**
+ * Otkazana nominacija (savez je ukloni ili osobu zamijeni drugom), u istom obliku kao nominacija:
+ * kartica utakmice s tom osobom precrtanom crveno.
+ */
+export function withdrawnEmail(
+  person: { name: string; position: Position },
+  match: CardMatch & { digital_scoresheet: boolean },
+  reason: "cancelled" | "replaced",
+  link: string,
+  logo: string,
+) {
+  const subject = `Otkazana nominacija: ${match.home?.name ?? "?"} – ${match.away?.name ?? "?"}, ${formatDayMonth(match.starts_at)}`;
+  const role = positionName(person.position, match.digital_scoresheet).toLowerCase();
+  const intro =
+    reason === "replaced"
+      ? `Na ovoj utakmici (${role}) te mijenja druga osoba. Utakmica više nije među tvojim nominacijama i ne trebaš dolaziti.`
+      : `Tvoja nominacija (${role}) za ovu utakmicu je otkazana. Utakmica više nije među tvojim nominacijama i ne trebaš dolaziti.`;
+  const crew: NominationMatch["crew"] = [{ position: person.position, name: person.name, profileId: "removed", email: "" }];
+  const rows = crewRows({ crew, digital_scoresheet: match.digital_scoresheet }, "youth");
+
+  const text = [
+    `OTKAZANA NOMINACIJA`,
+    "Košarkaški savez Kantona Sarajevo",
+    "",
+    intro,
+    "",
+    textLine(match, true),
+    textTeams(match),
+    `  ${rows[0]?.label}: ${nominationName(person.name)} (otkazano)`,
+    "",
+    `Moje nominacije: ${link}`,
+    "",
+    "Takmičarska komisija KSKS",
+  ].join("\n");
+
+  const html = documentHtml({
+    subject,
+    title: "Otkazana nominacija",
+    subtitle: `${dayTitle.format(new Date(match.starts_at))}, ${formatTime(match.starts_at)}`,
+    intro: esc(intro),
+    body: `<tr><td style="padding:8px 0 4px">${matchCard(match, rows, { showNumber: true, removed: "removed" })}</td></tr>`,
+    button: "Otvori moje nominacije",
+    link,
+    note: "Ostale nominacije ostaju kakve jesu.",
+    logo,
+  });
 
   return { subject, text, html };
 }

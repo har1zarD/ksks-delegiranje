@@ -1,5 +1,6 @@
 import { formatDayMonth, formatTime, formatWeekday, matchNo, positionName, type Position } from "@/lib/format";
 import { siteUrl } from "@/lib/email";
+import { withdrawnEmail } from "@/lib/nomination-email";
 
 type MatchInfo = {
   number?: number;
@@ -24,17 +25,14 @@ function describe(m: MatchInfo) {
     .join("\n");
 }
 
-export function cancellationEmail(name: string, position: Position, match: MatchInfo) {
-  return {
-    subject: `Otkazano: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
-    text: `Zdravo ${name},
-
-tvoja nominacija (${positionName(position, match.digital_scoresheet).toLowerCase()}) za utakmicu je otkazana:
-
-${describe(match)}
-
-Košarkaški savez Kantona Sarajevo`,
-  };
+/** Otkazana nominacija (uklonjena ili zamijenjena osoba), u obliku dokumenta kao nominacija */
+export function cancellationEmail(
+  name: string,
+  position: Position,
+  match: Parameters<typeof withdrawnEmail>[1],
+  reason: "cancelled" | "replaced" = "cancelled",
+) {
+  return withdrawnEmail({ name, position }, match, reason, siteUrl("/nominacije"), siteUrl("/icons/icon-192.png"));
 }
 
 export function declinedEmail(person: string, position: Position, reason: string, match: MatchInfo & { id: string }) {

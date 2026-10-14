@@ -98,17 +98,17 @@ export async function removeAssignment(db: Db, assignmentId: string) {
 }
 
 /**
- * Zamjena osobe na poziciji (npr. ne odgovara). Stara nominacija se briše bez emaila.
- * Ako je stara već bila poslana, nova je odmah vidljiva i nova osoba dobija nominaciju
- * utakmice emailom (svoje ime crveno); neaktivirana se samo zamijeni.
+ * Zamjena osobe na poziciji (npr. ne odgovara). Stara nominacija se briše.
+ * Ako je stara već bila poslana, nova je odmah vidljiva: nova osoba dobija nominaciju utakmice
+ * (svoje ime crveno), a stara obavijest o otkazivanju. Neaktivirana se samo zamijeni.
  */
 export async function replaceAssignment(
   db: Db,
   { assignmentId, profileId, createdBy }: { assignmentId: string; profileId: string; createdBy: string },
 ) {
-  const { data: old } = await db.from("assignments").select("id, match_id, position, status, notified_at, profile_id").eq("id", assignmentId).maybeSingle();
+  const { data: old } = await db.from("assignments").select(WITH_PERSON_AND_MATCH).eq("id", assignmentId).maybeSingle();
   if (!old || (old.status !== "pending" && old.status !== "accepted")) throw new DelegationError("Delegiranje nije pronađeno.");
-  if (old.profile_id === profileId) throw new DelegationError("Izaberi drugu osobu.");
+  if (old.profile?.id === profileId) throw new DelegationError("Izaberi drugu osobu.");
   const person = await checkAssignable(db, old.match_id, profileId, old.position);
 
   const { error: delError } = await db.from("assignments").delete().eq("id", old.id);
@@ -118,6 +118,15 @@ export async function replaceAssignment(
   if (!old.notified_at) return { matchId: old.match_id, name: person.full_name, emailed: false };
   await db.from("assignments").update({ notified_at: new Date().toISOString() }).eq("id", id);
   const emailed = await sendReplacementNomination(db, { matchId: old.match_id, assignmentId: id, profileId, email: person.email });
+  // Zamijenjena osoba dobija obavijest da je nominacija otkazana
+  if (old.profile && old.match) {
+    await sendEmail({
+      to: old.profile.email,
+      kind: "cancellation",
+      profileId: old.profile.id,
+      ...cancellationEmail(old.profile.full_name, old.position, old.match, "replaced"),
+    });
+  }
   return { matchId: old.match_id, name: person.full_name, emailed };
 }
 
