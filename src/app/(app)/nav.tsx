@@ -8,7 +8,6 @@ import {
   CalendarDays,
   CalendarOff,
   ChevronRight,
-  ChevronsUpDown,
   Ellipsis,
   Inbox,
   LayoutGrid,
@@ -47,15 +46,6 @@ function useActive(items: NavItem[]) {
   return items
     .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
-}
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
 }
 
 /** Gornja traka (grb, naziv, korisnik) + stavke na većem ekranu; donja traka na mobitelu */
@@ -251,13 +241,9 @@ function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={`${user}, meni`}
-        className="flex h-10 items-center gap-2.5 rounded-lg pl-1 pr-1 text-[14px] font-medium transition-colors hover:bg-panel-2 sm:pr-2.5"
+        className="flex h-10 items-center rounded-lg px-2.5 text-[14px] font-medium transition-colors hover:bg-panel-2"
       >
-        <span className="grid size-8 place-items-center rounded-md bg-brand text-[12px] font-semibold tracking-wide text-brand-ink" aria-hidden>
-          {initials(user)}
-        </span>
-        <span className="hidden max-w-[10rem] truncate sm:block">{user}</span>
-        <ChevronsUpDown className="hidden size-4 text-fg-faint sm:block" />
+        <span className="max-w-[9rem] truncate sm:max-w-[12rem]">{user}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-12 z-50 w-64 rounded-lg border border-line bg-panel p-1 shadow-pop">
