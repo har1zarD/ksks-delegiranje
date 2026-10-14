@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
-import { getCompetitions, getHalls, getNextMatchNumber } from "@/lib/data/admin";
+import { getCompetitions, getHalls, getNextMatchNumbers } from "@/lib/data/admin";
 import { Loading, PageHeader, Panel } from "@/components/ui";
 import { MatchForm } from "../match-form";
 
@@ -28,6 +28,6 @@ export default function NewMatchPage() {
 }
 
 async function NewMatch() {
-  const [competitions, halls, number] = await Promise.all([getCompetitions(), getHalls(), getNextMatchNumber()]);
-  return <MatchForm competitions={competitions} halls={halls} values={{ number }} />;
+  const [competitions, halls, nextNumbers] = await Promise.all([getCompetitions(), getHalls(), getNextMatchNumbers()]);
+  return <MatchForm competitions={competitions} halls={halls} nextNumbers={nextNumbers} />;
 }

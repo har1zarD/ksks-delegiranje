@@ -20,7 +20,7 @@ export function SendForm({ matchId, unsent, group, label = "Pošalji nominacije"
           {pending ? "Šaljem…" : `${label} (${unsent})`}
         </Button>
       ) : (
-        <p className="text-[14px] text-fg-muted">{group ? "Poslano." : "Sve nominacije su poslane."}</p>
+        <p className="text-[14px] text-fg-muted">Nema neposlanih nominacija.</p>
       )}
       {state.error && (
         <p role="alert" className="text-[13px] text-crest">

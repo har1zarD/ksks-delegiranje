@@ -43,25 +43,28 @@ export async function getHalls() {
   return hallRows();
 }
 
-async function maxMatchNumber() {
+/** Najveći broj utakmice po takmičenju tekuće sezone */
+async function maxMatchNumbers() {
   "use cache: remote";
   cacheLife(LIFE.live);
   cacheTag(TAG.matches, TAG.competitions);
   const data = rows(
     await createAdminClient()
       .from("matches")
-      .select("number, competition:competitions!matches_competition_id_fkey!inner ( season:seasons!competitions_season_id_fkey!inner ( is_current ) )")
-      .eq("competition.season.is_current", true)
-      .order("number", { ascending: false })
-      .limit(1),
+      .select("competition_id, number, competition:competitions!matches_competition_id_fkey!inner ( season:seasons!competitions_season_id_fkey!inner ( is_current ) )")
+      .eq("competition.season.is_current", true),
   );
-  return data[0]?.number ?? 0;
+  const max: Record<string, number> = {};
+  for (const m of data) max[m.competition_id] = Math.max(max[m.competition_id] ?? 0, m.number);
+  return max;
 }
 
-/** Sljedeći slobodan broj utakmice u tekućoj sezoni (prijedlog na formi; baza ga dodijeli i sama) */
-export async function getNextMatchNumber() {
+/** Sljedeći slobodan broj utakmice po takmičenju (prijedlog na formi; baza ga dodijeli i sama) */
+export async function getNextMatchNumbers(): Promise<Record<string, number>> {
   await requireRole("admin");
-  return (await maxMatchNumber()) + 1;
+  const max = await maxMatchNumbers();
+  // Takmičenje bez utakmica nema ključ: forma tada predlaže 1
+  return Object.fromEntries(Object.entries(max).map(([k, v]) => [k, v + 1]));
 }
 
 export type StaffingSummary = { missing: Position[]; pending: number };

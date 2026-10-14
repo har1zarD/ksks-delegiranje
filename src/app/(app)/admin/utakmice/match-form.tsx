@@ -36,10 +36,13 @@ export function MatchForm({
   competitions,
   halls,
   values = {},
+  nextNumbers = {},
 }: {
   competitions: Competition[];
   halls: { id: string; name: string }[];
   values?: MatchFormValues;
+  /** Sljedeći slobodan broj po takmičenju (nova utakmica) */
+  nextNumbers?: Record<string, number>;
 }) {
   const [state, action, pending] = useActionState<MatchFormState, FormData>(saveMatch, {});
   const [competitionId, setCompetitionId] = useState(values.competition_id ?? competitions[0]?.id ?? "");
@@ -50,6 +53,8 @@ export function MatchForm({
   const [crew, setCrew] = useState<Crew | null>(values.crew ?? (competition ? crewDefaultsOf(competition) : null));
   const teams = competition?.teams ?? [];
   const isEdit = Boolean(values.id);
+  // Broj se broji po takmičenju: nova utakmica predlaže sljedeći slobodan u izabranom takmičenju
+  const [number, setNumber] = useState(String(values.number ?? nextNumbers[competitionId] ?? 1));
   const cost = crew ? matchCost(competition ?? null, crew) : null;
 
   return (
@@ -63,9 +68,10 @@ export function MatchForm({
         type="number"
         inputMode="numeric"
         min={1}
-        defaultValue={values.number ?? ""}
+        value={number}
+        onChange={(e) => setNumber(e.target.value)}
         placeholder="Sljedeći slobodan"
-        hint={isEdit ? undefined : "Sljedeći slobodan u sezoni; možeš upisati broj iz rasporeda."}
+        hint={isEdit ? undefined : "Sljedeći slobodan u takmičenju; možeš upisati broj iz rasporeda."}
         required={isEdit}
       />
       <Field label="Kolo" name="round" type="number" inputMode="numeric" min={1} defaultValue={values.round ?? ""} />
@@ -111,7 +117,10 @@ export function MatchForm({
         onChange={(e) => {
           setCompetitionId(e.target.value);
           const next = competitions.find((c) => c.id === e.target.value);
-          if (next && !isEdit) setCrew(crewDefaultsOf(next));
+          if (next && !isEdit) {
+            setCrew(crewDefaultsOf(next));
+            setNumber(String(nextNumbers[next.id] ?? 1));
+          }
         }}
         required
       >
