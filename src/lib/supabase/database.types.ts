@@ -285,16 +285,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"mcp_tokens": {
+                },"oauth_clients": {
                   Row: {
-                    "created_at": string,"id": string,"last_used_at": string | null,"name": string,"prefix": string,"profile_id": string,"revoked_at": string | null,"token_hash": string
+                    "created_at": string,"id": string,"name": string,"redirect_uris": string[]
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"last_used_at"?: string | null,"name"?: string,"prefix": string,"profile_id": string,"revoked_at"?: string | null,"token_hash": string
+                    "created_at"?: string,"id": string,"name": string,"redirect_uris": string[]
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"last_used_at"?: string | null,"name"?: string,"prefix"?: string,"profile_id"?: string,"revoked_at"?: string | null,"token_hash"?: string
+                    "created_at"?: string,"id"?: string,"name"?: string,"redirect_uris"?: string[]
+                  }
+                  Relationships: []
+                },"oauth_codes": {
+                  Row: {
+                    "client_id": string,"code_challenge": string,"code_hash": string,"created_at": string,"expires_at": string,"profile_id": string,"redirect_uri": string,"used_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "client_id": string,"code_challenge": string,"code_hash": string,"created_at"?: string,"expires_at": string,"profile_id": string,"redirect_uri": string,"used_at"?: string | null
+                  }
+                  Update: {
+                    "client_id"?: string,"code_challenge"?: string,"code_hash"?: string,"created_at"?: string,"expires_at"?: string,"profile_id"?: string,"redirect_uri"?: string,"used_at"?: string | null
+                  }
+                  Relationships: []
+                },"mcp_tokens": {
+                  Row: {
+                    "created_at": string,"id": string,"last_used_at": string | null,"name": string,"oauth_client_id": string | null,"prefix": string,"profile_id": string,"revoked_at": string | null,"token_hash": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"last_used_at"?: string | null,"name"?: string,"oauth_client_id"?: string | null,"prefix": string,"profile_id": string,"revoked_at"?: string | null,"token_hash": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"last_used_at"?: string | null,"name"?: string,"oauth_client_id"?: string | null,"prefix"?: string,"profile_id"?: string,"revoked_at"?: string | null,"token_hash"?: string
                   }
                   Relationships: [
                     {

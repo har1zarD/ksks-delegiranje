@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Sve osim statičkih datoteka, slika i MCP i cron endpointa (imaju vlastitu autentifikaciju tokenom)
-    "/((?!_next/static|_next/image|favicon.ico|brand/|api/mcp|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Sve osim statičkih datoteka, slika, MCP/cron (vlastiti token) i javnih OAuth endpointa (.well-known, registracija, token)
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|icons/|brand/|api/mcp|api/cron|api/oauth|api/well-known|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
