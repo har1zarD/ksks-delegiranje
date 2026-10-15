@@ -152,14 +152,17 @@ export function BoxScore({
   const total = cx("scoreboard text-right font-semibold leading-none", lg ? "text-[30px] sm:text-[40px]" : "text-[22px]");
   const head = "text-center text-[11px] font-semibold text-fg-faint";
 
+  // U listi (sm) naziv utakmice i stanje stoje u zaglavlju tabele, u ravni s Q1–Uk.; na stranici utakmice (lg) iznad tabele
+  const heading = (label || badge) && (
+    <span className={cx("flex min-w-0 items-center gap-x-2.5 text-[12px] font-semibold text-fg-faint", lg && "mb-3 flex-wrap gap-y-1")}>
+      {label && <span className="min-w-0 max-w-full truncate">{label}</span>}
+      {badge && <span className="shrink-0">{badge}</span>}
+    </span>
+  );
+
   return (
     <div>
-      {(label || badge) && (
-        <div className={cx("flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint", lg ? "mb-3" : "mb-1")}>
-          {label && <span className="min-w-0 max-w-full truncate">{label}</span>}
-          {badge}
-        </div>
-      )}
+      {lg && heading}
       <div className="overflow-x-auto">
       <div
         style={{ "--n": cols.length } as React.CSSProperties}
@@ -170,7 +173,7 @@ export function BoxScore({
             : "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_3.5rem]",
         )}
       >
-        <span aria-hidden />
+        {!lg && heading ? heading : <span aria-hidden />}
         {cols.map((c) => (
           <span key={c.period} className={head}>
             {periodShort(c.period)}
