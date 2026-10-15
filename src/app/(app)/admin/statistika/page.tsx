@@ -7,6 +7,7 @@ import { resolvePeriod, type PayrollPeriod } from "@/lib/data/finance";
 import { formatKM, formatMonth, matchesLabel, round2 } from "@/lib/finance";
 import { PayrollSummary, PeriodPicker } from "@/app/(app)/admin/naknade/_components/payroll-view";
 import { PayrollSummarySkeleton, PeriodPickerSkeleton, Skeleton, Text, times } from "@/components/skeleton";
+import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
 import { cx, Empty, PageHeader, Panel, ROWS, SectionTitle } from "@/components/ui";
 
 export const metadata = { title: "Statistika — KSKS" };
@@ -48,69 +49,73 @@ async function Stats({ searchParams }: { searchParams: SearchParams }) {
   );
 
   return (
-    <div className="flex flex-col gap-10">
-      <PeriodPicker period={period} basePath="/admin/statistika" params={params} />
+    <FilterNavProvider>
+      <div className="flex flex-col gap-10">
+        <PeriodPicker period={period} basePath="/admin/statistika" params={params} />
 
-      {people.length === 0 ? (
-        <Empty icon={<BarChart3 />}>Nema završenih utakmica ni odbijenih nominacija {when}.</Empty>
-      ) : (
-        <>
-          <PayrollSummary
-            total={totals.earned}
-            paid={totals.paid}
-            unpaid={totals.unpaid}
-            note={`${people.length} ${people.length % 10 >= 2 && people.length % 10 <= 4 && (people.length % 100 < 12 || people.length % 100 > 14) ? "osobe" : "osoba"}, ${totals.unpaidCount} neisplaćeno, ${declinedLabel(totals.declined)}`}
-          />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <TopList icon={<CalendarCheck />} title="Najviše utakmica" people={byMatches} value={(p) => matchesLabel(p.matches)} personHref={personHref} />
-            <TopList icon={<Wallet />} title="Najviše zaradili" people={byEarned} value={(p) => formatKM(p.earned)} personHref={personHref} />
-            <TopList icon={<Clock />} title="Najviše se duguje" people={byUnpaid} value={(p) => formatKM(p.unpaid)} personHref={personHref} empty="Sve je isplaćeno." />
-            <TopList icon={<XCircle />} title="Najviše odbijenih nominacija" people={byDeclined} value={(p) => declinedLabel(p.declined)} personHref={personHref} empty="Niko nije odbio nominaciju." />
-          </div>
+        <FilterContent fallback={<StatsContentSkeleton />}>
+          {people.length === 0 ? (
+            <Empty icon={<BarChart3 />}>Nema završenih utakmica ni odbijenih nominacija {when}.</Empty>
+          ) : (
+            <>
+              <PayrollSummary
+                total={totals.earned}
+                paid={totals.paid}
+                unpaid={totals.unpaid}
+                note={`${people.length} ${people.length % 10 >= 2 && people.length % 10 <= 4 && (people.length % 100 < 12 || people.length % 100 > 14) ? "osobe" : "osoba"}, ${totals.unpaidCount} neisplaćeno, ${declinedLabel(totals.declined)}`}
+              />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <TopList icon={<CalendarCheck />} title="Najviše utakmica" people={byMatches} value={(p) => matchesLabel(p.matches)} personHref={personHref} />
+                <TopList icon={<Wallet />} title="Najviše zaradili" people={byEarned} value={(p) => formatKM(p.earned)} personHref={personHref} />
+                <TopList icon={<Clock />} title="Najviše se duguje" people={byUnpaid} value={(p) => formatKM(p.unpaid)} personHref={personHref} empty="Sve je isplaćeno." />
+                <TopList icon={<XCircle />} title="Najviše odbijenih nominacija" people={byDeclined} value={(p) => declinedLabel(p.declined)} personHref={personHref} empty="Niko nije odbio nominaciju." />
+              </div>
 
-          <section>
-            <SectionTitle icon={<BarChart3 />} count={people.length}>Sve osobe</SectionTitle>
-            <div className="overflow-x-auto rounded-lg border border-line bg-panel shadow-panel">
-              <table className="w-full min-w-[820px] text-[14px]">
-                <thead>
-                  <tr className="border-b border-line text-left text-[12px] font-semibold text-fg-faint">
-                    <th className="px-4 py-3 sm:px-6">Osoba</th>
-                    <Th>Utakmice</Th>
-                    <Th>Sudija</Th>
-                    <Th>Sto</Th>
-                    <Th>Komesar</Th>
-                    <Th>Odbijeno</Th>
-                    <Th>Zarađeno</Th>
-                    <Th>Isplaćeno</Th>
-                    <Th>Duguje se</Th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {people.map((p) => (
-                    <tr key={p.profileId} className="transition-colors hover:bg-panel-2">
-                      <td className="px-4 py-3 sm:px-6">
-                        <Link href={personHref(p.profileId)} className="font-semibold text-fg hover:text-brand">
-                          {p.name}
-                        </Link>
-                        {p.missing > 0 && <div className="text-[12px] text-orange">{p.missing} bez cijene</div>}
-                      </td>
-                      <Td strong>{p.matches}</Td>
-                      <Td muted={p.referee === 0}>{p.referee}</Td>
-                      <Td muted={p.table === 0}>{p.table}</Td>
-                      <Td muted={p.commissioner === 0}>{p.commissioner}</Td>
-                      <Td muted={p.declined === 0} tone={p.declined > 0 ? "text-crest" : undefined}>{p.declined}</Td>
-                      <Td strong>{formatKM(p.earned)}</Td>
-                      <Td muted={p.paid === 0} tone="text-mint">{formatKM(p.paid)}</Td>
-                      <Td muted={p.unpaid === 0} tone="text-crest">{formatKM(p.unpaid)}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      )}
-    </div>
+              <section>
+                <SectionTitle icon={<BarChart3 />} count={people.length}>Sve osobe</SectionTitle>
+                <div className="overflow-x-auto rounded-lg border border-line bg-panel shadow-panel">
+                  <table className="w-full min-w-[820px] text-[14px]">
+                    <thead>
+                      <tr className="border-b border-line text-left text-[12px] font-semibold text-fg-faint">
+                        <th className="px-4 py-3 sm:px-6">Osoba</th>
+                        <Th>Utakmice</Th>
+                        <Th>Sudija</Th>
+                        <Th>Sto</Th>
+                        <Th>Komesar</Th>
+                        <Th>Odbijeno</Th>
+                        <Th>Zarađeno</Th>
+                        <Th>Isplaćeno</Th>
+                        <Th>Duguje se</Th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {people.map((p) => (
+                        <tr key={p.profileId} className="transition-colors hover:bg-panel-2">
+                          <td className="px-4 py-3 sm:px-6">
+                            <Link href={personHref(p.profileId)} className="font-semibold text-fg hover:text-brand">
+                              {p.name}
+                            </Link>
+                            {p.missing > 0 && <div className="text-[12px] text-orange">{p.missing} bez cijene</div>}
+                          </td>
+                          <Td strong>{p.matches}</Td>
+                          <Td muted={p.referee === 0}>{p.referee}</Td>
+                          <Td muted={p.table === 0}>{p.table}</Td>
+                          <Td muted={p.commissioner === 0}>{p.commissioner}</Td>
+                          <Td muted={p.declined === 0} tone={p.declined > 0 ? "text-crest" : undefined}>{p.declined}</Td>
+                          <Td strong>{formatKM(p.earned)}</Td>
+                          <Td muted={p.paid === 0} tone="text-mint">{formatKM(p.paid)}</Td>
+                          <Td muted={p.unpaid === 0} tone="text-crest">{formatKM(p.unpaid)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </>
+          )}
+        </FilterContent>
+      </div>
+    </FilterNavProvider>
   );
 }
 
@@ -180,7 +185,16 @@ function StatsSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <PeriodPickerSkeleton />
-      <PayrollSummarySkeleton />
+      <StatsContentSkeleton />
+    </Skeleton>
+  );
+}
+
+/** Zbir, liste i tabela (i dok se učitava drugi period) */
+function StatsContentSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-10">
+      <PayrollSummarySkeleton aside={false} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {times(4, (i) => (
           <Panel key={i} className="overflow-hidden">

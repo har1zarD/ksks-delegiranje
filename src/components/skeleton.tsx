@@ -300,21 +300,23 @@ function NumCell({ className, w = "w-5", text = "text-[18px]" }: { className?: s
 
 // ───────── Naknade (PeriodPicker, PayrollSummary, PayrollItems) ─────────
 
-export function PeriodPickerSkeleton() {
+/** `views` = prekidač prikaza (po utakmicama / po osobama) desno u istom redu */
+export function PeriodPickerSkeleton({ views }: { views?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex items-center gap-1">
-        <span className="grid size-10 place-items-center">
-          <Bone className="size-5" />
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+      <div className="-ml-2 inline-flex items-center">
+        <span className="grid size-9 place-items-center">
+          <Bone className="size-[18px]" />
         </span>
-        <span className="flex min-w-36 justify-center">
-          <Text className="font-display text-[20px] font-semibold" w="w-28" />
+        <span className="flex min-w-32 justify-center">
+          <Text className="font-display text-[17px] font-semibold" w="w-28" />
         </span>
-        <span className="grid size-10 place-items-center">
-          <Bone className="size-5" />
+        <span className="grid size-9 place-items-center">
+          <Bone className="size-[18px]" />
         </span>
       </div>
-      <SegmentsSkeleton widths={["w-14", "w-8"]} className="sm:ml-2" />
+      <SegmentsSkeleton widths={["w-14", "w-8"]} />
+      {views && <SegmentsSkeleton widths={["w-24", "w-20"]} className="w-full sm:ml-auto sm:w-auto" />}
     </div>
   );
 }
@@ -323,17 +325,17 @@ export function PeriodPickerSkeleton() {
 export function PayrollSummarySkeleton({ aside = true }: { aside?: boolean }) {
   return (
     <div className={cx(CARD, "px-4 sm:px-6")}>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-5 py-5 sm:grid-cols-3 sm:py-6">
-        {["Zarađeno", "Isplaćeno", "Duguje se"].map((label) => (
-          <div key={label} className="min-w-0">
-            <div className="mb-3 flex items-center gap-2 text-[13px] font-medium text-fg-muted"><Bone className="size-4 shrink-0" />{label}</div>
-            <Text className="scoreboard mt-1 text-[26px] font-semibold leading-none sm:text-[30px]" w="w-32" />
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 py-4 sm:grid-cols-3 sm:gap-x-6 sm:py-5">
+        {["Zarađeno", "Isplaćeno", "Duguje se"].map((label, i) => (
+          <div key={label} className={cx("min-w-0", i === 0 && "col-span-2 sm:col-span-1")}>
+            <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-fg-muted sm:text-[13px]"><Bone className="size-3.5 shrink-0" />{label}</div>
+            <Text className="scoreboard text-[20px] font-semibold leading-tight sm:text-[24px]" w="w-28" />
           </div>
         ))}
       </dl>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4">
+      <div className="flex flex-col gap-3 border-t border-line py-3 sm:flex-row sm:items-center sm:justify-between">
         <Text className="text-[13px]" w="w-56" />
-        {aside && <ButtonSkeleton className="w-36" />}
+        {aside && <ButtonSkeleton className="h-9 w-full sm:w-36" />}
       </div>
     </div>
   );
@@ -344,16 +346,16 @@ export function PayrollItemsSkeleton({ count = 5 }: { count?: number }) {
   return (
     <ul className="divide-y divide-line">
       {times(count, (i) => (
-        <li key={i} className="flex items-center gap-3 py-3 text-[14px]">
-          <Text className="scoreboard w-12 shrink-0 text-[17px] font-semibold" w="w-10" />
+        <li key={i} className="flex flex-col gap-2 py-3 text-[14px] sm:flex-row sm:items-center sm:gap-3">
+          <Text className="scoreboard hidden w-12 shrink-0 text-[17px] font-semibold sm:block" w="w-10" />
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 flex-col gap-1 font-semibold">
               <TeamNameSkeleton w={TEAM_W[i % TEAM_W.length]} />
               <TeamNameSkeleton w={TEAM_W[(i + 3) % TEAM_W.length]} />
             </span>
-            <Text className="text-[13px]" w="w-60" />
+            <Text className="mt-1 text-[13px]" w="w-60" />
           </span>
-          <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
+          <span className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end sm:gap-4">
             <Text className="scoreboard text-[17px] font-semibold" w="w-16" />
             <Bone className="h-6 w-24" />
           </span>
@@ -366,12 +368,10 @@ export function PayrollItemsSkeleton({ count = 5 }: { count?: number }) {
 /** Filteri naknada: grupe, isplata, pretraga */
 export function PayrollFiltersSkeleton({ groups = true }: { groups?: boolean }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        {groups && <SegmentsSkeleton widths={["w-7", "w-12", "w-28", "w-16"]} />}
-        <SegmentsSkeleton widths={["w-7", "w-24", "w-16"]} />
-      </div>
-      <span aria-hidden className="block h-11 max-w-md rounded-lg border border-line-strong bg-panel sm:h-10" />
+    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+      {groups && <SegmentsSkeleton widths={["w-7", "w-12", "w-28", "w-16"]} />}
+      <SegmentsSkeleton widths={["w-7", "w-24", "w-16"]} />
+      <span aria-hidden className="block h-11 w-full rounded-lg border border-line-strong bg-panel sm:h-10 lg:ml-auto lg:w-72 xl:w-80" />
     </div>
   );
 }

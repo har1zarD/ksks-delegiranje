@@ -14,6 +14,7 @@ import {
   PeriodPickerSkeleton,
   Skeleton,
 } from "@/components/skeleton";
+import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
 import { CARD, cx, Empty, PageHeader } from "@/components/ui";
 import { MarkAllPaid } from "../../_components/paid-toggle";
 import { describeFilter, PayrollFilters, PayrollItems, PayrollSummary, PeriodPicker } from "../../_components/payroll-view";
@@ -61,31 +62,43 @@ async function PersonPay({ params, searchParams }: Props) {
   ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader icon={<UserRound />} title={profile.full_name} subtitle={[roles.join(", "), profile.email, profile.phone].filter(Boolean).join(", ")} />
-      <PeriodPicker period={period} basePath={base} params={current} />
-      <PayrollSummary
-        total={summary?.total ?? 0}
-        paid={summary?.paid ?? 0}
-        unpaid={summary?.unpaid ?? 0}
-        note={summary ? `${matchesLabel(summary.items.length)}, ${summary.unpaidCount} neisplaćeno` : undefined}
-        aside={
-          summary && (
-            <MarkAllPaid ids={summary.items.filter((i) => !i.paidAt).map((i) => i.assignmentId)} amount={summary.unpaid} />
-          )
-        }
-      />
-      <PayrollFilters basePath={base} params={current} groups={false} />
-      {!person ? (
-        <Empty icon={<Wallet />}>
-          Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
-        </Empty>
-      ) : (
-        <div className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
-          <PayrollItems person={person} editable />
-        </div>
-      )}
-    </div>
+    <FilterNavProvider>
+      <div className="flex flex-col gap-5">
+        <PageHeader icon={<UserRound />} title={profile.full_name} subtitle={[roles.join(", "), profile.email, profile.phone].filter(Boolean).join(", ")} />
+        <PeriodPicker period={period} basePath={base} params={current} />
+        <FilterContent fallback={<Skeleton><PayrollSummarySkeleton /></Skeleton>}>
+          <PayrollSummary
+            total={summary?.total ?? 0}
+            paid={summary?.paid ?? 0}
+            unpaid={summary?.unpaid ?? 0}
+            note={summary ? `${matchesLabel(summary.items.length)}, ${summary.unpaidCount} neisplaćeno` : undefined}
+            aside={
+              summary && (
+                <MarkAllPaid ids={summary.items.filter((i) => !i.paidAt).map((i) => i.assignmentId)} amount={summary.unpaid} className="w-full sm:w-auto" />
+              )
+            }
+          />
+        </FilterContent>
+        <PayrollFilters basePath={base} params={current} groups={false} />
+        <FilterContent
+          fallback={
+            <Skeleton className={cx(CARD, "px-4 sm:px-6")}>
+              <PayrollItemsSkeleton />
+            </Skeleton>
+          }
+        >
+          {!person ? (
+            <Empty icon={<Wallet />}>
+              Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
+            </Empty>
+          ) : (
+            <div className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
+              <PayrollItems person={person} editable />
+            </div>
+          )}
+        </FilterContent>
+      </div>
+    </FilterNavProvider>
   );
 }
 

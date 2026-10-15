@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { getMyPayroll, resolvePeriod } from "@/lib/data/finance";
 import { formatMonth, matchesLabel } from "@/lib/finance";
 import { PayrollItemsSkeleton, PayrollSummarySkeleton, PeriodPickerSkeleton, Skeleton } from "@/components/skeleton";
+import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
 import { CARD, cx, Empty, PageHeader } from "@/components/ui";
 import { PayrollItems, PayrollSummary, PeriodPicker } from "../admin/naknade/_components/payroll-view";
 
@@ -28,29 +29,33 @@ async function MyPay({ searchParams }: { searchParams: SearchParams }) {
   const period = resolvePeriod(mjesec);
   const me = await getMyPayroll(period);
   return (
-    <div className="flex flex-col gap-5">
-      <PeriodPicker period={period} basePath="/moje-naknade" params={{ mjesec: typeof mjesec === "string" ? mjesec : undefined }} />
-      {!me ? (
-        <Empty icon={<Wallet />}>Nemaš odsuđenih utakmica {period === "sve" ? "" : `u ${formatMonth(period)}`}.</Empty>
-      ) : (
-        <>
-          <PayrollSummary
-            total={me.total}
-            paid={me.paid}
-            unpaid={me.unpaid}
-            note={
-              <>
-                {matchesLabel(me.items.length)}
-                {me.missing > 0 && <span className="text-orange">, {me.missing} bez određene cijene</span>}
-              </>
-            }
-          />
-          <div className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
-            <PayrollItems person={me} />
-          </div>
-        </>
-      )}
-    </div>
+    <FilterNavProvider>
+      <div className="flex flex-col gap-5">
+        <PeriodPicker period={period} basePath="/moje-naknade" params={{ mjesec: typeof mjesec === "string" ? mjesec : undefined }} />
+        <FilterContent fallback={<MyPayContentSkeleton />}>
+          {!me ? (
+            <Empty icon={<Wallet />}>Nemaš odsuđenih utakmica {period === "sve" ? "" : `u ${formatMonth(period)}`}.</Empty>
+          ) : (
+            <>
+              <PayrollSummary
+                total={me.total}
+                paid={me.paid}
+                unpaid={me.unpaid}
+                note={
+                  <>
+                    {matchesLabel(me.items.length)}
+                    {me.missing > 0 && <span className="text-orange">, {me.missing} bez određene cijene</span>}
+                  </>
+                }
+              />
+              <div className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
+                <PayrollItems person={me} />
+              </div>
+            </>
+          )}
+        </FilterContent>
+      </div>
+    </FilterNavProvider>
   );
 }
 
@@ -59,6 +64,15 @@ function MyPaySkeleton() {
   return (
     <Skeleton className="flex flex-col gap-5">
       <PeriodPickerSkeleton />
+      <MyPayContentSkeleton />
+    </Skeleton>
+  );
+}
+
+/** Zbir i stavke (i dok se učitava drugi mjesec) */
+function MyPayContentSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-5">
       <PayrollSummarySkeleton aside={false} />
       <div className={cx(CARD, "px-4 sm:px-6")}>
         <PayrollItemsSkeleton />

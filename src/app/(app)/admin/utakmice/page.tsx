@@ -9,7 +9,7 @@ import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } f
 import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch, type Incomplete } from "@/components/publish";
 import { CrewLine } from "@/components/crew-line";
-import { MatchLine } from "@/components/match-line";
+import { MatchLabel, MatchLine } from "@/components/match-line";
 import { EmailStatus, StaffingBadge, StaffingCrew } from "@/components/staffing-badge";
 import { matchesWithScoresheets } from "@/lib/scoresheets";
 import { MatchLineSkeleton, SegmentsSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
@@ -137,11 +137,19 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                         m.status === "scheduled" && "pt-5 sm:pt-0",
                       )}
                     >
-                      {/* Stanje delegiranja i emaila: jezičak na vrhu kartice, gore desno (na telefonu red ima mjesta ispod njega; od sm je iznad tabele delegiranih) */}
+                      {/*
+                        Stanje delegiranja i emaila: jezičak na vrhu kartice, gore desno (od sm iznad tabele delegiranih).
+                        Telefon: jezičak u samom uglu, a lijevo u istom redu broj utakmice i takmičenje (u redu ispod se ne ponavljaju).
+                      */}
                       {m.status === "scheduled" && (
-                        <div className="absolute right-4 top-0 flex items-center gap-2 rounded-b-lg border border-t-0 border-line bg-panel-2 py-1 pl-2.5 pr-1.5 sm:right-6">
-                          <StaffingBadge staffing={m.staffing} />
-                          <EmailStatus publishedAt={m.published_at} unnotified={m.staffing.unnotified} compact />
+                        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 pl-4 sm:left-auto sm:right-6 sm:pl-0">
+                          <span className="min-w-0 truncate pt-1.5 text-[12px] font-semibold text-fg-faint sm:hidden">
+                            <MatchLabel match={m} />
+                          </span>
+                          <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-bl-lg border-b border-l border-line bg-panel-2 py-1 pl-2.5 pr-1.5 sm:rounded-b-lg sm:border-r">
+                            <StaffingBadge staffing={m.staffing} />
+                            <EmailStatus publishedAt={m.published_at} unnotified={m.staffing.unnotified} compact />
+                          </div>
                         </div>
                       )}
                       {/* Datum je dugme za označavanje (aktiviranje), ostatak reda otvara utakmicu */}
@@ -150,6 +158,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                         <MatchLine
                           match={m}
                           hideDate={!past && m.status === "scheduled"}
+                          hideLabelOnMobile={m.status === "scheduled"}
                           periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
                           showScore={past}
                           // Zakazane imaju delegirane desno (StaffingCrew); uživo ekipa ide u liniju ispod

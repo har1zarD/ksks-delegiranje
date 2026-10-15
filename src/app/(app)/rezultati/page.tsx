@@ -7,7 +7,8 @@ import { MATCH_STATUS_LABEL } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
 import { CompetitionLogo } from "@/components/competition-logo";
 import { Bone, MatchRowsSkeleton, SectionTitleSkeleton, SegmentsSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
-import { buttonClass, Empty, PageHeader, Rows, SectionTitle, Segment, Segments, Status } from "@/components/ui";
+import { FilterContent, FilterNavProvider, FilterSegment, FilterSegments } from "@/components/filter-nav";
+import { buttonClass, Empty, PageHeader, Rows, SectionTitle, Status } from "@/components/ui";
 import { StandingsTable } from "./standings-table";
 
 export const metadata = { title: "Rezultati — KSKS" };
@@ -37,63 +38,67 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
   const data = await getResults(selectedId);
 
   return (
-    <div className="flex flex-col gap-10">
-      <Segments>
-        {competitions.map((c) => (
-          <Segment key={c.id} href={`/rezultati?takmicenje=${c.id}`} active={c.id === selectedId}>
-            {c.short_name ?? c.name}
-          </Segment>
-        ))}
-      </Segments>
+    <FilterNavProvider>
+      <div className="flex flex-col gap-10">
+        <FilterSegments>
+          {competitions.map((c) => (
+            <FilterSegment key={c.id} href={`/rezultati?takmicenje=${c.id}`} active={c.id === selectedId}>
+              {c.short_name ?? c.name}
+            </FilterSegment>
+          ))}
+        </FilterSegments>
 
-      {!data ? (
-        <Empty icon={<Trophy />}>Takmičenje nije pronađeno.</Empty>
-      ) : (
-        <>
-          <section>
-            <h2 className="flex items-center gap-3 font-display text-[22px] font-semibold leading-tight tracking-[-0.03em] sm:text-[24px]"><CompetitionLogo name={data.competition.name} category={data.competition.category} />{data.competition.name}</h2>
-            {data.competition.parent && data.competition.carry_over_h2h && (
-              <p className="mt-1 text-[14px] text-fg-muted">
-                Prenose se rezultati međusobnih utakmica iz takmičenja {data.competition.parent.name}.
-              </p>
-            )}
-            <div className="mt-5">
-              {data.standings.length === 0 ? (
-                <Empty icon={<Trophy />}>Ekipe još nisu upisane.</Empty>
-              ) : (
-                <StandingsTable rows={data.standings} />
-              )}
-            </div>
-          </section>
-
-          {data.rounds.length === 0 ? (
-            <Empty icon={<Trophy />}>Raspored još nije objavljen.</Empty>
+        <FilterContent fallback={<ResultsContentSkeleton />}>
+          {!data ? (
+            <Empty icon={<Trophy />}>Takmičenje nije pronađeno.</Empty>
           ) : (
-            data.rounds.map(([round, matches]) => (
-              <section key={round ?? "ostalo"}>
-                <SectionTitle
-                  count={matches.length}
-                  action={
-                    user.role === "admin" && round ? (
-                      <Link href={`/bilten/kolo?kategorija=${data.competition.category}&kolo=${round}`} className={buttonClass("secondary", "h-9 text-[13px]")}>
-                        <FileText className="size-4" /> Bilten kola
-                      </Link>
-                    ) : undefined
-                  }
-                >
-                  {round ? `${round}. kolo` : "Ostale utakmice"}
-                </SectionTitle>
-                <Rows>
-                  {matches.map((m) => (
-                    <ResultRow key={m.id} match={m} />
-                  ))}
-                </Rows>
+            <>
+              <section>
+                <h2 className="flex items-center gap-3 font-display text-[22px] font-semibold leading-tight tracking-[-0.03em] sm:text-[24px]"><CompetitionLogo name={data.competition.name} category={data.competition.category} />{data.competition.name}</h2>
+                {data.competition.parent && data.competition.carry_over_h2h && (
+                  <p className="mt-1 text-[14px] text-fg-muted">
+                    Prenose se rezultati međusobnih utakmica iz takmičenja {data.competition.parent.name}.
+                  </p>
+                )}
+                <div className="mt-5">
+                  {data.standings.length === 0 ? (
+                    <Empty icon={<Trophy />}>Ekipe još nisu upisane.</Empty>
+                  ) : (
+                    <StandingsTable rows={data.standings} />
+                  )}
+                </div>
               </section>
-            ))
+
+              {data.rounds.length === 0 ? (
+                <Empty icon={<Trophy />}>Raspored još nije objavljen.</Empty>
+              ) : (
+                data.rounds.map(([round, matches]) => (
+                  <section key={round ?? "ostalo"}>
+                    <SectionTitle
+                      count={matches.length}
+                      action={
+                        user.role === "admin" && round ? (
+                          <Link href={`/bilten/kolo?kategorija=${data.competition.category}&kolo=${round}`} className={buttonClass("secondary", "h-9 text-[13px]")}>
+                            <FileText className="size-4" /> Bilten kola
+                          </Link>
+                        ) : undefined
+                      }
+                    >
+                      {round ? `${round}. kolo` : "Ostale utakmice"}
+                    </SectionTitle>
+                    <Rows>
+                      {matches.map((m) => (
+                        <ResultRow key={m.id} match={m} />
+                      ))}
+                    </Rows>
+                  </section>
+                ))
+              )}
+            </>
           )}
-        </>
-      )}
-    </div>
+        </FilterContent>
+      </div>
+    </FilterNavProvider>
   );
 }
 
@@ -152,6 +157,15 @@ function ResultsSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <SegmentsSkeleton widths={["w-16", "w-20", "w-14", "w-20", "w-16"]} />
+      <ResultsContentSkeleton />
+    </Skeleton>
+  );
+}
+
+/** Naziv takmičenja, tabela i kola (i dok se učitava drugo takmičenje) */
+function ResultsContentSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-10">
       <section>
         <div className="flex items-center gap-3 font-display text-[22px] font-semibold leading-tight sm:text-[24px]">
           <Bone className="h-8 w-12 shrink-0" />

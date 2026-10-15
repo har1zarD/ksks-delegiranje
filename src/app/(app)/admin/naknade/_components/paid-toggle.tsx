@@ -54,18 +54,21 @@ export function MarkAllPaid({
   amount,
   label = "Označi sve isplaćeno",
   paid = true,
+  className,
 }: {
   ids: string[];
   amount: number;
   label?: string;
   paid?: boolean;
+  /** Omotač; npr. "w-full sm:w-auto" da dugme na telefonu zauzme cijeli red */
+  className?: string;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   if (ids.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className={cx("flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1", className)}>
       <button
         type="button"
         disabled={pending}
@@ -75,10 +78,10 @@ export function MarkAllPaid({
             setError(r.error);
           })
         }
-        className={buttonClass("secondary")}
+        className={buttonClass("secondary", "h-9 min-w-0 flex-1 px-3 text-[13px]")}
       >
-        {paid ? <Check className="size-4" /> : <RotateCcw className="size-4" />}
-        {pending ? "Čuvam…" : `${label} (${formatKM(amount)})`}
+        {paid ? <Check className="size-4 shrink-0" /> : <RotateCcw className="size-4 shrink-0" />}
+        <span className="truncate">{pending ? "Čuvam…" : `${label} (${formatKM(amount)})`}</span>
       </button>
       {error && (
         <p role="alert" className="text-[13px] text-crest">

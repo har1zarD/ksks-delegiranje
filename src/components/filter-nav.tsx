@@ -8,16 +8,17 @@ import { cx } from "@/components/ui";
 // Filteri u URL-u (?prikaz=…&takmicenje=…&strana=…): klik odmah označi novi izbor i pokaže skelet liste,
 // a server za to vrijeme sprema novu stranicu (navigacija u tranziciji).
 
-type FilterNav = { pending: URLSearchParams | null; go: (href: string, top?: boolean) => void };
+type FilterNav = { pending: URLSearchParams | null; go: (href: string, top?: boolean, mark?: () => void) => void };
 const FilterNavContext = createContext<FilterNav | null>(null);
 
 export function FilterNavProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [pending, setPending] = useOptimistic<string | null>(null);
-  const go = (href: string, top?: boolean) => {
+  const go = (href: string, top?: boolean, mark?: () => void) => {
     if (top) window.scrollTo({ top: 0, behavior: "smooth" });
     startTransition(() => {
+      mark?.();
       setPending(href);
       router.push(href, { scroll: false });
     });
@@ -32,20 +33,40 @@ function useActive(param: string, value: string | undefined, active: boolean) {
   return nav.pending ? (nav.pending.get(param) ?? undefined) === value : active;
 }
 
-function useGo(href: string, top?: boolean) {
+function useGo(href: string, top?: boolean, mark?: () => void) {
   const nav = useContext(FilterNavContext)!;
   return (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Novi tab / prozor ostaje običan link
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
-    nav.go(href, top);
+    nav.go(href, top, mark);
   };
 }
 
-/** Kao Segment, ali odmah aktivan na klik; `param`/`value` = šta ovaj izbor postavlja u URL-u */
-export function FilterSegment({ href, param, value, active, children }: { href: string; param: string; value?: string; active: boolean; children: ReactNode }) {
-  const on = useActive(param, value, active);
-  const go = useGo(href);
+/** Grupa segmenata (kao Segments): kliknuti izbor u grupi je odmah aktivan, ostali u grupi se gase */
+type Group = { clicked: string | null; mark: (href: string) => void };
+const GroupContext = createContext<Group | null>(null);
+
+export function FilterSegments({ children, className }: { children: ReactNode; className?: string }) {
+  const [clicked, setClicked] = useOptimistic<string | null>(null);
+  return (
+    <GroupContext.Provider value={{ clicked, mark: setClicked }}>
+      <div className={cx("-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0", className)}>
+        <div className="inline-flex gap-0.5 rounded-lg bg-track p-[3px]">{children}</div>
+      </div>
+    </GroupContext.Provider>
+  );
+}
+
+/**
+ * Kao Segment, ali odmah aktivan na klik. U FilterSegments grupa sama zna šta je kliknuto;
+ * inače `param`/`value` = šta ovaj izbor postavlja u URL-u.
+ */
+export function FilterSegment({ href, param, value, active, children }: { href: string; param?: string; value?: string; active: boolean; children: ReactNode }) {
+  const group = useContext(GroupContext);
+  const byParam = useActive(param ?? "", value, active);
+  const on = group?.clicked ? group.clicked === href : param ? byParam : active;
+  const go = useGo(href, false, group ? () => group.mark(href) : undefined);
   return (
     <Link
       href={href}
@@ -58,6 +79,37 @@ export function FilterSegment({ href, param, value, active, children }: { href: 
     >
       {children}
     </Link>
+  );
+}
+
+/** Link koji mijenja filter bez oznake izbora (npr. strelice ‹ mjesec ›): odmah skelet sadržaja */
+export function FilterLink({ href, className, children, ...rest }: { href: string; className?: string; children: ReactNode; "aria-label"?: string }) {
+  const go = useGo(href);
+  return (
+    <Link href={href} onClick={go} className={className} {...rest}>
+      {children}
+    </Link>
+  );
+}
+
+/** GET forma filtera (pretraga): slanje ide kroz istu navigaciju sa skeletom, prazna polja se ne upisuju u URL */
+export function FilterForm({ action, className, children, role }: { action: string; className?: string; children: ReactNode; role?: string }) {
+  const nav = useContext(FilterNavContext)!;
+  return (
+    <form
+      action={action}
+      role={role}
+      className={className}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const q = new URLSearchParams();
+        for (const [k, v] of new FormData(e.currentTarget)) if (typeof v === "string" && v.trim()) q.set(k, v.trim());
+        const s = q.toString();
+        nav.go(`${action}${s ? `?${s}` : ""}`);
+      }}
+    >
+      {children}
+    </form>
   );
 }
 

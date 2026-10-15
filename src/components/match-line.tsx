@@ -58,6 +58,20 @@ export function periodColumns(periods: PeriodScore[]) {
   return Array.from({ length: max }, (_, i) => periods.find((p) => p.period === i + 1) ?? { period: i + 1, home_points: null, away_points: null });
 }
 
+/** "Utakmica 3, Liga, 2. kolo" + oznaka vrste (Turnir, Prijateljska) */
+export function MatchLabel({ match }: { match: MatchSummary }) {
+  return (
+    <>
+      {match.number != null && <span className="whitespace-nowrap text-fg-muted">{matchNo(match.number)}, </span>}
+      <span className="whitespace-nowrap">
+        {match.competition?.short_name ?? match.competition?.name}
+        {match.round ? `, ${match.round}. kolo` : ""}
+      </span>
+      {matchKindLabel(match.kind, match.kind_label) && <KindTag>{matchKindLabel(match.kind, match.kind_label)}</KindTag>}
+    </>
+  );
+}
+
 /**
  * Utakmica u redu liste: datum lijevo, ekipe jedna ispod druge.
  * `showScore` = ukupni rezultat desno; `periods` = box score (Q1–Q4, produžeci) + ukupno.
@@ -70,8 +84,11 @@ export function MatchLine({
   periods,
   aside,
   hideDate,
+  hideLabelOnMobile,
 }: {
   match: MatchSummary;
+  /** Broj i takmičenje se na telefonu crtaju izvan reda (npr. u jezičku kartice) */
+  hideLabelOnMobile?: boolean;
   /** Datum se crta izvan reda (npr. kao dugme za označavanje) */
   hideDate?: boolean;
   meta?: React.ReactNode;
@@ -81,16 +98,7 @@ export function MatchLine({
   periods?: PeriodScore[];
   aside?: React.ReactNode;
 }) {
-  const competition = (
-    <>
-      {match.number != null && <span className="whitespace-nowrap text-fg-muted">{matchNo(match.number)}, </span>}
-      <span className="whitespace-nowrap">
-        {match.competition?.short_name ?? match.competition?.name}
-        {match.round ? `, ${match.round}. kolo` : ""}
-      </span>
-      {matchKindLabel(match.kind, match.kind_label) && <KindTag>{matchKindLabel(match.kind, match.kind_label)}</KindTag>}
-    </>
-  );
+  const competition = <MatchLabel match={match} />;
   const hall = match.hall && (
     <div className="mt-1 flex items-center gap-1 truncate text-[13px] text-fg-muted">
       <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
@@ -121,7 +129,7 @@ export function MatchLine({
       {!hideDate && <DateTile iso={match.starts_at} />}
       <div className="min-w-0 flex-1 basis-40">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint">
-          <span className="min-w-0 max-w-full truncate">{competition}</span>
+          <span className={cx("min-w-0 max-w-full truncate", hideLabelOnMobile && "max-sm:hidden")}>{competition}</span>
           {badge}
         </div>
         <div className={cx("mt-1 grid items-center gap-x-3 gap-y-1", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>

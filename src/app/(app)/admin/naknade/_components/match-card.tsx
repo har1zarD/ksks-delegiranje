@@ -132,28 +132,31 @@ export function PayrollMatchCard({ match: m }: { match: PayrollMatch }) {
                     {i.custom && ", ručna cijena"}
                   </span>
                 </span>
-                <span className={cx("scoreboard whitespace-nowrap text-[15px] font-semibold", i.amount == null && "text-[12px] text-orange")}>
+                <span className={cx("scoreboard whitespace-nowrap text-[14px] font-semibold", i.amount == null && "text-[12px] text-orange")}>
                   {i.amount == null ? "bez cijene" : formatKM(i.amount)}
                 </span>
                 <PaidToggle id={i.assignmentId} paid={Boolean(i.paidAt)} />
               </li>
             ))}
           </ul>
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-            <span className="text-[13px] text-fg-muted">
-              Ukupno <span className="scoreboard font-semibold text-fg">{formatKM(m.total)}</span>
-            </span>
-            {m.unpaidCount > 0 ? (
-              <MarkAllPaid ids={m.items.filter((i) => !i.paidAt).map((i) => i.assignmentId)} amount={m.unpaid} label="Isplati utakmicu" />
-            ) : (
-              <span className="text-[12px] font-semibold text-mint">Sve isplaćeno</span>
-            )}
-            <MarkAllPaid
-              ids={m.items.filter((i) => i.paidAt).map((i) => i.assignmentId)}
-              amount={m.paid}
-              label="Nije isplaćeno"
-              paid={false}
-            />
+          <div className="mt-auto flex flex-col gap-2 border-t border-line pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[13px] text-fg-muted">
+                Ukupno <span className="scoreboard font-semibold text-fg">{formatKM(m.total)}</span>
+              </span>
+              {m.unpaidCount === 0 && <span className="text-[12px] font-semibold text-mint">Sve isplaćeno</span>}
+            </div>
+            {/* Dugmad dijele red i ne izlaze iz kartice */}
+            <div className="flex gap-2 empty:hidden">
+              <MarkAllPaid ids={m.items.filter((i) => !i.paidAt).map((i) => i.assignmentId)} amount={m.unpaid} label="Isplati" className="flex-1" />
+              <MarkAllPaid
+                ids={m.items.filter((i) => i.paidAt).map((i) => i.assignmentId)}
+                amount={m.paid}
+                label="Poništi isplatu"
+                paid={false}
+                className="flex-1"
+              />
+            </div>
           </div>
         </>
       )}
