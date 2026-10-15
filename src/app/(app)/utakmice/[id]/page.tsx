@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CalendarDays, ChevronLeft, MapPin, Phone, Printer, Users, ClipboardList, FileImage } from "lucide-react";
+import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage } from "lucide-react";
 import { getMatchPage } from "@/lib/data/report";
 import { listScoresheets } from "@/lib/scoresheets";
-import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
 import { Bone, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
-import { Button, buttonClass, cx, ROWS, SectionTitle, Status } from "@/components/ui";
+import { CrewList, CrewListSkeleton } from "@/components/crew-list";
+import { Button, buttonClass, cx, SectionTitle, Status } from "@/components/ui";
 import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
@@ -46,7 +47,7 @@ async function Match({ params }: { params: Params }) {
   const { id } = await params;
   const page = await getMatchPage(id);
   if (!page) notFound();
-  const { match, crew, periods, report, isAdmin, isCommissioner, isTable } = page;
+  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable } = page;
 
   const canScore = isCommissioner || isAdmin;
   const open = match.status !== "cancelled" && match.status !== "postponed";
@@ -163,29 +164,14 @@ async function Match({ params }: { params: Params }) {
 
       <section>
         <SectionTitle icon={<Users />} count={crew.length}>Službena lica</SectionTitle>
-        <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
-          {crew.map((c) => (
-            <li key={c.id} className="flex min-h-16 items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <div className="text-[12px] font-semibold text-fg-faint">{POSITION_LABEL[c.position]}</div>
-                <div className="truncate text-[15px] font-semibold">
-                  {c.profile!.full_name}
-                  {c.status === "pending" && <span className="ml-2 text-[12px] font-medium text-fg-faint">čeka odgovor</span>}
-                </div>
-              </div>
-              {c.profile!.phone && (
-                <a
-                  href={`tel:${c.profile!.phone}`}
-                  className="grid size-11 shrink-0 place-items-center rounded-md text-brand hover:bg-panel-2"
-                  aria-label={`Pozovi: ${c.profile!.full_name}`}
-                  title={c.profile!.phone}
-                >
-                  <Phone className="size-5" strokeWidth={1.9} />
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
+          <CrewList
+            bare
+            match={match}
+            crew={crew.map((c) => ({ position: c.position, status: c.status, name: c.profile!.full_name, phone: c.profile!.phone }))}
+            mine={crew.find((c) => c.profile_id === user.id)?.position}
+          />
+        </div>
       </section>
 
       {(isCommissioner || isAdmin || report?.submitted_at) && (
@@ -280,19 +266,9 @@ function MatchSkeleton() {
             <Text w="w-2" />
           </span>
         </SectionTitle>
-        <ul className={ROWS}>
-          {times(4, (i) => (
-            <li key={i} className="flex min-h-16 items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <Text className="text-[12px] font-semibold" w="w-20" />
-                <Text className="text-[15px] font-semibold" w={i % 2 ? "w-32" : "w-40"} />
-              </div>
-              <span className="grid size-11 shrink-0 place-items-center">
-                <Bone className="size-5" />
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
+          <CrewListSkeleton bare />
+        </div>
       </section>
     </Skeleton>
   );
