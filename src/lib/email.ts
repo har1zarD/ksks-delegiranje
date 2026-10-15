@@ -4,6 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Slanje emaila preko Gmaila: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords).
 // EMAIL_FROM = adresa pošiljaoca ako nije isti Gmail nalog.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
+/**
+ * PREKIDAČ: dok je true, nijedan email ne ide nikome (upisuje se u email_log kao preskočen).
+ * Za slanje uživo promijeni u false. Uz to i EMAIL_ONLY_TO ograničava primaoce dok traje testiranje.
+ */
+const EMAILS_OFF = true;
+
 let transport: Transporter | null = null;
 
 function getTransport() {
@@ -40,6 +46,11 @@ export type Email = {
 
 /** Šalje email i upisuje ga u email_log. Vraća true ako je poslan. */
 export async function sendEmail(email: Email): Promise<boolean> {
+  if (EMAILS_OFF) {
+    await logEmail(email, null, "Slanje je isključeno u kodu (EMAILS_OFF u src/lib/email.ts)");
+    return false;
+  }
+
   const t = getTransport();
   let providerId: string | null = null;
   let error: string | null = null;
