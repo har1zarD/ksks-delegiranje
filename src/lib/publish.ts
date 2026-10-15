@@ -50,7 +50,7 @@ export async function sendReplacementNomination(
   const rows = await loadRows(db, [matchId]);
   if (!rows?.length) return false;
   const match = toNomination(rows[0]);
-  const doc = nominationEmail([match], nominationKindOf(match), siteUrl("/nominacije"), siteUrl("/icons/icon-192.png"), profileId);
+  const doc = nominationEmail([match], siteUrl("/nominacije"), siteUrl("/icons/icon-192.png"), profileId);
   return sendEmail({ to: email, kind: "nomination", profileId, assignmentId, ...doc });
 }
 
@@ -73,20 +73,15 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
 
   const matches = rows.map(toNomination);
 
-  // 3: nominacija svima sa liste; omladinska liga i seniori (pomoćne sudije) kao odvojeni dokumenti
+  // 3: nominacija svima sa liste, JEDAN mail: omladinska liga i seniori (pomoćne sudije) kao dvije sekcije
   const { data: list } = await db.from("profiles").select("email").eq("active", true).in("role", ["official", "commissioner"]);
   const recipients = [...new Set((list ?? []).map((p) => p.email.toLowerCase()))];
   const link = siteUrl("/nominacije");
   const logo = siteUrl("/icons/icon-192.png");
-  const documents: PublishResult["documents"] = [];
-  for (const kind of ["youth", "seniors"] as const) {
-    const part = matches.filter((m) => nominationKindOf(m) === kind);
-    if (part.length === 0) continue;
-    const sent = recipients.length
-      ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "nomination_list", ...nominationEmail(part, kind, link, logo) })
-      : false;
-    documents.push({ kind, matches: part.length, sent });
-  }
+  const sent = recipients.length && matches.length ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "nomination_list", ...nominationEmail(matches, link, logo) }) : false;
+  const documents: PublishResult["documents"] = (["youth", "seniors"] as const)
+    .map((kind) => ({ kind, matches: matches.filter((m) => nominationKindOf(m) === kind).length, sent }))
+    .filter((d) => d.matches > 0);
 
   return { matches: rows.length, revealed: pending.length, recipients: recipients.length, documents, emailed: documents.length > 0 && documents.every((d) => d.sent) };
 }

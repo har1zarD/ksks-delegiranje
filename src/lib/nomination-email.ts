@@ -185,26 +185,33 @@ const textLine = (m: CardMatch, showNumber: boolean) =>
 const textTeams = (m: CardMatch) => `${(m.home?.name ?? "?").toUpperCase()} – ${(m.away?.name ?? "?").toUpperCase()}`;
 
 /**
- * Nominacija (omladinska liga) ili Nominacija – pomoćne sudije (seniori).
+ * Nominacija kola u JEDNOM dokumentu: omladinska liga (sudije, komesar, sto) pa seniori (samo pomoćne sudije).
+ * Kad ima samo seniorskih utakmica naslov je "Nominacija – pomoćne sudije".
  * highlight: zamjena; ime te osobe je crveno, a dokument ide samo njoj.
  */
-export function nominationEmail(matches: NominationMatch[], kind: NominationKind, link: string, logo: string, highlight?: string) {
-  const title = kind === "youth" ? "Nominacija" : "Nominacija – pomoćne sudije";
+export function nominationEmail(matches: NominationMatch[], link: string, logo: string, highlight?: string) {
+  const parts = (["youth", "seniors"] as const)
+    .map((kind) => ({ kind, list: matches.filter((m) => nominationKindOf(m) === kind) }))
+    .filter((p) => p.list.length > 0);
+  const title = parts.length === 1 && parts[0].kind === "seniors" ? "Nominacija – pomoćne sudije" : "Nominacija";
   const subject = `${title}${highlight ? " (zamjena)" : ""} ${dateRange(matches)}`;
-  const showNumber = kind === "youth";
+  const sectionTitle = (kind: NominationKind) => (kind === "youth" ? "NOMINACIJA" : "NOMINACIJA – POMOĆNE SUDIJE");
 
   const text = [
     `${title.toUpperCase()} ${dateRange(matches)}`,
     "Košarkaški savez Kantona Sarajevo",
     "",
     ...(highlight ? ["Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti.", ""] : []),
-    ...groups(matches).flatMap(([group, list]) => [
-      ...(group ? [group, ""] : []),
-      ...list.flatMap((m) => [
-        textLine(m, showNumber),
-        textTeams(m),
-        ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`),
-        "",
+    ...parts.flatMap(({ kind, list }) => [
+      ...(parts.length > 1 ? [sectionTitle(kind), ""] : []),
+      ...groups(list).flatMap(([group, day]) => [
+        ...(group ? [group, ""] : []),
+        ...day.flatMap((m) => [
+          textLine(m, kind === "youth"),
+          textTeams(m),
+          ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`),
+          "",
+        ]),
       ]),
     ]),
     `Prihvati nominaciju: ${link}`,
@@ -212,12 +219,20 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
     "Takmičarska komisija KSKS",
   ].join("\n");
 
-  const body = groups(matches)
+  const body = parts
     .map(
-      ([group, list]) => `<tr><td style="padding:0 0 4px">
+      ({ kind, list }) =>
+        (parts.length > 1
+          ? `<tr><td style="padding:18px 4px 2px;font-size:15px;font-weight:700;letter-spacing:.04em;color:${C.ink};border-top:1px solid ${C.line}">${esc(sectionTitle(kind))}</td></tr>`
+          : "") +
+        groups(list)
+          .map(
+            ([group, day]) => `<tr><td style="padding:0 0 4px">
     ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
-    ${list.map((m) => matchCard(m, crewRows(m, kind), { showNumber, highlight })).join("")}
+    ${day.map((m) => matchCard(m, crewRows(m, kind), { showNumber: kind === "youth", highlight })).join("")}
   </td></tr>`,
+          )
+          .join(""),
     )
     .join("");
 

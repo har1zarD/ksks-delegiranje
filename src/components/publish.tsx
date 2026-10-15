@@ -8,9 +8,8 @@ import { publish, type PublishState } from "@/app/(app)/admin/utakmice/actions";
 
 /** Poruka nakon objave: šta je vidljivo i šta je otišlo emailom */
 function resultText(r: NonNullable<PublishState["result"]>) {
-  const docs = r.documents.map((d) => (d.kind === "youth" ? "nominacija" : "nominacija – pomoćne sudije")).join(" i ");
   const mail = r.emailed
-    ? `Poslana ${docs} na ${r.recipients} adresa.`
+    ? `Poslana nominacija (jedan email) na ${r.recipients} adresa.`
     : "Email nije poslan (nije podešen ili je uključen test način za druge adrese); nominacije se vide u aplikaciji.";
   return `Aktivirano utakmica: ${r.matches}. ${mail}`;
 }
