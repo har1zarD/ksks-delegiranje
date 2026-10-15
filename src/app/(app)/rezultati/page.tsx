@@ -1,11 +1,13 @@
 import { Suspense } from "react";
-import { ChevronDown, Trophy } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, FileText, Trophy } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
 import { getCurrentCompetitions, getResults } from "@/lib/data/results";
 import { MATCH_STATUS_LABEL } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
 import { CompetitionLogo } from "@/components/competition-logo";
 import { Bone, MatchRowsSkeleton, SectionTitleSkeleton, SegmentsSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
-import { Empty, PageHeader, Rows, SectionTitle, Segment, Segments, Status } from "@/components/ui";
+import { buttonClass, Empty, PageHeader, Rows, SectionTitle, Segment, Segments, Status } from "@/components/ui";
 import { StandingsTable } from "./standings-table";
 
 export const metadata = { title: "Rezultati — KSKS" };
@@ -25,7 +27,7 @@ export default function ResultsPage({ searchParams }: { searchParams: SearchPara
 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
-  const competitions = await getCurrentCompetitions();
+  const [competitions, user] = await Promise.all([getCurrentCompetitions(), getCurrentUser()]);
   if (competitions.length === 0) return <Empty icon={<Trophy />}>Nema takmičenja u ovoj sezoni.</Empty>;
 
   const selectedId =
@@ -69,7 +71,18 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
           ) : (
             data.rounds.map(([round, matches]) => (
               <section key={round ?? "ostalo"}>
-                <SectionTitle count={matches.length}>{round ? `${round}. kolo` : "Ostale utakmice"}</SectionTitle>
+                <SectionTitle
+                  count={matches.length}
+                  action={
+                    user.role === "admin" && round ? (
+                      <Link href={`/bilten/kolo?kategorija=${data.competition.category}&kolo=${round}`} className={buttonClass("secondary", "h-9 text-[13px]")}>
+                        <FileText className="size-4" /> Bilten kola
+                      </Link>
+                    ) : undefined
+                  }
+                >
+                  {round ? `${round}. kolo` : "Ostale utakmice"}
+                </SectionTitle>
                 <Rows>
                   {matches.map((m) => (
                     <ResultRow key={m.id} match={m} />
