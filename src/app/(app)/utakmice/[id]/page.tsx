@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage } from "lucide-react";
+import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage, Wallet } from "lucide-react";
 import { getMatchPage } from "@/lib/data/report";
 import { listScoresheets } from "@/lib/scoresheets";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
@@ -12,6 +12,7 @@ import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
 import { FinishButton } from "./finish-button";
+import { MatchPaidToggle } from "./match-paid-toggle";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 
@@ -60,6 +61,9 @@ async function Match({ params }: { params: Params }) {
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
+  // Plaćanje: komesar (ili savez) označava; utakmica je plaćena kad su sva prihvaćena delegiranja isplaćena
+  const accepted = crew.filter((c) => c.status === "accepted");
+  const allPaid = accepted.length > 0 && accepted.every((c) => c.paid_at);
   const homeName = match.home?.name ?? "Domaćin";
   const awayName = match.away?.name ?? "Gost";
 
@@ -159,6 +163,15 @@ async function Match({ params }: { params: Params }) {
               </h3>
               <Scoresheets matchId={match.id} sheets={sheets} canEdit={open} />
             </div>
+          </div>
+        </section>
+      )}
+
+      {(isCommissioner || isAdmin) && accepted.length > 0 && (
+        <section>
+          <SectionTitle icon={<Wallet />}>Plaćanje</SectionTitle>
+          <div className="rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
+            <MatchPaidToggle matchId={match.id} paid={allPaid} count={accepted.length} />
           </div>
         </section>
       )}

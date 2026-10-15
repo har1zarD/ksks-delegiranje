@@ -94,3 +94,22 @@ export async function publish(ids: string[]): Promise<PublishState> {
     invalidate(...ids.flatMap((match) => [{ table: "matches" as const, match }, { table: "assignments" as const, match }]));
   }
 }
+
+/** Plaćanje utakmica (lista odigranih): sva prihvaćena delegiranja izabranih utakmica postaju isplaćena ili neisplaćena */
+export async function setMatchesPaid(matchIds: string[], paid: boolean): Promise<{ error?: string; matches?: number }> {
+  const admin = await requireRole("admin");
+  if (!Array.isArray(matchIds) || matchIds.length === 0 || matchIds.length > 500 || !matchIds.every((id) => UUID.test(id))) {
+    return { error: "Nije izabrana nijedna utakmica." };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("assignments")
+    .update(paid ? { paid_at: new Date().toISOString(), paid_by: admin.id } : { paid_at: null, paid_by: null })
+    .in("match_id", matchIds)
+    .eq("status", "accepted")
+    .select("match_id");
+  if (error) return { error: "Plaćanje nije sačuvano. Pokušaj ponovo." };
+  const touched = [...new Set(data.map((a) => a.match_id))];
+  invalidate(...touched.map((match) => ({ table: "assignments" as const, match })));
+  return { matches: touched.length };
+}

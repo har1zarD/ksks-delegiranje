@@ -235,3 +235,23 @@ export async function deleteScoresheet(matchId: string, path: string): Promise<{
   if (error) return { error: "Slika nije obrisana." };
   return {};
 }
+
+/**
+ * Plaćanje utakmice: komesar utakmice (ili savez) označi da su službena lica isplaćena.
+ * Isto što i isplata u Naknadama: paid_at na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije plaćeno.
+ */
+export async function setMatchPaid(matchId: string, paid: boolean): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  const role = await matchRoleOf(user, matchId);
+  if (role !== "commissioner" && role !== "admin") return { error: "Plaćanje označava komesar utakmice ili savez." };
+
+  const { error } = await createAdminClient()
+    .from("assignments")
+    .update(paid ? { paid_at: new Date().toISOString(), paid_by: user.id } : { paid_at: null, paid_by: null })
+    .eq("match_id", matchId)
+    .eq("status", "accepted");
+  if (error) return { error: "Plaćanje nije sačuvano. Pokušaj ponovo." };
+
+  invalidate({ table: "assignments", match: matchId });
+  return {};
+}

@@ -67,6 +67,16 @@ export async function getNextMatchNumbers(): Promise<Record<string, number>> {
   return Object.fromEntries(Object.entries(max).map(([k, v]) => [k, v + 1]));
 }
 
+/** Plaćanje utakmice: isplata svim prihvaćenim delegiranjima (paid_at), kako je vodi obračun naknada */
+export type MatchPayment = { state: "paid" | "partial" | "unpaid" | "none"; paid: number; total: number };
+
+function paymentOf(assignments: { status: AssignmentStatus; paid_at: string | null }[]): MatchPayment {
+  const accepted = assignments.filter((a) => a.status === "accepted");
+  const paid = accepted.filter((a) => a.paid_at).length;
+  const state = accepted.length === 0 ? "none" : paid === accepted.length ? "paid" : paid === 0 ? "unpaid" : "partial";
+  return { state, paid, total: accepted.length };
+}
+
 export type StaffingSummary = { missing: Position[]; pending: number };
 
 function staffing(crew: Crew, assignments: { position: Position; status: AssignmentStatus }[]): StaffingSummary {
@@ -136,6 +146,7 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
       crew: crewOf(m),
       staffing: staffing(crewOf(m), assignments),
       slots: crewSlots(crewOf(m), assignments),
+      payment: paymentOf(assignments),
     }));
 }
 

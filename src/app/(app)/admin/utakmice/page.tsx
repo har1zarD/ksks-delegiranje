@@ -7,6 +7,7 @@ import { matchesLabel } from "@/lib/finance";
 import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch } from "@/components/publish";
+import { MatchPaidBadge, PaidSelection, SelectAllPaid, SelectPaid } from "@/components/paid-selection";
 import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { StaffingBadge } from "@/components/staffing-badge";
@@ -46,19 +47,25 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const competitionId = typeof sp.takmicenje === "string" ? sp.takmicenje : undefined;
   const past = sp.prikaz === "odigrane";
+  // Odigrane: filter po plaćanju (plaćena = sva prihvaćena delegiranja isplaćena)
+  const placeno = past && (sp.placeno === "da" || sp.placeno === "ne") ? sp.placeno : undefined;
 
-  const [competitions, matches, withSheets] = await Promise.all([
+  const [competitions, all, withSheets] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
     matchesWithScoresheets(),
   ]);
+  const payable = (m: (typeof all)[number]) => m.status === "finished" && m.payment.total > 0;
+  const matches = !placeno ? all : all.filter((m) => (placeno === "da" ? m.payment.state === "paid" : payable(m) && m.payment.state !== "paid"));
 
-  const href = (p: { takmicenje?: string; prikaz?: string }) => {
+  const href = (p: { takmicenje?: string; prikaz?: string; placeno?: string }) => {
     const q = new URLSearchParams();
     const t = "takmicenje" in p ? p.takmicenje : competitionId;
     const v = "prikaz" in p ? p.prikaz : past ? "odigrane" : undefined;
+    const pl = "placeno" in p ? p.placeno : placeno;
     if (t) q.set("takmicenje", t);
     if (v) q.set("prikaz", v);
+    if (v === "odigrane" && pl) q.set("placeno", pl);
     const s = q.toString();
     return `/admin/utakmice${s ? `?${s}` : ""}`;
   };
@@ -73,6 +80,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const live = matches.filter((m) => m.status === "live").map((m) => m.id);
   // Aktiviranje (objava nominacije) ima smisla samo za utakmice koje tek dolaze
   const unpublished = (list: typeof matches) => list.filter((m) => m.status === "scheduled" && !m.published_at).map((m) => m.id);
+  // Plaćanje ima smisla samo za završene utakmice s prihvaćenim službenim licima
+  const unpaid = (list: typeof matches) => list.filter((m) => payable(m) && m.payment.state !== "paid").map((m) => m.id);
 
   const content = (
     <div className="flex flex-col gap-8">
@@ -96,6 +105,19 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
             </Segment>
           ))}
         </Segments>
+        {past && (
+          <Segments>
+            <Segment href={href({ placeno: undefined })} active={!placeno}>
+              Sve
+            </Segment>
+            <Segment href={href({ placeno: "da" })} active={placeno === "da"}>
+              Plaćene
+            </Segment>
+            <Segment href={href({ placeno: "ne" })} active={placeno === "ne"}>
+              Neplaćene
+            </Segment>
+          </Segments>
+        )}
       </div>
 
       {matches.length === 0 ? (
@@ -108,7 +130,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
             <h2 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
               <span className="font-display text-[20px] font-semibold tracking-[-0.02em] sm:text-[22px]">{formatDay(day)}</span>
               <span className="flex items-baseline gap-4">
-                {!past && <SelectAll ids={unpublished(list)} />}
+                {past ? <SelectAllPaid ids={unpaid(list)} /> : <SelectAll ids={unpublished(list)} />}
                 <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(list.length)}</span>
               </span>
             </h2>
@@ -116,6 +138,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
               {list.map((m) => (
                 <li key={m.id} className="flex items-center gap-1 transition-colors hover:bg-panel-2">
                   {!past && m.status === "scheduled" && <SelectMatch id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
+                  {past && payable(m) && <SelectPaid id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
                   <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
                     <MatchLine
                       match={m}
@@ -134,11 +157,16 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                         ) : undefined
                       }
                       aside={
-                        withSheets.has(m.id) && m.status !== "scheduled" ? (
-                          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted" title="Ima sliku zapisnika">
-                            <FileImage className="size-4" aria-hidden="true" />
-                            Zapisnik
-                          </span>
+                        past ? (
+                          <div className="flex flex-col items-end gap-1.5">
+                            {payable(m) && <MatchPaidBadge {...m.payment} />}
+                            {withSheets.has(m.id) && m.status !== "scheduled" && <SheetMark />}
+                            {(m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0)) && (
+                              <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
+                            )}
+                          </div>
+                        ) : withSheets.has(m.id) && m.status !== "scheduled" ? (
+                          <SheetMark />
                         ) : m.status === "scheduled" ? (
                           <StaffingBadge staffing={m.staffing} />
                         ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
@@ -156,7 +184,18 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
     </div>
   );
 
-  return past ? content : <PublishSelection>{content}</PublishSelection>;
+  // Odigrane: označavanje plaćenih; predstojeće: aktiviranje (objava nominacije)
+  return past ? <PaidSelection>{content}</PaidSelection> : <PublishSelection>{content}</PublishSelection>;
+}
+
+/** Utakmica ima sliku zapisnika */
+function SheetMark() {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted" title="Ima sliku zapisnika">
+      <FileImage className="size-4" aria-hidden="true" />
+      Zapisnik
+    </span>
+  );
 }
 
 /** Kao raspored: filteri, pa dani s utakmicama (kvačica, utakmica, stanje delegiranja) */

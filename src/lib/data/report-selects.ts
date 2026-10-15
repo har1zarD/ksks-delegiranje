@@ -4,7 +4,7 @@ import { MATCH_SELECT } from "./selects";
 export const MATCH_PAGE_SELECT = `${MATCH_SELECT}, notes, score_entered_at` as const;
 
 export const MATCH_CREW_SELECT =
-  "id, position, status, notified_at, profile_id, profile:profiles!assignments_profile_id_fkey ( id, full_name, phone )" as const;
+  "id, position, status, notified_at, paid_at, profile_id, profile:profiles!assignments_profile_id_fkey ( id, full_name, phone )" as const;
 
 export const PERIODS_SELECT = "period, home_points, away_points" as const;
 
