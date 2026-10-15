@@ -136,7 +136,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
             </h2>
             <Rows>
               {list.map((m) => (
-                <li key={m.id} className="flex items-center gap-1 transition-colors hover:bg-panel-2">
+                <li key={m.id} className="relative flex items-center gap-1 transition-colors hover:bg-panel-2">
                   {!past && m.status === "scheduled" && <SelectMatch id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
                   {past && payable(m) && <SelectPaid id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
                   <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
@@ -159,7 +159,6 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                       aside={
                         past ? (
                           <div className="flex flex-col items-end gap-1.5">
-                            {payable(m) && <MatchPaidBadge {...m.payment} />}
                             {withSheets.has(m.id) && m.status !== "scheduled" && <SheetMark />}
                             {(m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0)) && (
                               <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
@@ -175,6 +174,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                       }
                     />
                   </Link>
+                  {/* Plaćanje: sitno u donjem desnom uglu kartice, van rasporeda */}
+                  {past && payable(m) && <MatchPaidBadge {...m.payment} corner />}
                 </li>
               ))}
             </Rows>

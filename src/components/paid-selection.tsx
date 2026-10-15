@@ -122,14 +122,23 @@ function PaidBar() {
   );
 }
 
-/** Oznaka plaćanja utakmice u listi: plaćena / djelimično / nije plaćena */
-export function MatchPaidBadge({ state, paid, total }: { state: "paid" | "partial" | "unpaid" | "none"; paid: number; total: number }) {
+/**
+ * Oznaka plaćanja utakmice u listi: plaćena / djelimično / nije plaćena.
+ * `corner` = sitna oznaka nabijena u donji desni ugao kartice (roditelj mora biti relative), da ne remeti raspored.
+ */
+export function MatchPaidBadge({ state, paid, total, corner }: { state: "paid" | "partial" | "unpaid" | "none"; paid: number; total: number; corner?: boolean }) {
   if (state === "none") return null;
   const tone = state === "paid" ? "bg-mint/12 text-mint" : state === "partial" ? "bg-amber/15 text-amber-ink" : "bg-crest/10 text-crest";
   const text = state === "paid" ? "Plaćena" : state === "partial" ? `Plaćeno ${paid}/${total}` : "Nije plaćena";
   return (
-    <span className={cx("inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md px-2 text-[12px] font-semibold", tone)}>
-      {state === "paid" && <Check className="size-3.5" strokeWidth={2.6} />}
+    <span
+      className={cx(
+        "inline-flex items-center gap-1 whitespace-nowrap font-semibold",
+        tone,
+        corner ? "absolute bottom-0 right-0 h-5 rounded-tl-md px-1.5 text-[11px]" : "h-6 rounded-md px-2 text-[12px]",
+      )}
+    >
+      {state === "paid" && <Check className="size-3" strokeWidth={2.6} />}
       {text}
     </span>
   );
