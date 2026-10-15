@@ -84,6 +84,7 @@ export function MatchLine({
   periods,
   aside,
   hideDate,
+  hideHall,
   hideLabelOnMobile,
 }: {
   match: MatchSummary;
@@ -91,6 +92,8 @@ export function MatchLine({
   hideLabelOnMobile?: boolean;
   /** Datum se crta izvan reda (npr. kao dugme za označavanje) */
   hideDate?: boolean;
+  /** Dvorana se crta izvan reda (npr. kao polje za izmjenu) */
+  hideHall?: boolean;
   meta?: React.ReactNode;
   /** Stanje uz naziv takmičenja (npr. Uživo) */
   badge?: React.ReactNode;
@@ -99,7 +102,7 @@ export function MatchLine({
   aside?: React.ReactNode;
 }) {
   const competition = <MatchLabel match={match} />;
-  const hall = match.hall && (
+  const hall = !hideHall && match.hall && (
     <div className="mt-1 flex items-center gap-1 truncate text-[13px] text-fg-muted">
       <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
       <span className="truncate">{match.hall.name}</span>

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus, CalendarDays, ChevronLeft, ChevronRight, FileImage } from "lucide-react";
-import { getAdminMatches, getCompetitions } from "@/lib/data/admin";
+import { getAdminMatches, getCompetitions, getHalls } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
 import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } from "@/components/filter-nav";
@@ -14,6 +14,7 @@ import { EmailStatus, StaffingBadge, StaffingCrew } from "@/components/staffing-
 import { matchesWithScoresheets } from "@/lib/scoresheets";
 import { MatchLineSkeleton, SegmentsSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
 import { ButtonLink, cx, Empty, PageHeader, Rows, ROWS, Segments, Status } from "@/components/ui";
+import { ScheduleEdit } from "./schedule-edit";
 
 export const metadata = { title: "Utakmice — KSKS" };
 
@@ -48,10 +49,11 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const competitionId = typeof sp.takmicenje === "string" ? sp.takmicenje : undefined;
   const past = sp.prikaz === "odigrane";
 
-  const [competitions, matches, withSheets] = await Promise.all([
+  const [competitions, matches, withSheets, halls] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
     matchesWithScoresheets(),
+    past ? [] : getHalls(),
   ]);
 
   // Novi filter vraća na prvu stranicu
@@ -129,72 +131,90 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                   </span>
                 </h2>
                 <Rows>
-                  {list.map((m) => (
-                    <li
-                      key={m.id}
-                      className={cx(
-                        "relative flex items-center gap-3 transition-colors hover:bg-panel-2 sm:gap-4",
-                        m.status === "scheduled" && "pt-5 sm:pt-0",
-                      )}
-                    >
-                      {/*
-                        Stanje delegiranja i emaila: jezičak na vrhu kartice, gore desno (od sm iznad tabele delegiranih).
-                        Telefon: jezičak u samom uglu, a lijevo u istom redu broj utakmice i takmičenje (u redu ispod se ne ponavljaju).
-                      */}
-                      {m.status === "scheduled" && (
-                        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 pl-4 sm:left-auto sm:right-6 sm:pl-0">
-                          <span className="min-w-0 truncate pt-1.5 text-[12px] font-semibold text-fg-faint sm:hidden">
-                            <MatchLabel match={m} />
-                          </span>
-                          <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-bl-lg border-b border-l border-line bg-panel-2 py-1 pl-2.5 pr-1.5 sm:rounded-b-lg sm:border-r">
-                            <StaffingBadge staffing={m.staffing} />
-                            <EmailStatus publishedAt={m.published_at} unnotified={m.staffing.unnotified} compact />
+                  {list.map((m) => {
+                    // Termin i dvorana se mijenjaju odmah iz liste (zakazane i odgođene, dok nisu aktivirane); aktivirana samo pokazuje dvoranu
+                    const editable = !past && !m.published_at && (m.status === "scheduled" || m.status === "postponed");
+                    return (
+                      <li
+                        key={m.id}
+                        className={cx(
+                          "relative flex items-center gap-3 transition-colors hover:bg-panel-2 sm:gap-4",
+                          m.status === "scheduled" && "pt-5 sm:pt-0",
+                        )}
+                      >
+                        {/*
+                          Stanje delegiranja i emaila: jezičak na vrhu kartice, gore desno (od sm iznad tabele delegiranih).
+                          Telefon: jezičak u samom uglu, a lijevo u istom redu broj utakmice i takmičenje (u redu ispod se ne ponavljaju).
+                        */}
+                        {m.status === "scheduled" && (
+                          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 pl-4 sm:left-auto sm:right-6 sm:pl-0">
+                            <span className="min-w-0 truncate pt-1.5 text-[12px] font-semibold text-fg-faint sm:hidden">
+                              <MatchLabel match={m} />
+                            </span>
+                            <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-bl-lg border-b border-l border-line bg-panel-2 py-1 pl-2.5 pr-1.5 sm:rounded-b-lg sm:border-r">
+                              <StaffingBadge staffing={m.staffing} />
+                              <EmailStatus publishedAt={m.published_at} unnotified={m.staffing.unnotified} compact />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {/* Datum je dugme za označavanje (aktiviranje), ostatak reda otvara utakmicu */}
-                      {!past && m.status === "scheduled" && <SelectMatch id={m.id} iso={m.starts_at} label={`${m.home?.name} – ${m.away?.name}`} />}
-                      <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
-                        <MatchLine
-                          match={m}
-                          hideDate={!past && m.status === "scheduled"}
-                          hideLabelOnMobile={m.status === "scheduled"}
-                          periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
-                          showScore={past}
-                          // Zakazane imaju delegirane desno (StaffingCrew); uživo ekipa ide u liniju ispod
-                          meta={!past && m.status === "live" ? <CrewLine slots={m.slots} digital={m.digital_scoresheet} /> : undefined}
-                          badge={
-                            <>
-                              {m.status === "live" ? (
-                                <Status tone="crest" pulse>
-                                  Uživo
-                                </Status>
-                              ) : m.status === "finished" && m.periods.length > 0 ? (
-                                <Status tone="muted">Kraj</Status>
-                              ) : undefined}
-                              {!past && m.clubs_notified_at && <Status tone="mint">Raspored poslan klubovima</Status>}
-                            </>
-                          }
-                          aside={
-                            past ? (
-                              <div className="flex flex-col items-end gap-1.5">
-                                {withSheets.has(m.id) && m.status !== "scheduled" && <SheetMark />}
-                                {(m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0)) && (
+                        )}
+                        {/* Datum je dugme za označavanje (aktiviranje), ostatak reda otvara utakmicu */}
+                        {!past && m.status === "scheduled" && <SelectMatch id={m.id} iso={m.starts_at} label={`${m.home?.name} – ${m.away?.name}`} />}
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <Link href={`/admin/utakmice/${m.id}`} className={cx("flex min-w-0 flex-1 items-center gap-3 py-4", editable && "pb-2.5")}>
+                            <MatchLine
+                              match={m}
+                              hideDate={!past && m.status === "scheduled"}
+                              hideHall={editable}
+                              hideLabelOnMobile={m.status === "scheduled"}
+                              periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
+                              showScore={past}
+                              // Zakazane imaju delegirane desno (StaffingCrew); uživo ekipa ide u liniju ispod
+                              meta={!past && m.status === "live" ? <CrewLine slots={m.slots} digital={m.digital_scoresheet} /> : undefined}
+                              badge={
+                                <>
+                                  {m.status === "live" ? (
+                                    <Status tone="crest" pulse>
+                                      Uživo
+                                    </Status>
+                                  ) : m.status === "finished" && m.periods.length > 0 ? (
+                                    <Status tone="muted">Kraj</Status>
+                                  ) : undefined}
+                                  {!past && m.clubs_notified_at && <Status tone="mint">Raspored poslan klubovima</Status>}
+                                </>
+                              }
+                              aside={
+                                past ? (
+                                  <div className="flex flex-col items-end gap-1.5">
+                                    {withSheets.has(m.id) && m.status !== "scheduled" && <SheetMark />}
+                                    {(m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0)) && (
+                                      <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
+                                    )}
+                                  </div>
+                                ) : withSheets.has(m.id) && m.status !== "scheduled" ? (
+                                  <SheetMark />
+                                ) : m.status === "scheduled" ? (
+                                  <StaffingCrew staffing={m.staffing} />
+                                ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
                                   <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
-                                )}
-                              </div>
-                            ) : withSheets.has(m.id) && m.status !== "scheduled" ? (
-                              <SheetMark />
-                            ) : m.status === "scheduled" ? (
-                              <StaffingCrew staffing={m.staffing} />
-                            ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
-                              <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
-                            ) : undefined
-                          }
-                        />
-                      </Link>
-                    </li>
-                  ))}
+                                ) : undefined
+                              }
+                            />
+                          </Link>
+                          {editable && (
+                            <div className="pb-4">
+                              <ScheduleEdit
+                                id={m.id}
+                                iso={m.starts_at}
+                                hallId={m.hall?.id ?? null}
+                                halls={halls}
+                                label={`${m.home?.name ?? "—"} – ${m.away?.name ?? "—"}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </Rows>
               </section>
             ))

@@ -179,7 +179,7 @@ function clamp(date: string, min?: string, max?: string) {
   return date;
 }
 
-function Calendar({
+export function Calendar({
   value,
   min,
   max,
@@ -390,7 +390,7 @@ function NavButtons({
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-function TimeGrid({
+export function TimeGrid({
   value,
   minuteStep,
   onChange,

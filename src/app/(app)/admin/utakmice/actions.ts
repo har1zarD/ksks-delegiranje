@@ -72,6 +72,27 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   return {};
 }
 
+/** Termin i dvorana iz liste utakmica; kod aktivirane utakmice izmjena ide mailom službenim licima i klubovima */
+export async function updateSchedule(id: string, date: string, time: string, hallId: string | null): Promise<{ error?: string }> {
+  await requireRole("admin");
+  if (!UUID.test(id) || (hallId !== null && typeof hallId !== "string")) return { error: "Utakmica nije pronađena." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return { error: "Upiši datum i vrijeme." };
+
+  const supabase = await createClient();
+  const { data: before } = await supabase.from("matches").select("starts_at, hall_id, status, published_at").eq("id", id).maybeSingle();
+  if (!before) return { error: "Utakmica nije pronađena." };
+  const row = { starts_at: sarajevoToISO(date, time), hall_id: hallId || null };
+  const { error } = await supabase.from("matches").update(row).eq("id", id);
+  if (error) return { error: "Izmjena nije sačuvana. Pokušaj ponovo." };
+
+  invalidate({ table: "matches", match: id });
+  if (before.published_at && (new Date(before.starts_at).getTime() !== new Date(row.starts_at).getTime() || before.hall_id !== row.hall_id)) {
+    const snapshot = { starts_at: before.starts_at, hall_id: before.hall_id, status: before.status };
+    after(() => notifyMatchChanged(createAdminClient(), id, snapshot));
+  }
+  return {};
+}
+
 export async function deleteMatch(formData: FormData) {
   await requireRole("admin");
   const id = String(formData.get("id"));
