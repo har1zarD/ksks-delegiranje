@@ -22,6 +22,11 @@ export type PersonStats = {
   declined: number;
   /** Zarađeno (KM), samo stavke s određenom cijenom */
   earned: number;
+  /** Od toga isplaćeno i još se duguje (KM) */
+  paid: number;
+  unpaid: number;
+  /** Neisplaćeni angažmani */
+  unpaidCount: number;
   /** Angažmani bez određene cijene (nisu u zaradi) */
   missing: number;
 };
@@ -50,7 +55,7 @@ export async function getStats(period: PayrollPeriod) {
   const personOf = (id: string, name: string) => {
     let p = people.get(id);
     if (!p) {
-      p = { profileId: id, name, matches: 0, referee: 0, table: 0, commissioner: 0, declined: 0, earned: 0, missing: 0 };
+      p = { profileId: id, name, matches: 0, referee: 0, table: 0, commissioner: 0, declined: 0, earned: 0, paid: 0, unpaid: 0, unpaidCount: 0, missing: 0 };
       people.set(id, p);
     }
     return p;
@@ -59,6 +64,9 @@ export async function getStats(period: PayrollPeriod) {
   for (const payroll of computePayroll(work)) {
     const p = personOf(payroll.profileId, payroll.name);
     p.earned = payroll.total;
+    p.paid = payroll.paid;
+    p.unpaid = payroll.unpaid;
+    p.unpaidCount = payroll.unpaidCount;
     p.missing = payroll.missing;
     p.matches = new Set(payroll.items.map((i) => i.matchId)).size;
     for (const item of payroll.items) {

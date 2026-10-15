@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { BarChart3, CalendarCheck, Wallet, XCircle } from "lucide-react";
+import { BarChart3, CalendarCheck, Clock, Wallet, XCircle } from "lucide-react";
 import { getStats, type PersonStats } from "@/lib/data/stats";
 import { resolvePeriod, type PayrollPeriod } from "@/lib/data/finance";
-import { formatKM, formatMonth, matchesLabel } from "@/lib/finance";
-import { PeriodPicker } from "@/app/(app)/admin/naknade/_components/payroll-view";
-import { PeriodPickerSkeleton, Skeleton, Text, times } from "@/components/skeleton";
+import { formatKM, formatMonth, matchesLabel, round2 } from "@/lib/finance";
+import { PayrollSummary, PeriodPicker } from "@/app/(app)/admin/naknade/_components/payroll-view";
+import { PayrollSummarySkeleton, PeriodPickerSkeleton, Skeleton, Text, times } from "@/components/skeleton";
 import { cx, Empty, PageHeader, Panel, ROWS, SectionTitle } from "@/components/ui";
 
 export const metadata = { title: "Statistika — KSKS" };
@@ -41,6 +41,11 @@ async function Stats({ searchParams }: { searchParams: SearchParams }) {
   const byMatches = [...people].filter((p) => p.matches > 0).sort((a, b) => b.matches - a.matches || a.name.localeCompare(b.name, "bs"));
   const byDeclined = [...people].filter((p) => p.declined > 0).sort((a, b) => b.declined - a.declined || a.name.localeCompare(b.name, "bs"));
   const byEarned = [...people].filter((p) => p.earned > 0).sort((a, b) => b.earned - a.earned || a.name.localeCompare(b.name, "bs"));
+  const byUnpaid = [...people].filter((p) => p.unpaid > 0).sort((a, b) => b.unpaid - a.unpaid || a.name.localeCompare(b.name, "bs"));
+  const totals = people.reduce(
+    (t, p) => ({ earned: round2(t.earned + p.earned), paid: round2(t.paid + p.paid), unpaid: round2(t.unpaid + p.unpaid), unpaidCount: t.unpaidCount + p.unpaidCount, declined: t.declined + p.declined }),
+    { earned: 0, paid: 0, unpaid: 0, unpaidCount: 0, declined: 0 },
+  );
 
   return (
     <div className="flex flex-col gap-10">
@@ -50,16 +55,23 @@ async function Stats({ searchParams }: { searchParams: SearchParams }) {
         <Empty icon={<BarChart3 />}>Nema završenih utakmica ni odbijenih nominacija {when}.</Empty>
       ) : (
         <>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <PayrollSummary
+            total={totals.earned}
+            paid={totals.paid}
+            unpaid={totals.unpaid}
+            note={`${people.length} ${people.length % 10 >= 2 && people.length % 10 <= 4 && (people.length % 100 < 12 || people.length % 100 > 14) ? "osobe" : "osoba"}, ${totals.unpaidCount} neisplaćeno, ${declinedLabel(totals.declined)}`}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <TopList icon={<CalendarCheck />} title="Najviše utakmica" people={byMatches} value={(p) => matchesLabel(p.matches)} personHref={personHref} />
+            <TopList icon={<Wallet />} title="Najviše zaradili" people={byEarned} value={(p) => formatKM(p.earned)} personHref={personHref} />
+            <TopList icon={<Clock />} title="Najviše se duguje" people={byUnpaid} value={(p) => formatKM(p.unpaid)} personHref={personHref} empty="Sve je isplaćeno." />
             <TopList icon={<XCircle />} title="Najviše odbijenih nominacija" people={byDeclined} value={(p) => declinedLabel(p.declined)} personHref={personHref} empty="Niko nije odbio nominaciju." />
-            <TopList icon={<Wallet />} title="Najveća zarada" people={byEarned} value={(p) => formatKM(p.earned)} personHref={personHref} />
           </div>
 
           <section>
             <SectionTitle icon={<BarChart3 />} count={people.length}>Sve osobe</SectionTitle>
             <div className="overflow-x-auto rounded-lg border border-line bg-panel shadow-panel">
-              <table className="w-full min-w-[640px] text-[14px]">
+              <table className="w-full min-w-[820px] text-[14px]">
                 <thead>
                   <tr className="border-b border-line text-left text-[12px] font-semibold text-fg-faint">
                     <th className="px-4 py-3 sm:px-6">Osoba</th>
@@ -69,6 +81,8 @@ async function Stats({ searchParams }: { searchParams: SearchParams }) {
                     <Th>Komesar</Th>
                     <Th>Odbijeno</Th>
                     <Th>Zarađeno</Th>
+                    <Th>Isplaćeno</Th>
+                    <Th>Duguje se</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -86,6 +100,8 @@ async function Stats({ searchParams }: { searchParams: SearchParams }) {
                       <Td muted={p.commissioner === 0}>{p.commissioner}</Td>
                       <Td muted={p.declined === 0} tone={p.declined > 0 ? "text-crest" : undefined}>{p.declined}</Td>
                       <Td strong>{formatKM(p.earned)}</Td>
+                      <Td muted={p.paid === 0} tone="text-mint">{formatKM(p.paid)}</Td>
+                      <Td muted={p.unpaid === 0} tone="text-crest">{formatKM(p.unpaid)}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -164,8 +180,9 @@ function StatsSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <PeriodPickerSkeleton />
-      <div className="grid gap-4 lg:grid-cols-3">
-        {times(3, (i) => (
+      <PayrollSummarySkeleton />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {times(4, (i) => (
           <Panel key={i} className="overflow-hidden">
             <div className="border-b border-line py-3">
               <Text className="text-[13px] font-semibold" w="w-36" />
