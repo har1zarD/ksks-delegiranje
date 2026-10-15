@@ -39,7 +39,7 @@ export type Email = {
   subject: string;
   text: string;
   html?: string;
-  kind: "nomination" | "nomination_list" | "cancellation" | "reminder" | "pending_reminder" | "declined" | "password_reset";
+  kind: "nomination" | "nomination_list" | "cancellation" | "reminder" | "pending_reminder" | "accepted" | "declined" | "password_reset";
   profileId?: string;
   assignmentId?: string;
 };
