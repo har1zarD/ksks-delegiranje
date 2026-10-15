@@ -7,6 +7,7 @@ import { matchesLabel } from "@/lib/finance";
 import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch } from "@/components/publish";
+import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { StaffingBadge } from "@/components/staffing-badge";
 import { matchesWithScoresheets } from "@/lib/scoresheets";
@@ -120,6 +121,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                       match={m}
                       periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
                       showScore={past}
+                      meta={!past && (m.status === "scheduled" || m.status === "live") ? <CrewLine slots={m.slots} digital={m.digital_scoresheet} /> : undefined}
                       badge={
                         m.status === "live" ? (
                           <Status tone="crest" pulse>

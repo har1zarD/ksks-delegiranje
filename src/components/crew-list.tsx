@@ -1,7 +1,7 @@
 import { Phone } from "lucide-react";
 import type { Crew as Assigned } from "@/lib/data/official";
 import { crewOf, crewPositions } from "@/lib/crew";
-import { positionName, POSITION_ORDER, type Position } from "@/lib/format";
+import { ASSIGNMENT_STATUS_LABEL, positionName, POSITION_ORDER, type Position } from "@/lib/format";
 import { Bone, Text, times } from "@/components/skeleton";
 import { cx } from "@/components/ui";
 
@@ -30,9 +30,11 @@ export function CrewList({ match, crew, mine, bare }: { match: CrewMatch; crew: 
               {me ? (
                 <div className="truncate text-[15px] font-semibold text-brand">Ti</div>
               ) : c ? (
-                <div className="truncate text-[15px] font-semibold text-fg">
-                  {c.name}
-                  {c.status === "pending" && <span className="ml-2 text-[12px] font-medium text-fg-faint">čeka odgovor</span>}
+                <div className="flex items-center gap-2 text-[15px] font-semibold text-fg" title={ASSIGNMENT_STATUS_LABEL[c.status]}>
+                  {/* Tačka stanja: zeleno prihvatio, žuto čeka odgovor */}
+                  <span className={cx("size-2 shrink-0 rounded-full", c.status === "accepted" ? "bg-mint" : "bg-amber")} aria-hidden />
+                  <span className="truncate">{c.name}</span>
+                  {c.status === "pending" && <span className="shrink-0 text-[12px] font-medium text-fg-faint">čeka odgovor</span>}
                 </div>
               ) : (
                 <div className="truncate text-[15px] font-medium text-fg-faint">Još nije određeno</div>

@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { crewOf, crewPositions, type Crew } from "@/lib/crew";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
+import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
   ADMIN_MATCH_SELECT,
@@ -77,6 +77,27 @@ function staffing(crew: Crew, assignments: { position: Position; status: Assignm
   };
 }
 
+/** Pozicija utakmice s delegiranom osobom (ili bez nje): linija ekipe u listi */
+export type CrewSlot = { position: Position; name: string | null; status: AssignmentStatus | null };
+
+type SlotAssignment = { position: Position; status: AssignmentStatus; profile: { full_name: string } | null };
+
+/**
+ * Svaka pozicija koju utakmica traži (i dodatne na kojima neko aktivno jeste): aktivno delegiranje (čeka/prihvaćeno),
+ * inače odbijeno da admin vidi ko je otpao, inače prazno = nedostaje. Otkazana se ne prikazuju (mjesto je slobodno).
+ */
+function crewSlots(crew: Crew, assignments: SlotAssignment[]): CrewSlot[] {
+  const active = (a: SlotAssignment) => a.status === "pending" || a.status === "accepted";
+  const positions = [...new Set([...crewPositions(crew), ...assignments.filter(active).map((a) => a.position)])].sort(
+    (a, b) => POSITION_ORDER.indexOf(a) - POSITION_ORDER.indexOf(b),
+  );
+  return positions.map((position) => {
+    const here = assignments.filter((a) => a.position === position && a.profile);
+    const a = here.find(active) ?? here.find((x) => x.status === "declined");
+    return { position, name: a?.profile?.full_name ?? null, status: a?.status ?? null };
+  });
+}
+
 /** Najviše utakmica koje čitač vraća (+ rezerva za one koje vanjski filter po vremenu izbaci) */
 const MATCH_LIMIT = 300;
 const POOL_LIMIT = 400;
@@ -88,7 +109,8 @@ const POOL_LIMIT = 400;
 async function matchPool(when: "upcoming" | "past", competitionId: string | null, day: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods);
+  // i profili: imena delegiranih u liniji ekipe
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods, TAG.profiles);
   let q = createAdminClient().from("matches").select(ADMIN_MATCH_SELECT);
   if (competitionId) q = q.eq("competition_id", competitionId);
   if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.eq.live`);
@@ -112,6 +134,7 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
       ...m,
       crew: crewOf(m),
       staffing: staffing(crewOf(m), assignments),
+      slots: crewSlots(crewOf(m), assignments),
     }));
 }
 
