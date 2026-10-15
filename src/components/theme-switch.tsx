@@ -10,14 +10,14 @@ const KEY = "tema";
 const EVENT = "tema-promjena";
 
 /** Skripta u <head>: postavi temu prije prvog crtanja (bez bljeska pogrešne teme) */
-export const THEME_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+export const THEME_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t==="system"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 function read(): Theme {
   try {
     const t = localStorage.getItem(KEY);
-    return t === "light" || t === "dark" ? t : "system";
+    return t === "system" || t === "dark" ? t : "light";
   } catch {
-    return "system";
+    return "light";
   }
 }
 
@@ -32,10 +32,10 @@ function subscribe(onChange: () => void) {
 
 function apply(theme: Theme) {
   try {
-    if (theme === "system") localStorage.removeItem(KEY);
+    if (theme === "light") localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, theme);
   } catch {}
-  if (theme === "system") delete document.documentElement.dataset.theme;
+  if (theme === "light") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
   window.dispatchEvent(new Event(EVENT));
 }
@@ -48,7 +48,7 @@ const OPTIONS: { value: Theme; label: string; Icon: LucideIcon }[] = [
 
 /** Izbor teme: sistem / svijetla / tamna */
 export function ThemeSwitch({ className }: { className?: string }) {
-  const theme = useSyncExternalStore(subscribe, read, () => "system" as Theme);
+  const theme = useSyncExternalStore(subscribe, read, () => "light" as Theme);
 
   return (
     <div role="radiogroup" aria-label="Tema" className={cx("grid grid-cols-3 gap-0.5 rounded-lg bg-track p-[3px]", className)}>

@@ -3,12 +3,12 @@
 /*
   KSKS — neutralni grafit, svijetla i tamna tema.
   Svaka boja je definisana jednom kao par light-dark(svijetla, tamna); tema se bira preko color-scheme:
-  podrazumijevano prati sistem, a <html data-theme="light|dark"> je ručni izbor (Postavke u meniju korisnika).
+  podrazumijevano je svijetla, a <html data-theme="system|dark"> je ručni izbor (Postavke u meniju korisnika).
   Glavna akcija je grafit (u tamnoj temi svijetla). Boja samo za stanje: zeleno, žuto (čeka), narandžasto, crveno (uživo/greška).
   Bez gradijenata i sjaja; sjena jedva vidljiva i samo u svijetloj temi.
 */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --court: light-dark(#f5f6f8, #0c0e12);        /* podloga */
   --panel: light-dark(#ffffff, #14171c);        /* površine */
@@ -46,8 +46,8 @@
   --radius-lg: 10px;
 }
 
-:root[data-theme="light"] {
-  color-scheme: light;
+:root[data-theme="system"] {
+  color-scheme: light dark;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -179,6 +179,7 @@ body {
 
 @media print {
   :root,
+  :root[data-theme="system"],
   :root[data-theme="dark"] {
     color-scheme: light;
   }

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { homeFor } from "@/lib/auth";
 import { sendEmail, siteUrl } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/emails";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -16,15 +17,19 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   if (!email || !password) return { error: "Upiši email i šifru.", email };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: "Pogrešan email ili šifra.", email };
 
-  redirect(safeNext(next));
+  if (isSafeNext(next)) redirect(next);
+
+  // Odmah na početnu stranicu uloge: "/" bi samo preusmjerio dalje, a dotle je ekran prazan
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  redirect(profile ? homeFor(profile.role) : "/");
 }
 
 /** Samo interni put. Odbija "//host" i "/\\host" (browser ih tretira kao drugi sajt). */
-function safeNext(next: string) {
-  return /^\/(?![/\\])/.test(next) ? next : "/";
+function isSafeNext(next: string) {
+  return /^\/(?![/\\])/.test(next);
 }
 
 export type ResetRequestState = { error?: string; sent?: boolean; email?: string };
