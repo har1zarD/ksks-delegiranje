@@ -1,22 +1,12 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Slanje emaila preko SMTP-a. Dvije mogućnosti (varijable okruženja):
-//  * Gmail: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords)
-//  * bilo koji SMTP (npr. Brevo): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM (adresa pošiljaoca)
+// Slanje emaila preko Gmaila: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords).
+// EMAIL_FROM = adresa pošiljaoca ako nije isti Gmail nalog.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 let transport: Transporter | null = null;
 
 function getTransport() {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    transport ??= nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: Number(process.env.SMTP_PORT ?? 587) === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-    return transport;
-  }
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null;
   transport ??= nodemailer.createTransport({
     service: "gmail",
@@ -27,7 +17,7 @@ function getTransport() {
 
 /** Adresa pošiljaoca */
 export function senderAddress() {
-  return process.env.EMAIL_FROM ?? process.env.GMAIL_USER ?? process.env.SMTP_USER ?? "ksksdelegiranje@gmail.com";
+  return process.env.EMAIL_FROM ?? process.env.GMAIL_USER ?? "ksksdelegiranje@gmail.com";
 }
 
 /** Test način: dozvoljene adrese (null = šalje se svima) */
@@ -67,7 +57,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
   }
 
   if (!t) {
-    error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD ili SMTP_HOST/SMTP_USER/SMTP_PASS)";
+    error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD)";
   } else {
     try {
       const info = await t.sendMail({
