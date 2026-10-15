@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Trophy } from "lucide-react";
 
-function logoOf(name: string, category?: string) {
+/** Ime fajla u /public/competitions (bez .png) ili null */
+export function logoOf(name: string, category?: string) {
   const key = `${name} ${category ?? ""}`.toLocaleLowerCase("bs");
   if (key.includes("eurocup")) return "eurocup";
   if (/\baba\b/.test(key)) return "aba";

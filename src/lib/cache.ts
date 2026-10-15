@@ -21,6 +21,7 @@ export const TAG = {
   unavailability: "unavailability",
   reports: "reports", // bilten (match_reports)
   payments: "payments", // kotizacije (fee_payments)
+  licenses: "licenses", // licence igrača i službenih lica
 } as const;
 
 /** Tag jedne utakmice: stranica utakmice, ekipa i bilten ne moraju padati kad se mijenja druga utakmica */

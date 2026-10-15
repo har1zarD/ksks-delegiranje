@@ -98,9 +98,6 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
                 <li key={t.id} className="flex items-center gap-3 py-2">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-display text-[19px] font-semibold"><TeamName name={t.name} logoUrl={t.club?.logo_url} /></span>
-                    {t.club && t.club.short_name !== t.name && (
-                      <span className="block truncate text-[13px] text-fg-muted">{t.club.short_name}</span>
-                    )}
                   </span>
                   <ActionForm action={removeTeam} submit="Ukloni" pendingLabel="…" variant="destructive">
                     <input type="hidden" name="id" value={t.id} />

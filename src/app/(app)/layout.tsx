@@ -51,10 +51,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 async function UserNav() {
   const user = await getCurrentUser();
-  // Admin koji je i sudija / pomoćni sudija / komesar vidi i svoje nominacije (pod "Više" na mobitelu)
-  const items =
-    user.role === "admin" && (user.isReferee || user.isTable || user.isCommissioner)
-      ? [...NAV.admin, { href: "/nominacije", label: "Moje nominacije", icon: "nominations" as const }]
+  // Admin koji je i sudija / pomoćni sudija / komesar vidi i svoje nominacije (pod "Više" na mobitelu); Licence su uvijek zadnje
+  const items: NavItem[] =
+    user.role === "admin"
+      ? [
+          ...NAV.admin,
+          ...(user.isReferee || user.isTable || user.isCommissioner ? [{ href: "/nominacije", label: "Moje nominacije", icon: "nominations" as const }] : []),
+          { href: "/admin/licence", label: "Licence", icon: "licenses" },
+        ]
       : NAV[user.role];
   return <AppNav items={items} user={user.fullName} roleLabel={ROLE_LABEL[user.role]} logout={logout} />;
 }

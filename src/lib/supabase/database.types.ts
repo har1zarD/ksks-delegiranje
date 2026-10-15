@@ -193,7 +193,33 @@ isOneToOne: false
                     "address"?: string | null,"city"?: string | null,"id"?: string,"name"?: string
                   }
                   Relationships: [
-                    
+
+                  ]
+                },"licenses": {
+                  Row: {
+                    "birth_date": string | null,"birth_place": string | null,"club_id": string,"competition_id": string,"created_at": string,"first_name": string,"height_cm": number | null,"id": string,"kind": string,"last_name": string,"license_no": string | null,"photo_path": string | null,"position": string | null,"role": string | null,"sort": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id": string,"competition_id": string,"created_at"?: string,"first_name": string,"height_cm"?: number | null,"id"?: string,"kind": string,"last_name": string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number
+                  }
+                  Update: {
+                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id"?: string,"competition_id"?: string,"created_at"?: string,"first_name"?: string,"height_cm"?: number | null,"id"?: string,"kind"?: string,"last_name"?: string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "licenses_club_id_fkey"
+      columns: ["club_id"]
+isOneToOne: false
+      referencedRelation: "clubs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "licenses_competition_id_fkey"
+      columns: ["competition_id"]
+isOneToOne: false
+      referencedRelation: "competitions"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"match_periods": {
                   Row: {
