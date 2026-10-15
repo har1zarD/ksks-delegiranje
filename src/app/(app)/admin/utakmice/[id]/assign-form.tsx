@@ -60,7 +60,7 @@ export function AssignForm({
 }
 
 /** Slobodni prvi, sortirani po opterećenju u mjesecu */
-function groupCandidates(candidates: Candidate[]) {
+export function groupCandidates(candidates: Candidate[]) {
   const byLoad = (a: Candidate, b: Candidate) => a.monthLoad - b.monthLoad || a.name.localeCompare(b.name, "bs");
   return {
     free: candidates.filter((c) => c.absence === null && c.sameDay.length === 0).sort(byLoad),
@@ -70,7 +70,7 @@ function groupCandidates(candidates: Candidate[]) {
 }
 
 /** Desno uz ime: opterećenje u mjesecu i druga utakmica istog dana */
-function candidateHint(c: Candidate) {
+export function candidateHint(c: Candidate) {
   let text = `${c.monthLoad} u mjesecu`;
   if (c.sameDay.length) text += `, sudi u ${c.sameDay.map(formatTime).join(" i ")}`;
   return text;

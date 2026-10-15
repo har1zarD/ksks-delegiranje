@@ -1,6 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { requireRole } from "@/lib/auth";
-import { crewOf, crewPositions, type Crew } from "@/lib/crew";
+import { crewOf, crewPositions, nominationGroupOf, skillsFor, type Crew } from "@/lib/crew";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
@@ -201,6 +201,13 @@ export type Candidate = {
   /** Broj utakmica (prihvaćeno ili čeka) u mjesecu utakmice */
   monthLoad: number;
 };
+
+/** Može li kandidat na poziciju (komesar, sudija, ili pomoćni sudija koji zna sve što pozicija traži) */
+export function candidateFits(position: Position, c: Candidate) {
+  if (position === "commissioner") return c.isCommissioner;
+  if (nominationGroupOf(position) === "table") return c.canTable && skillsFor(position).every((s) => c.tableSkills.includes(s));
+  return c.canReferee;
+}
 
 async function delegationMatch(matchId: string) {
   "use cache: remote";

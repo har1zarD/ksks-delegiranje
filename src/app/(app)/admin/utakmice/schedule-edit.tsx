@@ -172,7 +172,8 @@ function Chip({
         )}
       >
         {icon}
-        {children}
+        {/* Telefon: samo ikonica; termin i dvorana se čitaju sitno gore desno u redu liste */}
+        <span className="hidden md:contents">{children}</span>
       </button>
       {open && (
         <Popover id={id} anchor={anchor} label={label} width={width} onClose={close}>

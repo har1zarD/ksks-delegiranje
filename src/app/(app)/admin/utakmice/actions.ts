@@ -5,10 +5,12 @@ import { after } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { crewFromForm, crewToRow } from "@/lib/crew";
+import { candidateFits, getDelegation, type Candidate } from "@/lib/data/admin";
+import { assignPerson, DelegationError, removeAssignment, replaceAssignment } from "@/lib/delegation";
 import { notifyMatchChanged, publishMatches, type PublishResult } from "@/lib/publish";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { MATCH_KIND_LABEL, sarajevoToISO, type MatchKind, type MatchStatus } from "@/lib/format";
+import { MATCH_KIND_LABEL, POSITION_ORDER, sarajevoToISO, type MatchKind, type MatchStatus, type Position } from "@/lib/format";
 
 export type MatchFormState = { error?: string };
 
@@ -144,4 +146,54 @@ export async function setMatchesPaid(matchIds: string[], paid: boolean): Promise
   const touched = [...new Set(data.map((a) => a.match_id))];
   invalidate(...touched.map((match) => ({ table: "assignments" as const, match })));
   return { matches: touched.length };
+}
+
+// ───────── Brzo delegiranje iz liste utakmica ─────────
+
+export type QuickPick = { current: { id: string; name: string } | null; candidates: Candidate[] };
+
+/** Ko je na poziciji i ko može na nju (bez već delegiranih na utakmici; odsutne izbacuje izbor) */
+export async function quickCandidates(matchId: string, position: Position): Promise<QuickPick | null> {
+  await requireRole("admin");
+  if (!UUID.test(matchId) || !POSITION_ORDER.includes(position)) return null;
+  const data = await getDelegation(matchId);
+  if (!data) return null;
+  const active = data.assignments.filter((a) => a.status === "pending" || a.status === "accepted");
+  const onMatch = new Set(active.map((a) => a.profile!.id));
+  const current = active.find((a) => a.position === position);
+  return {
+    current: current ? { id: current.id, name: current.profile!.full_name } : null,
+    candidates: data.candidates.filter((c) => candidateFits(position, c) && !onMatch.has(c.id)),
+  };
+}
+
+/** Delegira osobu na poziciju; ako je neko već na njoj (`replaceId`), zamjenjuje ga */
+export async function quickAssign(matchId: string, position: Position, profileId: string, replaceId: string | null): Promise<{ error?: string }> {
+  const admin = await requireRole("admin");
+  if (!UUID.test(matchId) || !UUID.test(profileId) || (replaceId !== null && !UUID.test(replaceId))) return { error: "Utakmica ili osoba nije pronađena." };
+  if (!POSITION_ORDER.includes(position)) return { error: "Nepoznata pozicija." };
+  const db = createAdminClient();
+  try {
+    if (replaceId) await replaceAssignment(db, { assignmentId: replaceId, profileId, createdBy: admin.id });
+    else await assignPerson(db, { matchId, profileId, position, createdBy: admin.id });
+  } catch (e) {
+    return { error: e instanceof DelegationError ? e.message : "Delegiranje nije sačuvano. Pokušaj ponovo." };
+  } finally {
+    // I neuspjeli pokušaj je mogao obrisati odbijene/otkazane nominacije
+    invalidate({ table: "assignments", match: matchId });
+  }
+  return {};
+}
+
+export async function quickUnassign(matchId: string, assignmentId: string): Promise<{ error?: string }> {
+  await requireRole("admin");
+  if (!UUID.test(matchId) || !UUID.test(assignmentId)) return { error: "Delegiranje nije pronađeno." };
+  try {
+    await removeAssignment(createAdminClient(), assignmentId);
+  } catch (e) {
+    return { error: e instanceof DelegationError ? e.message : "Uklanjanje nije uspjelo. Pokušaj ponovo." };
+  } finally {
+    invalidate({ table: "assignments", match: matchId });
+  }
+  return {};
 }
