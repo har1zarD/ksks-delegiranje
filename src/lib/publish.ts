@@ -30,7 +30,12 @@ export type PublishResult = {
   documents: { kind: NominationKind; matches: number; sent: boolean }[];
   /** Svi dokumenti zaista otišli (false = email nije podešen, nije prošao ili test način) */
   emailed: boolean;
+  /** Raspored klubovima (omladinska liga, bez službenih lica); null = u objavi nije bilo takvih utakmica */
+  clubs: ScheduleResult | null;
 };
+
+/** Klubovi dobijaju raspored samo omladinske lige; seniori i turniri ne idu klubovima */
+const CLUB_CATEGORIES = new Set(["pioniri", "kadeti", "juniori", "minibasket", "unobasket"]);
 
 type Row = NonNullable<Awaited<ReturnType<typeof loadRows>>>[number];
 const loadRows = async (db: Db, ids: string[]) => (await db.from("matches").select(PUBLISH_SELECT).in("id", ids).order("starts_at")).data;
@@ -56,7 +61,7 @@ export async function sendReplacementNomination(
 
 export async function publishMatches(db: Db, matchIds: string[]): Promise<PublishResult> {
   const ids = [...new Set(matchIds)];
-  if (ids.length === 0) return { matches: 0, revealed: 0, recipients: 0, documents: [], emailed: false };
+  if (ids.length === 0) return { matches: 0, revealed: 0, recipients: 0, documents: [], emailed: false, clubs: null };
 
   const { data: rows, error } = await db.from("matches").select(PUBLISH_SELECT).in("id", ids).order("starts_at");
   if (error) throw new Error(error.message);
@@ -83,7 +88,11 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
     .map((kind) => ({ kind, matches: matches.filter((m) => nominationKindOf(m) === kind).length, sent }))
     .filter((d) => d.matches > 0);
 
-  return { matches: rows.length, revealed: pending.length, recipients: recipients.length, documents, emailed: documents.length > 0 && documents.every((d) => d.sent) };
+  // 4: klubovima raspored omladinske lige (datum, vrijeme, dvorana, ekipe; bez službenih lica)
+  const forClubs = rows.filter((m) => m.kind === "league" && CLUB_CATEGORIES.has(m.competition?.category ?? "")).map((m) => m.id);
+  const clubs = forClubs.length ? await sendScheduleToClubs(db, forClubs) : null;
+
+  return { matches: rows.length, revealed: pending.length, recipients: recipients.length, documents, emailed: documents.length > 0 && documents.every((d) => d.sent), clubs };
 }
 
 export type ScheduleResult = { matches: number; recipients: number; sent: boolean };

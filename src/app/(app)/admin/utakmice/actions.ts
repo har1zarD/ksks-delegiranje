@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { crewFromForm, crewToRow } from "@/lib/crew";
-import { publishMatches, sendScheduleToClubs as scheduleToClubs, type PublishResult, type ScheduleResult } from "@/lib/publish";
+import { publishMatches, type PublishResult } from "@/lib/publish";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { MATCH_KIND_LABEL, sarajevoToISO, type MatchKind, type MatchStatus } from "@/lib/format";
@@ -112,21 +112,4 @@ export async function setMatchesPaid(matchIds: string[], paid: boolean): Promise
   const touched = [...new Set(data.map((a) => a.match_id))];
   invalidate(...touched.map((match) => ({ table: "assignments" as const, match })));
   return { matches: touched.length };
-}
-
-export type ScheduleState = { error?: string; result?: ScheduleResult };
-
-/** Raspored klubovima za označene utakmice: datum, vrijeme, dvorana, ekipe; bez službenih lica */
-export async function sendScheduleToClubs(ids: string[]): Promise<ScheduleState> {
-  await requireRole("admin");
-  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || !ids.every((id) => UUID.test(id))) {
-    return { error: "Označi bar jednu utakmicu." };
-  }
-  try {
-    return { result: await scheduleToClubs(createAdminClient(), ids) };
-  } catch {
-    return { error: "Slanje klubovima nije uspjelo. Pokušaj ponovo." };
-  } finally {
-    invalidate(...ids.map((match) => ({ table: "matches" as const, match })));
-  }
 }

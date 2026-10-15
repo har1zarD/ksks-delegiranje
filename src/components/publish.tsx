@@ -1,29 +1,28 @@
 "use client";
 
 import { createContext, useContext, useState, useTransition } from "react";
-import { Check, Mail, Send } from "lucide-react";
+import { Check, Send } from "lucide-react";
 import { confirm } from "@/components/confirm";
-import { Button, buttonClass, cx } from "@/components/ui";
-import { publish, sendScheduleToClubs, type PublishState } from "@/app/(app)/admin/utakmice/actions";
+import { Button, cx } from "@/components/ui";
+import { publish, type PublishState } from "@/app/(app)/admin/utakmice/actions";
 
 /** Poruka nakon objave: šta je vidljivo i šta je otišlo emailom */
 function resultText(r: NonNullable<PublishState["result"]>) {
   const mail = r.emailed
-    ? `Poslana nominacija (jedan email) na ${r.recipients} adresa.`
+    ? `Poslana nominacija na ${r.recipients} adresa.`
     : "Email nije poslan (nije podešen ili je uključen test način za druge adrese); nominacije se vide u aplikaciji.";
-  return `Aktivirano utakmica: ${r.matches}. ${mail}`;
+  const clubs = r.clubs
+    ? r.clubs.sent
+      ? ` Klubovima poslan raspored (${r.clubs.matches} ${r.clubs.matches === 1 ? "utakmica" : "utakmice"}, ${r.clubs.recipients} adresa).`
+      : " Raspored klubovima nije poslan (nijedan klub nema email)."
+    : "";
+  return `Aktivirano utakmica: ${r.matches}. ${mail}${clubs}`;
 }
 
 const CONFIRM = (n: number) => ({
   title: `Aktivirati ${n === 1 ? "utakmicu" : `${n} utakmica`}?`,
-  message: "Delegirani će vidjeti nominaciju, a svim sudijama i pomoćnim sudijama ide nominacija emailom.",
+  message: "Delegirani će vidjeti nominaciju, svim sudijama i pomoćnim sudijama ide nominacija emailom, a klubovima raspored omladinske lige bez službenih lica.",
   confirmLabel: "Aktiviraj",
-});
-
-const CONFIRM_CLUBS = (n: number) => ({
-  title: `Poslati raspored klubovima za ${n === 1 ? "utakmicu" : `${n} utakmica`}?`,
-  message: "Klubovima ide datum, vrijeme, dvorana i ko s kim igra. Sudije, komesari i pomoćne sudije se ne šalju.",
-  confirmLabel: "Pošalji klubovima",
 });
 
 // ───────── Lista utakmica: označavanje i traka s akcijom ─────────
@@ -105,29 +104,6 @@ function PublishBar() {
                 Poništi
               </button>
               <div className="ml-auto flex flex-wrap items-center gap-2">
-                {/* Raspored klubovima: isti izbor utakmica, bez službenih lica */}
-                <button
-                  type="button"
-                  disabled={pending}
-                  className={buttonClass("secondary")}
-                  onClick={async () => {
-                    if (!(await confirm(CONFIRM_CLUBS(ids.length)))) return;
-                    start(async () => {
-                      const r = await sendScheduleToClubs(ids);
-                      if (r.result?.sent) ctx.setMany(ids, false);
-                      setMessage(
-                        r.error
-                          ? { text: r.error, error: true }
-                          : r.result!.sent
-                            ? { text: `Raspored poslan klubovima: ${r.result!.matches} ${r.result!.matches === 1 ? "utakmica" : "utakmice"}, ${r.result!.recipients} adresa.` }
-                            : { text: "Raspored nije poslan: nijedan klub nema email ili je slanje isključeno.", error: true },
-                      );
-                    });
-                  }}
-                >
-                  <Mail className="size-4" />
-                  Pošalji klubovima
-                </button>
                 <Button
                   disabled={pending}
                   onClick={async () => {

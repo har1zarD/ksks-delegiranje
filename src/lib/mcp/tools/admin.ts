@@ -394,6 +394,7 @@ export const sendNominations = defineTool({
       objavljeno_utakmica: r.matches,
       vidljivih_delegiranja: r.revealed,
       dokumenti: r.documents.map((d) => ({ vrsta: d.kind === "youth" ? "nominacija" : "nominacija – pomoćne sudije", utakmica: d.matches, poslano: d.sent })),
+      klubovi: r.clubs ? { utakmica: r.clubs.matches, adresa: r.clubs.recipients, poslano: r.clubs.sent } : null,
       primalaca: r.recipients,
     };
   },
