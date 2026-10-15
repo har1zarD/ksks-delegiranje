@@ -65,14 +65,14 @@ isOneToOne: false
                   ]
                 },"clubs": {
                   Row: {
-                    "active": boolean,"city": string | null,"email": string | null,"hall_id": string | null,"id": string,"logo_url": string | null,"name": string,"phone": string | null,"short_name": string
+                    "active": boolean,"city": string | null,"email": string | null,"hall_id": string | null,"id": string,"logo_url": string | null,"name": string,"phone": string | null,"short_name": string,"youth": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"city"?: string | null,"email"?: string | null,"hall_id"?: string | null,"id"?: string,"logo_url"?: string | null,"name": string,"phone"?: string | null,"short_name": string
+                    "active"?: boolean,"city"?: string | null,"email"?: string | null,"hall_id"?: string | null,"id"?: string,"logo_url"?: string | null,"name": string,"phone"?: string | null,"short_name": string,"youth"?: boolean
                   }
                   Update: {
-                    "active"?: boolean,"city"?: string | null,"email"?: string | null,"hall_id"?: string | null,"id"?: string,"logo_url"?: string | null,"name"?: string,"phone"?: string | null,"short_name"?: string
+                    "active"?: boolean,"city"?: string | null,"email"?: string | null,"hall_id"?: string | null,"id"?: string,"logo_url"?: string | null,"name"?: string,"phone"?: string | null,"short_name"?: string,"youth"?: boolean
                   }
                   Relationships: [
                     {

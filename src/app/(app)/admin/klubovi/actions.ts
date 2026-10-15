@@ -22,11 +22,12 @@ export async function saveClubContacts(prev: ClubState, formData: FormData): Pro
   const bad = emails.find((e) => !EMAIL.test(e));
   if (bad) return { error: `Neispravna adresa: ${bad}` };
   const phone = String(formData.get("phone") ?? "").trim().slice(0, 40);
+  const youth = formData.get("youth") === "1";
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("clubs")
-    .update({ email: emails.length ? emails.join(", ") : null, phone: phone || null })
+    .update({ email: emails.length ? emails.join(", ") : null, phone: phone || null, youth })
     .eq("id", id);
   if (error) return { error: "Kontakti nisu sačuvani. Pokušaj ponovo." };
 

@@ -119,9 +119,9 @@ export async function sendScheduleToClubs(db: Db, matchIds: string[]): Promise<S
   return { matches: rows.length, recipients: recipients.length, sent };
 }
 
-/** Mailing lista klubova: sve adrese iz polja email aktivnih klubova (više adresa po klubu razdvojenih zarezom) */
+/** Mailing lista klubova: SAMO klubovi omladinske lige (youth), aktivni, s emailom (više adresa po klubu razdvojenih zarezom) */
 async function clubRecipients(db: Db) {
-  const { data: clubs } = await db.from("clubs").select("email").eq("active", true).not("email", "is", null);
+  const { data: clubs } = await db.from("clubs").select("email").eq("active", true).eq("youth", true).not("email", "is", null);
   return [
     ...new Set(
       (clubs ?? [])
