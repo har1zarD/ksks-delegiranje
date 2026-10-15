@@ -1,16 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList } from "lucide-react";
-import { getAdminMatches } from "@/lib/data/admin";
-import { formatKM, matchCost } from "@/lib/finance";
+import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
+import { getActivatedMatches, getAdminMatches } from "@/lib/data/admin";
+import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
+import { dayKey, formatDayHeading } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { PageIntro } from "@/components/page-intro";
-import { StaffingBadge } from "@/components/staffing-badge";
+import { StaffingBadge, StaffingCrew, StaffingTab } from "@/components/staffing-badge";
 import { Bone, MatchRowsSkeleton, Skeleton, StatusSkeleton, Text } from "@/components/skeleton";
-import { ButtonLink, Empty, Panel, Rows, SectionTitle, Stat, Status } from "@/components/ui";
+import { ButtonLink, cx, Empty, MiniStat, Rows, SectionTitle, Status } from "@/components/ui";
 
 export const metadata = { title: "Pregled — KSKS" };
 
@@ -26,7 +27,10 @@ export default function AdminHome() {
         subtitle={`Raspored i delegiranje za narednih ${DAYS_AHEAD} dana.`}
         illustration={<Image src="/illustrations/basketball.webp" alt="" width={22} height={22} />}
       >
-        <ButtonLink href="/admin/utakmice/nova" className="gap-1.5 rounded-xl px-3 text-[13px] sm:text-[13px]"><Plus className="size-4" aria-hidden="true" />Nova utakmica</ButtonLink>
+        <Suspense fallback={<OverviewStatsSkeleton />}>
+          <OverviewStats />
+        </Suspense>
+        <ButtonLink href="/admin/utakmice/nova" className="h-8! gap-1! rounded-lg px-2.5! text-[12px]! sm:h-8!"><Plus className="size-3.5" aria-hidden="true" />Nova utakmica</ButtonLink>
       </PageIntro>
       <Suspense fallback={<OverviewSkeleton />}>
         <Overview />
@@ -36,21 +40,72 @@ export default function AdminHome() {
 }
 
 async function Overview() {
-  const [soon, upcoming] = await Promise.all([
+  const [soon, upcoming, activatedList] = await Promise.all([
     getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }),
     getAdminMatches({ when: "upcoming" }),
+    getActivatedMatches(),
   ]);
   const live = upcoming.filter((m) => m.status === "live");
   const active = soon.filter((m) => m.status === "scheduled" || m.status === "live");
   const open = active.filter((m) => m.staffing.missing.length > 0);
-  const waiting = active.reduce((n, m) => n + m.staffing.pending, 0);
-  const full = active.filter((m) => m.staffing.missing.length === 0).length;
-  const costs = active.map((m) => matchCost(m.rules, m.crew));
-  const cost = costs.reduce((s, c) => s + c.total, 0);
-  const costMissing = costs.some((c) => c.missing);
+
+  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po danu kao u rasporedu; neaktivirane su u Utakmicama
+  const activated = new Map<string, typeof activatedList>();
+  for (const m of activatedList) {
+    const day = dayKey(m.starts_at);
+    activated.set(day, [...(activated.get(day) ?? []), m]);
+  }
+  // Ko je potvrdio: osoba je potvrdila kad je prihvatila sve svoje nominacije na aktiviranim utakmicama
+  const answers = new Map<string, boolean>();
+  for (const p of activatedList.flatMap((m) => m.staffing.people)) {
+    const key = p.profileId ?? p.name;
+    answers.set(key, (answers.get(key) ?? true) && p.accepted);
+  }
+  const confirmed = [...answers.values()].filter(Boolean).length;
 
   return (
     <div className="flex flex-col gap-10">
+      {activatedList.length > 0 && (
+        <section>
+          <SectionTitle
+            icon={<Send />}
+            count={activatedList.length}
+            action={
+              answers.size > 0 && (
+                <span className="self-center whitespace-nowrap text-[12px] text-fg-muted sm:text-[13px]" title="Službena lica na aktiviranim utakmicama koja su potvrdila sve svoje nominacije">
+                  <span className={cx("scoreboard text-[14px] font-semibold sm:text-[16px]", confirmed === answers.size ? "text-mint" : "text-fg")}>
+                    {confirmed}/{answers.size}
+                  </span>{" "}
+                  potvrdilo
+                </span>
+              )
+            }
+          >
+            <span className="whitespace-nowrap text-[15px] sm:text-[17px]">Aktivirane utakmice</span>
+          </SectionTitle>
+          <div className="flex flex-col gap-6">
+            {[...activated].map(([day, list]) => (
+              <div key={day}>
+                <h3 className="flex items-baseline justify-between gap-3 pb-3">
+                  <span className="font-display text-[17px] font-semibold tracking-[-0.02em]">{formatDayHeading(day)}</span>
+                  <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(list.length)}</span>
+                </h3>
+                <Rows>
+                  {list.map((m) => (
+                    <li key={m.id} className="relative flex items-center pt-5 transition-colors hover:bg-panel-2 sm:pt-0">
+                      <StaffingTab match={m} staffing={m.staffing} publishedAt={m.published_at} />
+                      <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center py-4">
+                        <MatchLine match={m} hideLabelOnMobile aside={<StaffingCrew staffing={m.staffing} />} />
+                      </Link>
+                    </li>
+                  ))}
+                </Rows>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {live.length > 0 && (
         <section>
           <LiveRefresh matchIds={live.map((m) => m.id)} />
@@ -74,26 +129,6 @@ async function Overview() {
           </Rows>
         </section>
       )}
-
-      <Panel className="overflow-hidden">
-        <dl className="grid grid-cols-2 items-end gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
-          <Stat icon={<CalendarDays />} label={`Utakmica u ${DAYS_AHEAD} dana`} value={active.length} />
-          <Stat icon={<CheckCircle2 />} label="Potpuno delegirano" value={full} tone={full === active.length && active.length > 0 ? "mint" : undefined} />
-          <Stat icon={<Clock />} label="Čeka odgovor" value={waiting} tone={waiting > 0 ? "gold" : undefined} />
-          <Stat icon={<Users />} label="Nedostaje delegiranje" value={open.length} tone={open.length > 0 ? "orange" : undefined} />
-        </dl>
-        <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line py-4">
-          <div>
-            <div className="text-[13px] font-semibold text-fg-muted">Trošak delegiranja u {DAYS_AHEAD} dana</div>
-            {costMissing && (
-              <Link href="/admin/naknade" className="text-[13px] text-orange hover:opacity-75">
-                Neke cijene nisu određene
-              </Link>
-            )}
-          </div>
-          <div className="scoreboard whitespace-nowrap text-[28px] font-semibold leading-none sm:text-[32px]">{formatKM(cost)}</div>
-        </div>
-      </Panel>
 
       <section>
         <SectionTitle icon={<ClipboardList />} count={open.length}>Treba delegirati</SectionTitle>
@@ -136,22 +171,48 @@ async function Overview() {
   );
 }
 
-/** Kao pregled: brojke i trošak, pa utakmice kojima nedostaje delegiranje */
+/** Brojke za narednih DAYS_AHEAD dana u zaglavlju, pored "Nova utakmica" */
+async function OverviewStats() {
+  const soon = await getAdminMatches({ when: "upcoming", days: DAYS_AHEAD });
+  const active = soon.filter((m) => m.status === "scheduled" || m.status === "live");
+  const open = active.filter((m) => m.staffing.missing.length > 0).length;
+  const waiting = active.reduce((n, m) => n + m.staffing.pending, 0);
+  const full = active.filter((m) => m.staffing.missing.length === 0).length;
+  const costs = active.map((m) => matchCost(m.rules, m.crew));
+  const cost = costs.reduce((s, c) => s + c.total, 0);
+  const costMissing = costs.some((c) => c.missing);
+
+  return (
+    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 sm:mr-2">
+      <MiniStat icon={<CalendarDays />} label="utakmica" title={`Utakmica u ${DAYS_AHEAD} dana`} value={active.length} />
+      <MiniStat icon={<CheckCircle2 />} label="popunjeno" title="Potpuno delegirano" value={full} tone={full === active.length && active.length > 0 ? "mint" : undefined} />
+      <MiniStat icon={<Clock />} label="čeka" title="Čeka odgovor" value={waiting} tone={waiting > 0 ? "gold" : undefined} />
+      <MiniStat icon={<Users />} label="nedostaje" title="Nedostaje delegiranje" value={open} tone={open > 0 ? "orange" : undefined} />
+      <MiniStat
+        icon={<Wallet />}
+        label="trošak"
+        title={`Trošak delegiranja u ${DAYS_AHEAD} dana${costMissing ? " (neke cijene nisu određene, vidi Naknade)" : ""}`}
+        value={costMissing ? `${formatKM(cost)}*` : formatKM(cost)}
+        tone={costMissing ? "orange" : undefined}
+      />
+    </dl>
+  );
+}
+
+function OverviewStatsSkeleton() {
+  return (
+    <Skeleton className="flex flex-wrap items-center gap-x-4 gap-y-1.5 sm:mr-2">
+      {["w-16", "w-20", "w-12", "w-20", "w-28"].map((w, i) => (
+        <Text key={i} className="text-[17px]" w={w} />
+      ))}
+    </Skeleton>
+  );
+}
+
+/** Kao pregled: utakmice kojima nedostaje delegiranje */
 function OverviewSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
-      <Panel className="overflow-hidden">
-        <dl className="grid grid-cols-2 items-end gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
-          <Stat icon={<CalendarDays />} label={`Utakmica u ${DAYS_AHEAD} dana`} value={<Text w="w-10" />} />
-          <Stat icon={<CheckCircle2 />} label="Potpuno delegirano" value={<Text w="w-10" />} />
-          <Stat icon={<Clock />} label="Čeka odgovor" value={<Text w="w-10" />} />
-          <Stat icon={<Users />} label="Nedostaje delegiranje" value={<Text w="w-10" />} />
-        </dl>
-        <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line py-4">
-          <div className="text-[13px] font-semibold text-fg-muted">Trošak delegiranja u {DAYS_AHEAD} dana</div>
-          <Text className="scoreboard text-[28px] font-semibold leading-none sm:text-[32px]" w="w-32" />
-        </div>
-      </Panel>
       <section>
         <SectionTitle icon={<ClipboardList />}>
           Treba delegirati

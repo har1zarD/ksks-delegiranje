@@ -78,11 +78,16 @@ function paymentOf(assignments: { status: AssignmentStatus; paid_at: string | nu
 }
 
 /** `people` = delegirani (prihvatili ili čekaju), redom pozicija; `unnotified` = delegirani koji još nisu obaviješteni (izmjene nakon aktiviranja) */
-export type StaffingSummary = { missing: Position[]; pending: number; unnotified: number; people: { position: Position; name: string; accepted: boolean }[] };
+export type StaffingSummary = {
+  missing: Position[];
+  pending: number;
+  unnotified: number;
+  people: { position: Position; profileId: string | null; name: string; accepted: boolean }[];
+};
 
 function staffing(
   crew: Crew,
-  assignments: { position: Position; status: AssignmentStatus; notified_at: string | null; profile: { full_name: string } | null }[],
+  assignments: { position: Position; status: AssignmentStatus; notified_at: string | null; profile: { id: string; full_name: string } | null }[],
 ): StaffingSummary {
   const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
   return {
@@ -91,7 +96,7 @@ function staffing(
     unnotified: active.filter((a) => !a.notified_at).length,
     people: active
       .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position))
-      .map((a) => ({ position: a.position, name: a.profile?.full_name ?? "—", accepted: a.status === "accepted" })),
+      .map((a) => ({ position: a.position, profileId: a.profile?.id ?? null, name: a.profile?.full_name ?? "—", accepted: a.status === "accepted" })),
   };
 }
 
@@ -156,6 +161,28 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
       slots: crewSlots(crewOf(m), assignments),
       payment: paymentOf(assignments),
     }));
+}
+
+/**
+ * Aktivirane utakmice bez rezultata (Pregled): nominacija je poslana, a rezultat još nije upisan.
+ * Ostaju i kad je vrijeme početka prošlo; upisan rezultat ih završava (status finished), poništen vraća.
+ */
+export async function getActivatedMatches() {
+  await requireRole("admin");
+  return (await activatedPool()).map(({ assignments, ...m }) => ({
+    ...m,
+    crew: crewOf(m),
+    staffing: staffing(crewOf(m), assignments),
+    slots: crewSlots(crewOf(m), assignments),
+  }));
+}
+
+async function activatedPool() {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods, TAG.profiles);
+  const q = createAdminClient().from("matches").select(ADMIN_MATCH_SELECT).eq("status", "scheduled").not("published_at", "is", null);
+  return rows(await q.order("starts_at").limit(MATCH_LIMIT));
 }
 
 export type Candidate = {

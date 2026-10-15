@@ -4,13 +4,13 @@ import { Suspense } from "react";
 import { Plus, CalendarDays, ChevronLeft, ChevronRight, FileImage } from "lucide-react";
 import { getAdminMatches, getCompetitions, getHalls } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
-import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
+import { dayKey, formatDayHeading, MATCH_STATUS_LABEL } from "@/lib/format";
 import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } from "@/components/filter-nav";
 import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch, type Incomplete } from "@/components/publish";
 import { CrewLine } from "@/components/crew-line";
-import { MatchLabel, MatchLine } from "@/components/match-line";
-import { EmailStatus, StaffingBadge, StaffingCrew } from "@/components/staffing-badge";
+import { MatchLine } from "@/components/match-line";
+import { StaffingCrew, StaffingTab } from "@/components/staffing-badge";
 import { matchesWithScoresheets } from "@/lib/scoresheets";
 import { MatchLineSkeleton, SegmentsSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
 import { ButtonLink, cx, Empty, PageHeader, Rows, ROWS, Segments, Status } from "@/components/ui";
@@ -19,14 +19,6 @@ import { ScheduleEdit } from "./schedule-edit";
 export const metadata = { title: "Utakmice — KSKS" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-const dayHeading = new Intl.DateTimeFormat("bs-BA", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-
-/** "subota, 24. oktobar" iz "2026-10-24" */
-function formatDay(day: string) {
-  const s = dayHeading.format(new Date(`${day}T12:00:00Z`));
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 export default function AdminMatchesPage({ searchParams }: { searchParams: SearchParams }) {
   return (
@@ -49,7 +41,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const competitionId = typeof sp.takmicenje === "string" ? sp.takmicenje : undefined;
   const past = sp.prikaz === "odigrane";
 
-  const [competitions, matches, withSheets, halls] = await Promise.all([
+  const [competitions, all, withSheets, halls] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
     matchesWithScoresheets(),
@@ -67,6 +59,10 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
     const s = q.toString();
     return `/admin/utakmice${s ? `?${s}` : ""}`;
   };
+
+  // Aktivirane zakazane utakmice su na Pregledu; ovdje ostaju one koje tek treba aktivirati
+  const matches = past ? all : all.filter((m) => !(m.status === "scheduled" && m.published_at));
+  const allActivated = matches.length === 0 && all.length > 0;
 
   // Grupisanje po danu (sarajevsko vrijeme)
   const days = new Map<string, typeof matches>();
@@ -117,14 +113,21 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
 
         <FilterContent fallback={<DaysSkeleton />}>
           {matches.length === 0 ? (
-            <Empty icon={<Image src="/brand/calendar-icon.webp" alt="" width={40} height={40} className="size-10" />} action={!past && <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>}>
-              {past ? "Nema odigranih utakmica za ovaj izbor." : "Nema zakazanih utakmica za ovaj izbor. Dodaj utakmicu ili napravi raspored u Takmičenjima."}
+            <Empty
+              icon={<Image src="/brand/calendar-icon.webp" alt="" width={40} height={40} className="size-10" />}
+              action={allActivated ? <ButtonLink href="/admin" variant="secondary">Pregled</ButtonLink> : !past && <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>}
+            >
+              {past
+                ? "Nema odigranih utakmica za ovaj izbor."
+                : allActivated
+                  ? "Sve predstojeće utakmice za ovaj izbor su aktivirane. Nalaze se na Pregledu."
+                  : "Nema zakazanih utakmica za ovaj izbor. Dodaj utakmicu ili napravi raspored u Takmičenjima."}
             </Empty>
           ) : (
             shown.map(([day, list]) => (
               <section key={day}>
                 <h2 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
-                  <span className="font-display text-[20px] font-semibold tracking-[-0.02em] sm:text-[22px]">{formatDay(day)}</span>
+                  <span className="font-display text-[20px] font-semibold tracking-[-0.02em] sm:text-[22px]">{formatDayHeading(day)}</span>
                   <span className="flex items-baseline gap-4">
                     {!past && <SelectAll ids={unpublished(list)} />}
                     <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(list.length)}</span>
@@ -134,6 +137,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                   {list.map((m) => {
                     // Termin i dvorana se mijenjaju odmah iz liste (zakazane i odgođene, dok nisu aktivirane); aktivirana samo pokazuje dvoranu
                     const editable = !past && !m.published_at && (m.status === "scheduled" || m.status === "postponed");
+                    const sheet = withSheets.has(m.id) && m.status !== "scheduled";
+                    const statusMark = m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0);
                     return (
                       <li
                         key={m.id}
@@ -142,21 +147,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                           m.status === "scheduled" && "pt-5 sm:pt-0",
                         )}
                       >
-                        {/*
-                          Stanje delegiranja i emaila: jezičak na vrhu kartice, gore desno (od sm iznad tabele delegiranih).
-                          Telefon: jezičak u samom uglu, a lijevo u istom redu broj utakmice i takmičenje (u redu ispod se ne ponavljaju).
-                        */}
-                        {m.status === "scheduled" && (
-                          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 pl-4 sm:left-auto sm:right-6 sm:pl-0">
-                            <span className="min-w-0 truncate pt-1.5 text-[12px] font-semibold text-fg-faint sm:hidden">
-                              <MatchLabel match={m} />
-                            </span>
-                            <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-bl-lg border-b border-l border-line bg-panel-2 py-1 pl-2.5 pr-1.5 sm:rounded-b-lg sm:border-r">
-                              <StaffingBadge staffing={m.staffing} />
-                              <EmailStatus publishedAt={m.published_at} unnotified={m.staffing.unnotified} compact />
-                            </div>
-                          </div>
-                        )}
+                        {m.status === "scheduled" && <StaffingTab match={m} staffing={m.staffing} publishedAt={m.published_at} />}
                         {/* Datum je dugme za označavanje (aktiviranje), ostatak reda otvara utakmicu */}
                         {!past && m.status === "scheduled" && <SelectMatch id={m.id} iso={m.starts_at} label={`${m.home?.name} – ${m.away?.name}`} />}
                         <div className="flex min-w-0 flex-1 flex-col">
@@ -184,11 +175,15 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                               }
                               aside={
                                 past ? (
-                                  <div className="flex flex-col items-end gap-1.5">
-                                    {withSheets.has(m.id) && m.status !== "scheduled" && <SheetMark />}
-                                    {(m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0)) && (
-                                      <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
+                                  // Ko je radio utakmicu (kao na Pregledu), iznad zapisnik i stanje
+                                  <div className="flex flex-col items-start gap-1.5 sm:items-end">
+                                    {(sheet || statusMark) && (
+                                      <div className="flex items-center gap-3">
+                                        {sheet && <SheetMark />}
+                                        {statusMark && <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>}
+                                      </div>
                                     )}
+                                    <StaffingCrew staffing={m.staffing} tabbed={false} />
                                   </div>
                                 ) : withSheets.has(m.id) && m.status !== "scheduled" ? (
                                   <SheetMark />

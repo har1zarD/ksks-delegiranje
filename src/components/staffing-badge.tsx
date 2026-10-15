@@ -2,6 +2,7 @@ import { Check, Clock, Mail, MailCheck, MailX } from "lucide-react";
 import type { StaffingSummary } from "@/lib/data/admin";
 import { POSITION_LABEL } from "@/lib/format";
 import { cx, Status } from "@/components/ui";
+import { MatchLabel, type MatchSummary } from "@/components/match-line";
 
 /** Stanje delegiranja utakmice */
 export function StaffingBadge({ staffing }: { staffing: StaffingSummary }) {
@@ -33,6 +34,25 @@ export function EmailStatus({ publishedAt, unnotified, compact }: { publishedAt:
   );
 }
 
+/**
+ * Stanje delegiranja i emaila zakazane utakmice: jezičak na vrhu kartice, gore desno (od sm iznad tabele delegiranih).
+ * Telefon: jezičak u samom uglu, a lijevo u istom redu broj utakmice i takmičenje (u redu ispod se ne ponavljaju).
+ * Red (li) mora biti `relative` i imati mjesta na vrhu (pt-5 sm:pt-0).
+ */
+export function StaffingTab({ match, staffing, publishedAt }: { match: MatchSummary; staffing: StaffingSummary; publishedAt: string | null }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 pl-4 sm:left-auto sm:right-6 sm:pl-0">
+      <span className="min-w-0 truncate pt-1.5 text-[12px] font-semibold text-fg-faint sm:hidden">
+        <MatchLabel match={match} />
+      </span>
+      <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-bl-lg border-b border-l border-line bg-panel-2 py-1 pl-2.5 pr-1.5 sm:rounded-b-lg sm:border-r">
+        <StaffingBadge staffing={staffing} />
+        <EmailStatus publishedAt={publishedAt} unnotified={staffing.unnotified} compact />
+      </div>
+    </div>
+  );
+}
+
 /** "Haris Velić" → "Velić H." */
 function shortName(name: string) {
   const w = name.trim().split(/\s+/);
@@ -57,11 +77,12 @@ function AnswerIcon({ accepted }: { accepted: boolean }) {
  * Telefon: imena u red ("Velić H.").
  * Od `sm`: mala tabela (pozicija | stanje | ime), iste širine u svakom redu liste pa su kolone poravnate.
  */
-export function StaffingCrew({ staffing }: { staffing: StaffingSummary }) {
+export function StaffingCrew({ staffing, tabbed = true }: { staffing: StaffingSummary; tabbed?: boolean }) {
   const { people } = staffing;
   if (people.length === 0) return null;
   return (
-    <div className="sm:w-72 sm:pt-5">
+    // `tabbed`: od sm mjesto ispod jezička stanja (StaffingTab)
+    <div className={cx("sm:w-72", tabbed && "sm:pt-5")}>
       <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] sm:hidden">
         {people.map((p) => (
           <li key={p.position} className="flex items-center gap-1.5" title={`${p.name}, ${POSITION_LABEL[p.position]}`}>

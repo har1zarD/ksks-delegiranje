@@ -203,6 +203,20 @@ export function Stat({ label, value, unit, tone, icon }: { label: string; value:
   );
 }
 
+/** Mala brojka u traci (npr. zaglavlje Pregleda): broj pa kratak opis u istom redu; `title` je puni opis */
+export function MiniStat({ label, title, value, tone, icon }: { label: string; title: string; value: ReactNode; tone?: Tone; icon?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5 whitespace-nowrap text-[13px]" title={title}>
+      {icon && <span aria-hidden="true" className="shrink-0 text-fg-muted [&>svg]:size-3.5 [&>svg]:stroke-[1.7]">{icon}</span>}
+      <dt className="sr-only">{title}</dt>
+      <dd className="flex items-baseline gap-1">
+        <span className={cx("scoreboard text-[17px] font-semibold leading-none tracking-[-0.03em]", tone && TONE[tone])}>{value}</span>
+        <span aria-hidden="true" className="text-fg-muted">{label}</span>
+      </dd>
+    </div>
+  );
+}
+
 // ───────── Filteri (segmenti) ─────────
 
 /** `full`: na mobitelu preko cijele širine, segmenti dijele prostor jednako */

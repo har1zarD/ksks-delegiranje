@@ -91,6 +91,13 @@ export function formatDayMonth(iso: string) {
   const { d, m } = parts(isoToSarajevo(iso).date);
   return `${d}. ${m}.`;
 }
+const dayHeading = new Intl.DateTimeFormat("bs-BA", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+
+/** "Subota, 24. oktobar" iz "2026-10-24" (naslov dana u rasporedu) */
+export function formatDayHeading(day: string) {
+  const s = dayHeading.format(new Date(`${day}T12:00:00Z`));
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 /** "Utakmica 66" (broj je jedinstven u sezoni) */
 export function matchNo(n: number | null | undefined) {
   return n == null ? "" : `Utakmica ${n}`;
