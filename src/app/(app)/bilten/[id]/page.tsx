@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getMatchPage } from "@/lib/data/report";
-import { FOUL_TYPE_LABEL } from "@/lib/data/report-selects";
+import { FOUL_TYPE_LABEL, foulTimeLabel } from "@/lib/data/report-selects";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, POSITION_LABEL } from "@/lib/format";
 import { ChevronLeft } from "lucide-react";
 import { ButtonSkeleton, Skeleton, TeamNameSkeleton, Text, times } from "@/components/skeleton";
@@ -103,16 +103,15 @@ async function Bilten({ params }: { params: Params }) {
                   </th>
                 ))}
                 <th className={`${cell} font-medium`}>Ukupno</th>
-                <th className={`${cell} font-medium`}>Lične greške</th>
               </tr>
             </thead>
             <tbody>
               {(
                 [
-                  [homeName, "home_points", total.h, report?.home_fouls],
-                  [awayName, "away_points", total.a, report?.away_fouls],
+                  [homeName, "home_points", total.h],
+                  [awayName, "away_points", total.a],
                 ] as const
-              ).map(([name, side, sum, fouls]) => (
+              ).map(([name, side, sum]) => (
                 <tr key={side}>
                   <td className={`${cell} text-left`}><TeamName name={name} logoUrl={side === "home_points" ? match.home?.club?.logo_url : match.away?.club?.logo_url} wrap eager /></td>
                   {periods.map((p) => (
@@ -121,7 +120,6 @@ async function Bilten({ params }: { params: Params }) {
                     </td>
                   ))}
                   <td className={`${cell} font-semibold`}>{sum}</td>
-                  <td className={cell}>{fouls ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -153,7 +151,7 @@ async function Bilten({ params }: { params: Params }) {
                   <tr>
                     <th className={`${cell} text-left font-medium`}>Ekipa</th>
                     <th className={`${cell} text-left font-medium`}>Igrač / trener</th>
-                    <th className={`${cell} font-medium`}>Min.</th>
+                    <th className={`${cell} text-left font-medium`}>Kad</th>
                     <th className={`${cell} text-left font-medium`}>Vrsta</th>
                   </tr>
                 </thead>
@@ -162,7 +160,7 @@ async function Bilten({ params }: { params: Params }) {
                     <tr key={i}>
                       <td className={cell}><TeamName name={t.team === "home" ? homeName : awayName} logoUrl={match[t.team]?.club?.logo_url} wrap eager /></td>
                       <td className={cell}>{t.player}</td>
-                      <td className={`${cell} tabular text-center`}>{t.minute ?? "—"}</td>
+                      <td className={`${cell} whitespace-nowrap`}>{foulTimeLabel(t) || "—"}</td>
                       <td className={cell}>{FOUL_TYPE_LABEL[t.type]}</td>
                     </tr>
                   ))}
@@ -246,7 +244,6 @@ function BiltenSkeleton() {
                   </th>
                 ))}
                 <th className={`${cell} font-medium`}>Ukupno</th>
-                <th className={`${cell} font-medium`}>Lične greške</th>
               </tr>
             </thead>
             <tbody>
@@ -255,7 +252,7 @@ function BiltenSkeleton() {
                   <td className={`${cell} text-left`}>
                     <TeamNameSkeleton w={i ? "w-28" : "w-32"} />
                   </td>
-                  {times(6, (j) => (
+                  {times(5, (j) => (
                     <td key={j} className={cell}>
                       <Text w="w-5" />
                     </td>
