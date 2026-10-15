@@ -16,7 +16,7 @@ Stack: Next.js 16 (App Router, Cache Components) · Supabase (Auth, Postgres, Re
 
 ### 1. Supabase
 1. Napravi projekat (region: Frankfurt `eu-central-1`).
-2. Pusti migracije redom iz `supabase/migrations/`, pa `supabase/seed.sql` (takmičenja, klubovi, ekipe).
+2. Poveži CLI s projektom i pusti migracije: `pnpm supabase login`, `pnpm supabase link --project-ref <ref>`, `pnpm supabase db push`. Zatim pokreni `supabase/seed.sql` (takmičenja, klubovi, ekipe) u SQL editoru. Svaka nova migracija ide kao novi fajl u `supabase/migrations/` pa `pnpm supabase db push`.
 3. Authentication → Sign In / Providers → Email: **isključi "Allow new users to sign up"** (naloge pravi samo savez).
 4. Project Settings → API: kopiraj URL, publishable i secret ključ.
 
