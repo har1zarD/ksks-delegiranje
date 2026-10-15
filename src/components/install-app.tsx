@@ -121,7 +121,7 @@ export function InstallApp({ dismissible = false, floating = false, className }:
       <button
         type="button"
         onClick={install}
-        className="h-9 shrink-0 rounded-md bg-brand px-3.5 text-[13px] font-semibold text-brand-ink transition-[background-color,transform] hover:bg-brand-hover active:scale-[0.97]"
+        className="h-10 shrink-0 rounded-md bg-brand px-3.5 text-[13px] font-semibold text-brand-ink transition-[background-color,transform] hover:bg-brand-hover active:scale-[0.97]"
       >
         {text.action}
       </button>
@@ -130,7 +130,7 @@ export function InstallApp({ dismissible = false, floating = false, className }:
           type="button"
           onClick={dismiss}
           aria-label="Ne prikazuj više"
-          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-md text-fg-faint hover:bg-panel-2 hover:text-fg"
+          className="-ml-2 -mr-1 grid size-10 shrink-0 place-items-center rounded-md text-fg-faint hover:bg-panel-2 hover:text-fg"
         >
           <X className="size-4" />
         </button>
@@ -176,7 +176,7 @@ export function InstallApp({ dismissible = false, floating = false, className }:
                     : "Tri dodira i KSKS je ikonica na Android telefonu."}
               </p>
             </div>
-            <button type="button" onClick={() => sheet.current?.close()} aria-label="Zatvori" className="-m-2 rounded-md p-2 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
+            <button type="button" onClick={() => sheet.current?.close()} aria-label="Zatvori" className="-m-2.5 shrink-0 rounded-md p-2.5 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
               <X className="size-5" />
             </button>
           </div>

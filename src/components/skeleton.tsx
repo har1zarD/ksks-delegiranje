@@ -162,19 +162,19 @@ export function DateTileSkeleton({ size = "md", className }: { size?: "md" | "lg
 const TEAM_W = ["w-40", "w-32", "w-44", "w-36", "w-28", "w-40"];
 
 /** ClubLogo: isti okvir 48×32, kost u sredini */
-export function ClubLogoSkeleton() {
+export function ClubLogoSkeleton({ className }: { className?: string }) {
   return (
-    <span aria-hidden className="inline-flex h-8 w-12 shrink-0 items-center justify-center">
+    <span aria-hidden className={cx("inline-flex h-8 w-12 shrink-0 items-center justify-center", className)}>
       <Bone className="size-7 rounded-md" />
     </span>
   );
 }
 
-/** TeamName: logo i naziv u redu visine logoa; `className` nosi tipografiju naziva */
-export function TeamNameSkeleton({ w = "w-32", className }: { w?: string; className?: string }) {
+/** TeamName: logo i naziv u redu visine logoa; `className` nosi tipografiju naziva, `logo` okvir logoa */
+export function TeamNameSkeleton({ w = "w-32", className, logo }: { w?: string; className?: string; logo?: string }) {
   return (
     <span className={cx("flex min-w-0 items-center gap-2", className)}>
-      <ClubLogoSkeleton />
+      <ClubLogoSkeleton className={logo} />
       <Text className="min-w-0" w={w} />
     </span>
   );
@@ -273,7 +273,7 @@ export function StandingsSkeleton({ rows = 8 }: { rows?: number }) {
                 <Text className="scoreboard text-[20px] font-semibold" w="w-4" />
               </td>
               <td className="max-w-0 py-3 pr-2 font-display text-[18px] font-semibold sm:text-[20px]">
-                <TeamNameSkeleton w={TEAM_W[i % TEAM_W.length]} />
+                <TeamNameSkeleton w={TEAM_W[i % TEAM_W.length]} logo="max-sm:w-8" />
               </td>
               <NumCell />
               <NumCell />
@@ -324,9 +324,9 @@ export function PayrollSummarySkeleton({ aside = true }: { aside?: boolean }) {
   return (
     <div className={cx(CARD, "px-4 sm:px-6")}>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-5 py-5 sm:grid-cols-3 sm:py-6">
-        {["w-20", "w-20", "w-20"].map((w, i) => (
-          <div key={i} className="min-w-0">
-            <div className="mb-3 flex items-center gap-2"><Bone className="size-4 shrink-0" /><Text className="text-[13px] font-medium" w={w} /></div>
+        {["Zarađeno", "Isplaćeno", "Duguje se"].map((label) => (
+          <div key={label} className="min-w-0">
+            <div className="mb-3 flex items-center gap-2 text-[13px] font-medium text-fg-muted"><Bone className="size-4 shrink-0" />{label}</div>
             <Text className="scoreboard mt-1 text-[26px] font-semibold leading-none sm:text-[30px]" w="w-32" />
           </div>
         ))}

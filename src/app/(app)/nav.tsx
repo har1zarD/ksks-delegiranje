@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Bone, Text } from "@/components/skeleton";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { cx } from "@/components/ui";
+import { cx, GUTTER } from "@/components/ui";
 
 export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences";
 
@@ -67,8 +67,8 @@ export function AppNav({
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 print:hidden">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:h-[72px] sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-75" aria-label="KSKS — početna">
+        <div className={cx("mx-auto flex h-16 max-w-6xl items-center gap-3 sm:h-[72px]", GUTTER)}>
+          <Link href="/" className="flex h-11 min-w-0 items-center gap-2.5 transition-opacity hover:opacity-75" aria-label="KSKS — početna">
             <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
             <span className="flex min-w-0 flex-col leading-none">
               <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
@@ -80,7 +80,7 @@ export function AppNav({
             <UserMenu user={user} roleLabel={roleLabel} logout={logout} />
           </div>
         </div>
-          <nav className="mx-auto hidden max-w-6xl px-6 pb-3 md:block" aria-label="Glavni meni">
+          <nav className={cx("mx-auto hidden max-w-6xl pb-3 md:block", GUTTER)} aria-label="Glavni meni">
             <ul className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
               {items.map((item) => {
                 const isActive = item.href === active;
@@ -95,7 +95,7 @@ export function AppNav({
                         isActive ? "bg-brand-soft text-brand" : "text-fg-muted hover:bg-panel-2 hover:text-fg",
                       )}
                     >
-                      <Icon className="size-4 shrink-0" strokeWidth={isActive ? 2 : 1.7} aria-hidden="true" />
+                      <Icon className="hidden size-4 shrink-0 lg:block" strokeWidth={isActive ? 2 : 1.7} aria-hidden="true" />
                       {item.label}
                     </Link>
                   </li>
@@ -160,9 +160,9 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
       {sheetOpen && (
         <div className="fixed inset-0 z-30 md:hidden print:hidden" role="dialog" aria-modal="true" aria-label="Više">
           <button type="button" aria-label="Zatvori" className="absolute inset-0 bg-overlay backdrop-blur-[2px]" onClick={() => setSheetAt(null)} />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-lg border-t border-line bg-panel pb-[calc(env(safe-area-inset-bottom)+68px)] pt-2 shadow-pop">
+          <div className="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-16px)] overflow-y-auto overscroll-contain rounded-t-lg border-t border-line bg-panel pb-[calc(env(safe-area-inset-bottom)+68px)] pt-2 shadow-pop">
             <div className="mx-auto mb-1 h-1 w-9 rounded-full bg-line-strong" aria-hidden />
-            <ul className="divide-y divide-line px-4">
+            <ul className="divide-y divide-line pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
               {rest.map((item) => {
                 const Icon = ICONS[item.icon];
                 const isActive = item.href === active;
@@ -289,8 +289,8 @@ export function AppNavSkeleton() {
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 print:hidden">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:h-[72px] sm:px-6">
-          <span className="flex min-w-0 items-center gap-2.5">
+        <div className={cx("mx-auto flex h-16 max-w-6xl items-center gap-3 sm:h-[72px]", GUTTER)}>
+          <span className="flex h-11 min-w-0 items-center gap-2.5">
             <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
             <span className="flex min-w-0 flex-col leading-none">
               <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
@@ -303,13 +303,14 @@ export function AppNavSkeleton() {
               <Text className="text-[14px]" w="w-24" />
               <Text className="text-[11px]" w="w-16" />
             </span>
+            <Bone className="hidden size-3.5 sm:block" />
           </div>
         </div>
-        <div className="mx-auto hidden max-w-6xl px-6 pb-3 md:block" aria-hidden>
+        <div className={cx("mx-auto hidden max-w-6xl pb-3 md:block", GUTTER)} aria-hidden>
           <ul className="flex items-center gap-1 overflow-hidden">
             {["w-14", "w-16", "w-16", "w-10", "w-20", "w-16", "w-16"].map((w, i) => (
               <li key={i} className="flex h-10 shrink-0 items-center gap-2 px-3">
-                <Bone className="size-4" />
+                <Bone className="hidden size-4 lg:block" />
                 <Text className="text-[13px]" w={w} />
               </li>
             ))}
@@ -323,7 +324,9 @@ export function AppNavSkeleton() {
         <ul className="mx-auto grid max-w-md grid-cols-5">
           {[0, 1, 2, 3, 4].map((i) => (
             <li key={i} className={TAB}>
-              <Bone className="size-[23px] rounded-md" />
+              <span className="grid h-7 w-12 place-items-center">
+                <Bone className="size-[21px] rounded-md" />
+              </span>
               <Text className="text-[11px]" w="w-10" />
             </li>
           ))}

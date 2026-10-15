@@ -14,9 +14,9 @@ import {
   Bone,
   ButtonSkeleton,
   DateTileSkeleton,
-  SectionTitleSkeleton,
   Skeleton,
   StatusSkeleton,
+  TeamNameSkeleton,
   Text,
   TextButtonSkeleton,
   times,
@@ -335,14 +335,8 @@ function DelegationSkeleton() {
         <div className="min-w-0 flex-1">
           <Text className="text-[13px] font-semibold" w="w-56" />
           <div className="mt-1 font-display text-[26px] font-semibold leading-tight sm:text-[32px]">
-            <span className="flex min-w-0 items-center gap-2">
-              <Bone className="h-8 w-12 shrink-0" />
-              <Text w="w-56" />
-            </span>
-            <span className="mt-2 flex min-w-0 items-center gap-2">
-              <Bone className="h-8 w-12 shrink-0" />
-              <Text w="w-48" />
-            </span>
+            <TeamNameSkeleton w="w-56" />
+            <TeamNameSkeleton w="w-48" className="mt-2" />
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[14px]">
             <Bone className="size-4 shrink-0 rounded-full" />

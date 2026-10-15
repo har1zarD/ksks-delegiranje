@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { LockKeyhole } from "lucide-react";
 import { Bone, FieldSkeleton } from "@/components/skeleton";
 import { ButtonLink } from "@/components/ui";
 import { AuthCard } from "../auth-card";
@@ -40,8 +41,8 @@ async function ResetFormWithToken({ searchParams }: { searchParams: SearchParams
 function ResetFormSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true">
-      <FieldSkeleton label="Nova šifra" />
-      <FieldSkeleton label="Ponovi šifru" />
+      <FieldSkeleton label="Nova šifra" icon={<LockKeyhole />} />
+      <FieldSkeleton label="Ponovi šifru" icon={<LockKeyhole />} />
       <Bone className="mt-1 h-12 w-full rounded-lg" />
     </div>
   );

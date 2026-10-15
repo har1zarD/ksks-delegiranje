@@ -126,12 +126,7 @@ async function Overview() {
             {upcoming.slice(0, 5).map((m) => (
               <li key={m.id}>
                 <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                  {/* Na mobitelu stanje ide uz takmičenje, da ekipe imaju širinu */}
-                  <MatchLine
-                    match={m}
-                    badge={<span className="sm:hidden"><StaffingBadge staffing={m.staffing} /></span>}
-                    aside={<span className="hidden sm:block"><StaffingBadge staffing={m.staffing} /></span>}
-                  />
+                  <MatchLine match={m} aside={<StaffingBadge staffing={m.staffing} />} />
                 </Link>
               </li>
             ))}
@@ -161,7 +156,7 @@ function OverviewSkeleton() {
       <section>
         <SectionTitle icon={<ClipboardList />}>
           Treba delegirati
-          <span className="inline-flex min-w-6 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+          <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
             <Text w="w-2" />
           </span>
         </SectionTitle>

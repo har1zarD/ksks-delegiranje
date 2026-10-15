@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { CalendarDays, Clock } from "lucide-react";
 import { TeamSelect } from "@/components/team-select";
 import { CrewEditor } from "@/components/crew-editor";
 import { DateField, TimeField } from "@/components/date-picker";
@@ -11,6 +12,8 @@ import { crewDefaultsOf, type Crew } from "@/lib/crew";
 import { formatKM, matchCost, type FeeRules } from "@/lib/finance";
 import { MATCH_KIND_LABEL, MATCH_STATUS_LABEL, type MatchKind, type MatchStatus } from "@/lib/format";
 import { saveMatch, type MatchFormState } from "./actions";
+
+const NUMBER_HINT = "Sljedeći slobodan u takmičenju; možeš upisati broj iz rasporeda.";
 
 type Competition = FeeRules &
   Parameters<typeof crewDefaultsOf>[0] & {
@@ -75,7 +78,7 @@ export function MatchForm({
         value={number}
         onChange={(e) => setNumber(e.target.value)}
         placeholder="Sljedeći slobodan"
-        hint={isEdit ? undefined : "Sljedeći slobodan u takmičenju; možeš upisati broj iz rasporeda."}
+        hint={isEdit ? undefined : NUMBER_HINT}
         required={isEdit}
       />
       <Field label="Kolo" name="round" type="number" inputMode="numeric" min={1} defaultValue={values.round ?? ""} />
@@ -91,7 +94,7 @@ export function MatchForm({
               aria-checked={kind === k}
               onClick={() => setKind(k)}
               className={cx(
-                "h-9 rounded-md px-4 text-[14px] font-semibold transition-colors",
+                "h-10 rounded-md px-4 text-[14px] font-semibold transition-colors sm:h-9",
                 kind === k ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
               )}
             >
@@ -227,7 +230,10 @@ export function MatchForm({
 export function MatchFormSkeleton({ edit }: { edit?: boolean }) {
   return (
     <div role="status" aria-busy="true" aria-label="Učitavam" className="grid gap-4 sm:grid-cols-2">
-      <FieldSkeleton label="Broj utakmice" hint={!edit} />
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <FieldSkeleton label="Broj utakmice" />
+        {!edit && <span className="text-[12px] text-faint">{NUMBER_HINT}</span>}
+      </div>
       <FieldSkeleton label="Kolo" />
       <div className="flex flex-col gap-1.5 sm:col-span-2">
         <span className="text-[13px] font-medium text-fg-muted">Vrsta utakmice</span>
@@ -235,7 +241,7 @@ export function MatchFormSkeleton({ edit }: { edit?: boolean }) {
           {(Object.keys(MATCH_KIND_LABEL) as MatchKind[]).map((k, i) => (
             <span
               key={k}
-              className={cx("flex h-9 items-center justify-center rounded-md px-4 text-[14px] font-semibold text-fg-muted", i === 0 && "bg-panel-3 text-fg shadow-segment")}
+              className={cx("flex h-10 items-center justify-center rounded-md px-4 text-[14px] font-semibold text-fg-muted sm:h-9", i === 0 && "bg-panel-3 text-fg shadow-segment")}
             >
               {MATCH_KIND_LABEL[k]}
             </span>
@@ -245,27 +251,46 @@ export function MatchFormSkeleton({ edit }: { edit?: boolean }) {
       <FieldSkeleton label="Takmičenje" className="sm:col-span-2" />
       <FieldSkeleton label="Domaćin" />
       <FieldSkeleton label="Gost" />
-      <FieldSkeleton label="Datum" />
-      <FieldSkeleton label="Vrijeme" />
+      <FieldSkeleton label="Datum" icon={<CalendarDays />} />
+      <FieldSkeleton label="Vrijeme" icon={<Clock />} />
       <FieldSkeleton label="Dvorana" />
       <FieldSkeleton label={edit ? "Status" : "Napomena"} />
       <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:col-span-2 sm:px-5 sm:py-5">
         <div>
           <p className="text-[15px] font-semibold">Sastav ekipe</p>
           <Text className="mt-0.5 text-[13px]" w="w-80" />
+          <Text className="text-[13px] sm:hidden" w="w-24" />
         </div>
+        {/* Kao CrewEditor: izbori i prekidači istih visina, bez stanja */}
         <div className="flex flex-col gap-4">
           {[
-            { label: "Sudije", items: ["w-28", "w-24"] },
-            { label: "Sto", items: ["w-20", "w-28", "w-28", "w-14"] },
-            { label: "Statistika", items: ["w-40", "w-36"] },
+            { label: "Sudije", choice: ["Bez", "2", "3"], toggles: ["Komesar"] },
+            { label: "Sto", toggles: ["Zapisnik", "Pom. zapisnik", "Glavno vrijeme", "24/14"] },
+            { label: "Statistika", choice: ["0", "1", "2", "3"], check: "Digitalni zapisnik" },
           ].map((row) => (
             <div key={row.label} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               <span className="w-24 shrink-0 text-[13px] font-semibold text-fg-muted">{row.label}</span>
               <div className="flex flex-wrap items-center gap-2">
-                {row.items.map((w, i) => (
-                  <Bone key={i} className={cx("h-9", w)} />
+                {row.choice && (
+                  <span className="inline-flex gap-0.5 rounded-lg bg-track p-[3px]">
+                    {row.choice.map((c) => (
+                      <span key={c} className="flex h-10 min-w-10 items-center justify-center rounded-md px-3 text-[14px] font-semibold text-fg-muted sm:h-8">
+                        {c}
+                      </span>
+                    ))}
+                  </span>
+                )}
+                {row.toggles?.map((t) => (
+                  <span key={t} className="flex h-10 items-center rounded-md border border-line-strong bg-panel px-3 text-[14px] font-semibold text-fg-muted sm:h-9">
+                    {t}
+                  </span>
                 ))}
+                {row.check && (
+                  <span className="flex h-10 items-center gap-2 px-1 text-[14px] font-medium text-fg-muted sm:h-9">
+                    <Bone className="size-4 rounded-[4px]" />
+                    {row.check}
+                  </span>
+                )}
               </div>
             </div>
           ))}

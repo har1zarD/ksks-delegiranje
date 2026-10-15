@@ -7,7 +7,7 @@ import { getMatchPage } from "@/lib/data/report";
 import { FOUL_TYPE_LABEL } from "@/lib/data/report-selects";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, POSITION_LABEL } from "@/lib/format";
 import { ChevronLeft } from "lucide-react";
-import { ButtonSkeleton, Skeleton, Text, times } from "@/components/skeleton";
+import { ButtonSkeleton, Skeleton, TeamNameSkeleton, Text, times } from "@/components/skeleton";
 import { PrintButton } from "./print-button";
 
 export const metadata = { title: "Bilten — KSKS" };
@@ -82,51 +82,54 @@ async function Bilten({ params }: { params: Params }) {
             <span className="capitalize">{formatWeekday(match.starts_at)}</span> {formatDayMonth(match.starts_at)} u{" "}
             {formatTime(match.starts_at)}, {match.hall?.name ?? "dvorana nije upisana"}
           </p>
-          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <TeamName name={homeName} logoUrl={match.home?.club?.logo_url} className="justify-end text-[18px] font-semibold" wrap eager />
-            <div className="scoreboard whitespace-nowrap text-[34px] font-bold">
+          {/* Na mobitelu grb iznad imena, da ekipe stanu uz rezultat */}
+          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
+            <TeamName name={homeName} logoUrl={match.home?.club?.logo_url} className="flex-col text-center text-[16px] font-semibold sm:flex-row sm:justify-end sm:text-left sm:text-[18px]" wrap eager />
+            <div className="scoreboard whitespace-nowrap text-[28px] font-bold sm:text-[34px]">
               {total.h} : {total.a}
             </div>
-            <TeamName name={awayName} logoUrl={match.away?.club?.logo_url} className="text-[18px] font-semibold" wrap eager />
+            <TeamName name={awayName} logoUrl={match.away?.club?.logo_url} className="flex-col text-center text-[16px] font-semibold sm:flex-row sm:text-left sm:text-[18px]" wrap eager />
           </div>
         </section>
 
-        <table className="tabular w-full border-collapse text-center">
-          <thead>
-            <tr>
-              <th className={`${cell} text-left font-medium`}>Ekipa</th>
-              {periods.map((p) => (
-                <th key={p.period} className={`${cell} font-medium`}>
-                  {p.period <= 4 ? `${p.period}.` : `P${p.period - 4}`}
-                </th>
-              ))}
-              <th className={`${cell} font-medium`}>Ukupno</th>
-              <th className={`${cell} font-medium`}>Lične greške</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(
-              [
-                [homeName, "home_points", total.h, report?.home_fouls],
-                [awayName, "away_points", total.a, report?.away_fouls],
-              ] as const
-            ).map(([name, side, sum, fouls]) => (
-              <tr key={side}>
-                <td className={`${cell} text-left`}><TeamName name={name} logoUrl={side === "home_points" ? match.home?.club?.logo_url : match.away?.club?.logo_url} wrap eager /></td>
+        <div className="overflow-x-auto">
+          <table className="tabular w-full border-collapse text-center">
+            <thead>
+              <tr>
+                <th className={`${cell} text-left font-medium`}>Ekipa</th>
                 {periods.map((p) => (
-                  <td key={p.period} className={cell}>
-                    {p[side]}
-                  </td>
+                  <th key={p.period} className={`${cell} font-medium`}>
+                    {p.period <= 4 ? `${p.period}.` : `P${p.period - 4}`}
+                  </th>
                 ))}
-                <td className={`${cell} font-semibold`}>{sum}</td>
-                <td className={cell}>{fouls ?? "—"}</td>
+                <th className={`${cell} font-medium`}>Ukupno</th>
+                <th className={`${cell} font-medium`}>Lične greške</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(
+                [
+                  [homeName, "home_points", total.h, report?.home_fouls],
+                  [awayName, "away_points", total.a, report?.away_fouls],
+                ] as const
+              ).map(([name, side, sum, fouls]) => (
+                <tr key={side}>
+                  <td className={`${cell} text-left`}><TeamName name={name} logoUrl={side === "home_points" ? match.home?.club?.logo_url : match.away?.club?.logo_url} wrap eager /></td>
+                  {periods.map((p) => (
+                    <td key={p.period} className={cell}>
+                      {p[side]}
+                    </td>
+                  ))}
+                  <td className={`${cell} font-semibold`}>{sum}</td>
+                  <td className={cell}>{fouls ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-        <section className="mt-6 grid grid-cols-2 gap-x-8 gap-y-1">
-          <h2 className="col-span-2 pb-1 font-semibold">Službena lica</h2>
+        <section className="mt-6 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+          <h2 className="pb-1 font-semibold sm:col-span-2">Službena lica</h2>
           {accepted.map((c) => (
             <div key={c.id} className="flex justify-between gap-4 border-b border-black/10 py-1">
               <span className="text-black/60 print:text-black">{POSITION_LABEL[c.position]}</span>
@@ -144,26 +147,28 @@ async function Bilten({ params }: { params: Params }) {
         <section className="mt-6">
           <h2 className="pb-1 font-semibold">Tehničke, nesportske i diskvalifikujuće greške</h2>
           {report?.technicals.length ? (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className={`${cell} text-left font-medium`}>Ekipa</th>
-                  <th className={`${cell} text-left font-medium`}>Igrač / trener</th>
-                  <th className={`${cell} font-medium`}>Min.</th>
-                  <th className={`${cell} text-left font-medium`}>Vrsta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.technicals.map((t, i) => (
-                  <tr key={i}>
-                    <td className={cell}><TeamName name={t.team === "home" ? homeName : awayName} logoUrl={match[t.team]?.club?.logo_url} wrap eager /></td>
-                    <td className={cell}>{t.player}</td>
-                    <td className={`${cell} tabular text-center`}>{t.minute ?? "—"}</td>
-                    <td className={cell}>{FOUL_TYPE_LABEL[t.type]}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className={`${cell} text-left font-medium`}>Ekipa</th>
+                    <th className={`${cell} text-left font-medium`}>Igrač / trener</th>
+                    <th className={`${cell} font-medium`}>Min.</th>
+                    <th className={`${cell} text-left font-medium`}>Vrsta</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {report.technicals.map((t, i) => (
+                    <tr key={i}>
+                      <td className={cell}><TeamName name={t.team === "home" ? homeName : awayName} logoUrl={match[t.team]?.club?.logo_url} wrap eager /></td>
+                      <td className={cell}>{t.player}</td>
+                      <td className={`${cell} tabular text-center`}>{t.minute ?? "—"}</td>
+                      <td className={cell}>{FOUL_TYPE_LABEL[t.type]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p>Nije bilo.</p>
           )}
@@ -207,10 +212,12 @@ function BiltenSkeleton() {
   return (
     <Skeleton className="mx-auto max-w-[210mm]">
       <div className="mb-5 flex items-center justify-between gap-4">
-        <Text className="h-10 py-2 text-[15px] font-semibold" w="w-24" />
+        <span className="-ml-2 inline-flex h-10 items-center gap-1 pl-1 pr-3 text-[15px] font-semibold text-fg-muted">
+          <ChevronLeft className="size-5" /> Utakmica
+        </span>
         <ButtonSkeleton className="w-28" />
       </div>
-      <div className="rounded-lg border border-line bg-white p-5 text-[14px] leading-snug shadow-panel [color-scheme:light] sm:p-[14mm]">
+      <div className="rounded-lg border border-line bg-white p-5 text-[14px] leading-snug text-black shadow-panel [color-scheme:light] sm:p-[14mm]">
         <div className="flex items-center gap-4 border-b border-black/30 pb-4">
           <Image src="/brand/ksks-logo.svg" alt="" width={64} height={64} />
           <div className="flex-1">
@@ -221,21 +228,45 @@ function BiltenSkeleton() {
         </div>
         <div className="py-5">
           <Text w="w-72" />
-          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <Text className="text-right text-[18px] font-semibold" w="w-32" />
-            <Text className="scoreboard text-[34px] font-bold" w="w-28" />
-            <Text className="text-[18px] font-semibold" w="w-32" />
+          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
+            <TeamNameSkeleton className="flex-col text-[16px] font-semibold sm:flex-row sm:justify-end sm:text-[18px]" w="w-24 sm:w-32" />
+            <Text className="scoreboard text-[28px] font-bold sm:text-[34px]" w="w-24 sm:w-28" />
+            <TeamNameSkeleton className="flex-col text-[16px] font-semibold sm:flex-row sm:text-[18px]" w="w-24 sm:w-32" />
           </div>
         </div>
-        <div className="flex flex-col gap-px border border-black/20 bg-black/20">
-          {times(3, (i) => (
-            <div key={i} className="bg-white px-2 py-1">
-              <Text w={i ? "w-full" : "w-1/2"} />
-            </div>
-          ))}
+        {/* Tabela četvrtina: zaglavlje i dva reda s grbom, kao prava */}
+        <div className="overflow-x-auto">
+          <table className="tabular w-full border-collapse text-center">
+            <thead>
+              <tr>
+                <th className={`${cell} text-left font-medium`}>Ekipa</th>
+                {["1.", "2.", "3.", "4."].map((p) => (
+                  <th key={p} className={`${cell} font-medium`}>
+                    {p}
+                  </th>
+                ))}
+                <th className={`${cell} font-medium`}>Ukupno</th>
+                <th className={`${cell} font-medium`}>Lične greške</th>
+              </tr>
+            </thead>
+            <tbody>
+              {times(2, (i) => (
+                <tr key={i}>
+                  <td className={`${cell} text-left`}>
+                    <TeamNameSkeleton w={i ? "w-28" : "w-32"} />
+                  </td>
+                  {times(6, (j) => (
+                    <td key={j} className={cell}>
+                      <Text w="w-5" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-1">
-          <p className="col-span-2 pb-1 font-semibold text-black">Službena lica</p>
+        <div className="mt-6 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+          <p className="pb-1 font-semibold sm:col-span-2">Službena lica</p>
           {times(6, (i) => (
             <div key={i} className="flex justify-between gap-4 border-b border-black/10 py-1">
               <Text w="w-20" />
@@ -244,16 +275,16 @@ function BiltenSkeleton() {
           ))}
         </div>
         <div className="mt-6 grid grid-cols-3 gap-4">
-          {times(3, (i) => (
-            <div key={i}>
-              <Text className="text-[12px]" w="w-16" />
+          {["Gledalaca", "Početak", "Kraj"].map((label) => (
+            <div key={label}>
+              <div className="text-[12px] text-black/60">{label}</div>
               <Text w="w-10" />
             </div>
           ))}
         </div>
-        {times(3, (i) => (
-          <div key={i} className="mt-6">
-            <Text className="pb-1 font-semibold" w="w-64" />
+        {["Tehničke, nesportske i diskvalifikujuće greške", "Incidenti", "Napomene komesara"].map((title) => (
+          <div key={title} className="mt-6">
+            <p className="pb-1 font-semibold">{title}</p>
             <Text w="w-20" />
           </div>
         ))}

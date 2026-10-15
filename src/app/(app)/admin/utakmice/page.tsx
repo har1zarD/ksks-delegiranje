@@ -112,47 +112,41 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
               </span>
             </h2>
             <Rows>
-              {list.map((m) => {
-                const aside =
-                  withSheets.has(m.id) && m.status !== "scheduled" ? (
-                    <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted" title="Ima sliku zapisnika">
-                      <FileImage className="size-4" aria-hidden="true" />
-                      Zapisnik
-                    </span>
-                  ) : m.status === "scheduled" ? (
-                    <StaffingBadge staffing={m.staffing} />
-                  ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
-                    <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
-                  ) : undefined;
-                return (
-                  <li key={m.id} className="flex items-center gap-1 transition-colors hover:bg-panel-2">
-                    {!past && m.status === "scheduled" && <SelectMatch id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
-                    <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
-                      <MatchLine
-                        match={m}
-                        periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
-                        showScore={past}
-                        badge={
-                          <>
-                            {m.status === "live" ? (
-                              <Status tone="crest" pulse>
-                                Uživo
-                              </Status>
-                            ) : m.status === "finished" && m.periods.length > 0 ? (
-                              <Status tone="muted">Kraj</Status>
-                            ) : m.status === "scheduled" && !m.published_at ? (
-                              <Status tone="muted">Nije aktivirano</Status>
-                            ) : null}
-                            {/* Na mobitelu stanje ide uz takmičenje, da ekipe imaju širinu */}
-                            {aside && <span className="sm:hidden">{aside}</span>}
-                          </>
-                        }
-                        aside={aside && <span className="hidden sm:block">{aside}</span>}
-                      />
-                    </Link>
-                  </li>
-                );
-              })}
+              {list.map((m) => (
+                <li key={m.id} className="flex items-center gap-1 transition-colors hover:bg-panel-2">
+                  {!past && m.status === "scheduled" && <SelectMatch id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
+                  <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
+                    <MatchLine
+                      match={m}
+                      periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
+                      showScore={past}
+                      badge={
+                        m.status === "live" ? (
+                          <Status tone="crest" pulse>
+                            Uživo
+                          </Status>
+                        ) : m.status === "finished" && m.periods.length > 0 ? (
+                          <Status tone="muted">Kraj</Status>
+                        ) : m.status === "scheduled" && !m.published_at ? (
+                          <Status tone="muted">Nije aktivirano</Status>
+                        ) : undefined
+                      }
+                      aside={
+                        withSheets.has(m.id) && m.status !== "scheduled" ? (
+                          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted" title="Ima sliku zapisnika">
+                            <FileImage className="size-4" aria-hidden="true" />
+                            Zapisnik
+                          </span>
+                        ) : m.status === "scheduled" ? (
+                          <StaffingBadge staffing={m.staffing} />
+                        ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
+                          <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
+                        ) : undefined
+                      }
+                    />
+                  </Link>
+                </li>
+              ))}
             </Rows>
           </section>
         ))
@@ -184,7 +178,7 @@ function MatchesSkeleton() {
                   <span className="size-[18px] rounded-[4px] border border-line-strong" />
                 </span>
                 <div className="flex min-w-0 flex-1 items-center py-4">
-                  <MatchLineSkeleton i={d * 3 + i} aside={<span className="hidden sm:block"><StatusSkeleton w="w-20" /></span>} />
+                  <MatchLineSkeleton i={d * 3 + i} aside={<StatusSkeleton w="w-20" />} />
                 </div>
               </li>
             ))}

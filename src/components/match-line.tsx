@@ -84,14 +84,14 @@ export function MatchLine({
 
   if (periods) {
     return (
-      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
         <DateTile iso={match.starts_at} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-40">
           <BoxScore match={match} periods={periods} label={competition} badge={badge} />
           {hall}
           {meta && <div className="mt-2 text-[14px]">{meta}</div>}
         </div>
-        {aside && <div className="shrink-0 self-center">{aside}</div>}
+        {aside && <div className="ml-auto shrink-0 self-center">{aside}</div>}
       </div>
     );
   }
@@ -101,11 +101,11 @@ export function MatchLine({
   const awayWon = score && match.away_score! > match.home_score!;
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
       <DateTile iso={match.starts_at} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-40">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint">
-          <span>{competition}</span>
+          <span className="min-w-0 max-w-full truncate">{competition}</span>
           {badge}
         </div>
         <div className={cx("mt-1 grid items-center gap-x-3 gap-y-1", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
@@ -121,7 +121,7 @@ export function MatchLine({
         {hall}
         {meta && <div className="mt-2 text-[14px]">{meta}</div>}
       </div>
-      {aside && <div className="shrink-0 self-center">{aside}</div>}
+      {aside && <div className="ml-auto shrink-0 self-center">{aside}</div>}
     </div>
   );
 }
@@ -156,7 +156,7 @@ export function BoxScore({
     <div>
       {(label || badge) && (
         <div className={cx("flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint", lg ? "mb-3" : "mb-1")}>
-          {label && <span>{label}</span>}
+          {label && <span className="min-w-0 max-w-full truncate">{label}</span>}
           {badge}
         </div>
       )}

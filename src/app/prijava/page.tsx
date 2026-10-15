@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
+import { LockKeyhole, Mail } from "lucide-react";
 import { InstallApp } from "@/components/install-app";
 import { Bone, FieldSkeleton } from "@/components/skeleton";
 import { LoginForm } from "./login-form";
@@ -45,8 +46,8 @@ async function LoginFormWithParams({ searchParams }: { searchParams: SearchParam
 function LoginFormSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true">
-      <FieldSkeleton label="Email" />
-      <FieldSkeleton label="Šifra" />
+      <FieldSkeleton label="Email" icon={<Mail />} />
+      <FieldSkeleton label="Šifra" icon={<LockKeyhole />} />
       <Bone className="mt-1 h-12 w-full rounded-lg" />
     </div>
   );

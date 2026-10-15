@@ -47,7 +47,7 @@ export function CrewEditor({
         <Choice
           options={([0, 1, 2, 3] as const).map((n) => ({ label: String(n), active: value.stats === n, onClick: () => set({ stats: n }) }))}
         />
-        <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md px-1 text-[14px] font-medium text-fg-muted hover:text-fg">
+        <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md px-1 text-[14px] sm:h-9 font-medium text-fg-muted hover:text-fg">
           <input
             type="checkbox"
             checked={value.digital}
@@ -99,7 +99,7 @@ function Choice({ options }: { options: { label: string; active: boolean; onClic
           aria-checked={o.active}
           onClick={o.onClick}
           className={cx(
-            "h-8 min-w-10 rounded-md px-3 text-[14px] font-semibold transition-colors",
+            "h-10 min-w-10 rounded-md px-3 text-[14px] font-semibold transition-colors sm:h-8",
             o.active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
           )}
         >
@@ -117,7 +117,7 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
       aria-pressed={on}
       onClick={onClick}
       className={cx(
-        "h-9 rounded-md border px-3 text-[14px] font-semibold transition-colors",
+        "h-10 rounded-md border px-3 text-[14px] font-semibold transition-colors sm:h-9",
         on ? "border-transparent bg-brand text-brand-ink hover:bg-brand-hover" : "border-line-strong bg-panel text-fg-muted hover:border-line-hover hover:bg-panel-2 hover:text-fg",
       )}
     >

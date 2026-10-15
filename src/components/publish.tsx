@@ -88,43 +88,47 @@ function PublishBar() {
   if (ids.length === 0 && !message) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+68px)] z-40 px-4 md:bottom-6 print:hidden">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-4 py-3 shadow-pop">
-        {ids.length > 0 ? (
-          <>
-            <span className="text-[14px] font-semibold">Označeno: {ids.length}</span>
-            <button type="button" onClick={() => ctx.setMany(ids, false)} className="text-[13px] font-medium text-fg-muted hover:text-fg">
-              Poništi
-            </button>
-            <Button
-              className="ml-auto"
-              disabled={pending}
-              onClick={async () => {
-                if (!(await confirm(CONFIRM(ids.length)))) return;
-                start(async () => {
-                  const r = await publish(ids);
-                  if (r.result) ctx.setMany(ids, false);
-                  setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });
-                });
-              }}
-            >
-              <Send className="size-4" />
-              {pending ? "Aktiviram…" : "Aktiviraj i pošalji nominaciju"}
-            </Button>
-          </>
-        ) : (
-          <>
-            <p className={cx("flex-1 text-[14px]", message?.error ? "text-crest" : "text-fg")}>
-              {!message?.error && <Check className="mr-1.5 inline size-4 text-mint" />}
-              {message?.text}
-            </p>
-            <button type="button" onClick={() => setMessage(null)} className="text-[13px] font-medium text-fg-muted hover:text-fg">
-              Zatvori
-            </button>
-          </>
-        )}
+    <>
+      {/* Prostor ispod liste da traka ne prekrije zadnje utakmice */}
+      <div aria-hidden className="h-20 md:h-6 print:hidden" />
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+68px)] z-40 px-4 md:bottom-6 print:hidden">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-4 py-3 shadow-pop">
+          {ids.length > 0 ? (
+            <>
+              <span className="text-[14px] font-semibold">Označeno: {ids.length}</span>
+              <button type="button" onClick={() => ctx.setMany(ids, false)} className="-my-2.5 h-10 text-[13px] font-medium text-fg-muted hover:text-fg">
+                Poništi
+              </button>
+              <Button
+                className="ml-auto"
+                disabled={pending}
+                onClick={async () => {
+                  if (!(await confirm(CONFIRM(ids.length)))) return;
+                  start(async () => {
+                    const r = await publish(ids);
+                    if (r.result) ctx.setMany(ids, false);
+                    setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });
+                  });
+                }}
+              >
+                <Send className="size-4" />
+                {pending ? "Aktiviram…" : "Aktiviraj i pošalji nominaciju"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className={cx("flex-1 text-[14px]", message?.error ? "text-crest" : "text-fg")}>
+                {!message?.error && <Check className="mr-1.5 inline size-4 text-mint" />}
+                {message?.text}
+              </p>
+              <button type="button" onClick={() => setMessage(null)} className="-my-2.5 h-10 text-[13px] font-medium text-fg-muted hover:text-fg">
+                Zatvori
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
