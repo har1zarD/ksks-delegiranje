@@ -5,7 +5,7 @@
 //     (skriveni primaoci); omladinska liga i seniori (pomoćne sudije) su odvojeni dokumenti
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
-import { nominationEmail, nominationKindOf, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
+import { nominationEmail, nominationKindOf, scheduleEmail, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Db = ReturnType<typeof createAdminClient>;
@@ -84,4 +84,35 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
     .filter((d) => d.matches > 0);
 
   return { matches: rows.length, revealed: pending.length, recipients: recipients.length, documents, emailed: documents.length > 0 && documents.every((d) => d.sent) };
+}
+
+export type ScheduleResult = { matches: number; recipients: number; sent: boolean };
+
+/**
+ * Raspored klubovima: izabrane utakmice (datum, vrijeme, dvorana, ekipe) svim klubovima na mailing listi (adrese klubova i trenera,
+ * više adresa po klubu razdvojenih zarezom). BEZ sudija, komesara i pomoćnih sudija. Bilježi clubs_notified_at.
+ */
+export async function sendScheduleToClubs(db: Db, matchIds: string[]): Promise<ScheduleResult> {
+  const ids = [...new Set(matchIds)];
+  if (ids.length === 0) return { matches: 0, recipients: 0, sent: false };
+  const rows = await loadRows(db, ids);
+  if (!rows?.length) return { matches: 0, recipients: 0, sent: false };
+
+  const { data: clubs } = await db.from("clubs").select("email").eq("active", true).not("email", "is", null);
+  const recipients = [
+    ...new Set(
+      (clubs ?? [])
+        .flatMap((c) => (c.email ?? "").split(/[,;\s]+/))
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => e.includes("@")),
+    ),
+  ];
+  const sent = recipients.length
+    ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "schedule_clubs", ...scheduleEmail(rows.map(toNomination), siteUrl("/icons/icon-192.png")) })
+    : false;
+  if (sent) {
+    const { error } = await db.from("matches").update({ clubs_notified_at: new Date().toISOString() }).in("id", ids);
+    if (error) throw new Error(error.message);
+  }
+  return { matches: rows.length, recipients: recipients.length, sent };
 }

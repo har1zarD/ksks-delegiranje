@@ -108,7 +108,8 @@ type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind"
 };
 
 /** Kartica utakmice. Osoba iz `highlight` je crvena (zamjena), iz `removed` precrtana (otkazano). */
-function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed }: { showNumber: boolean; highlight?: string; removed?: string }) {
+/** crewless = raspored klubovima: bez službenih lica */
+function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed, crewless }: { showNumber: boolean; highlight?: string; removed?: string; crewless?: boolean }) {
   const left = `
     ${showNumber ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
     <div style="font-size:22px;font-weight:700;color:${C.ink};line-height:1.1;margin-bottom:10px">${pad(m.number)}</div>` : ""}
@@ -141,7 +142,7 @@ function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed }
         <tr>
           <td colspan="2" style="padding:4px 12px 12px;border-bottom:1px solid ${C.line};font-size:15px;font-weight:700;color:${C.ink};text-transform:uppercase">${esc(m.home?.name ?? "?")} – ${esc(m.away?.name ?? "?")}</td>
         </tr>
-        <tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}</table></td></tr>
+        ${crewless ? "" : `<tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}</table></td></tr>`}
       </table>
     </td>
   </tr>
@@ -167,11 +168,11 @@ function documentHtml(o: { subject: string; title: string; subtitle: string; int
   </td></tr>
   ${o.body}
   <tr><td style="padding:12px 0 8px">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+    ${o.button ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
       <td align="center" bgcolor="${C.brand}" style="border-radius:8px">
         <a href="${esc(o.link)}" style="display:block;padding:16px 20px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">${esc(o.button)}</a>
       </td>
-    </tr></table>
+    </tr></table>` : ""}
     <p style="margin:12px 4px 0;font-size:13px;color:${C.muted};text-align:center">${esc(o.note)}</p>
   </td></tr>
   <tr><td style="padding:20px 4px 0;font-size:13px;color:${C.faint};text-align:center">Takmičarska komisija KSKS</td></tr>
@@ -295,6 +296,50 @@ export function withdrawnEmail(
     button: "Otvori moje nominacije",
     link,
     note: "Ostale nominacije ostaju kakve jesu.",
+    logo,
+  });
+
+  return { subject, text, html };
+}
+
+/**
+ * Raspored klubovima: datum, vrijeme, dvorana i ekipe, BEZ sudija, komesara i pomoćnih sudija.
+ * Ide svim klubovima (adrese klubova i trenera) kao skrivenim primaocima.
+ */
+export function scheduleEmail(matches: NominationMatch[], logo: string) {
+  const title = "Raspored utakmica";
+  const subject = `${title} ${dateRange(matches)}`;
+
+  const text = [
+    `${title.toUpperCase()} ${dateRange(matches)}`,
+    "Košarkaški savez Kantona Sarajevo",
+    "",
+    ...groups(matches).flatMap(([group, list]) => [
+      ...(group ? [group, ""] : []),
+      ...list.flatMap((m) => [textLine(m, true), textTeams(m), ""]),
+    ]),
+    "Molimo klubove da budu u dvorani najmanje 30 minuta prije početka.",
+    "",
+    "Takmičarska komisija KSKS",
+  ].join("\n");
+
+  const body = groups(matches)
+    .map(
+      ([group, list]) => `<tr><td style="padding:0 0 4px">
+    ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
+    ${list.map((m) => matchCard(m, [], { showNumber: true, crewless: true })).join("")}
+  </td></tr>`,
+    )
+    .join("");
+
+  const html = documentHtml({
+    subject,
+    title,
+    subtitle: `${dateRange(matches)}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`,
+    body,
+    button: "",
+    link: "",
+    note: "Molimo klubove da budu u dvorani najmanje 30 minuta prije početka.",
     logo,
   });
 

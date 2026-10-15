@@ -146,7 +146,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                       showScore={past}
                       meta={!past && (m.status === "scheduled" || m.status === "live") ? <CrewLine slots={m.slots} digital={m.digital_scoresheet} /> : undefined}
                       badge={
-                        m.status === "live" ? (
+                        <>
+                        {m.status === "live" ? (
                           <Status tone="crest" pulse>
                             Uživo
                           </Status>
@@ -154,7 +155,9 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                           <Status tone="muted">Kraj</Status>
                         ) : m.status === "scheduled" && !m.published_at ? (
                           <Status tone="muted">Nije aktivirano</Status>
-                        ) : undefined
+                        ) : undefined}
+                        {!past && m.clubs_notified_at && <Status tone="mint">Raspored poslan klubovima</Status>}
+                        </>
                       }
                       aside={
                         past ? (
