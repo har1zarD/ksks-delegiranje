@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { crewFromForm, crewToRow } from "@/lib/crew";
-import { publishMatches, type PublishResult } from "@/lib/publish";
+import { notifyMatchChanged, publishMatches, type PublishResult } from "@/lib/publish";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { MATCH_KIND_LABEL, sarajevoToISO, type MatchKind, type MatchStatus } from "@/lib/format";
@@ -48,6 +49,8 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
 
   const supabase = await createClient();
   const row = { ...match, starts_at: sarajevoToISO(date, time) };
+  // Aktivirana utakmica: stari termin, dvorana i status, da se izmjena javi službenim licima i klubovima
+  const before = id ? (await supabase.from("matches").select("starts_at, hall_id, status, published_at").eq("id", id).maybeSingle()).data : null;
   const { data, error } = id
     ? await supabase.from("matches").update(row).eq("id", id).select("id").single()
     : await supabase.from("matches").insert(row).select("id").single();
@@ -56,6 +59,14 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
 
   // Prije redirecta: redirect prekida izvršavanje
   invalidate({ table: "matches", match: data.id });
+  if (
+    id &&
+    before?.published_at &&
+    (new Date(before.starts_at).getTime() !== new Date(row.starts_at).getTime() || before.hall_id !== row.hall_id || (row.status && before.status !== row.status))
+  ) {
+    const snapshot = { starts_at: before.starts_at, hall_id: before.hall_id, status: before.status };
+    after(() => notifyMatchChanged(createAdminClient(), id, snapshot));
+  }
   // Nova utakmica → odmah na delegiranje
   if (!id) redirect(`/admin/utakmice/${data.id}`);
   return {};

@@ -3,7 +3,7 @@
 //  * seniori: poseban dokument "NOMINACIJA – POMOĆNE SUDIJE" (samo sto)
 // Svako sa liste vidi cijelo kolo; svoje utakmice i odgovor su u aplikaciji (dugme na dnu).
 // Čista logika (bez baze). HTML je za email klijente: tabele i inline stilovi.
-import { formatDayMonth, formatTime, formatWeekday, matchKindLabel, positionName, POSITION_ORDER, type MatchKind, type Position } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, MATCH_STATUS_LABEL, matchKindLabel, positionName, POSITION_ORDER, type MatchKind, type MatchStatus, type Position } from "@/lib/format";
 
 export type NominationMatch = {
   id: string;
@@ -108,14 +108,18 @@ type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind"
 };
 
 /** Kartica utakmice. Osoba iz `highlight` je crvena (zamjena), iz `removed` precrtana (otkazano). */
-/** crewless = raspored klubovima: bez službenih lica */
-function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed, crewless }: { showNumber: boolean; highlight?: string; removed?: string; crewless?: boolean }) {
+/** crewless = bez službenih lica (klubovi); changed = promijenjeni termin/dvorana crveno (izmjena utakmice) */
+function matchCard(
+  m: CardMatch,
+  rows: Row[],
+  { showNumber, highlight, removed, crewless, changed }: { showNumber: boolean; highlight?: string; removed?: string; crewless?: boolean; changed?: { time?: boolean; hall?: boolean } },
+) {
   const left = `
     ${showNumber ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
     <div style="font-size:22px;font-weight:700;color:${C.ink};line-height:1.1;margin-bottom:10px">${pad(m.number)}</div>` : ""}
-    <div style="font-size:20px;font-weight:700;color:${C.ink};line-height:1.1">${esc(formatTime(m.starts_at))}</div>
-    <div style="font-size:13px;color:${C.muted};margin-top:2px">${esc(date(m.starts_at))}</div>
-    <div style="font-size:13px;color:${C.muted};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>`;
+    <div style="font-size:20px;font-weight:700;color:${changed?.time ? C.red : C.ink};line-height:1.1">${esc(formatTime(m.starts_at))}</div>
+    <div style="font-size:13px;color:${changed?.time ? C.red : C.muted};font-weight:${changed?.time ? 700 : 400};margin-top:2px">${esc(date(m.starts_at))}</div>
+    <div style="font-size:13px;color:${changed?.hall ? C.red : C.muted};font-weight:${changed?.hall ? 700 : 400};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>`;
   const person = (p: Row["people"][number]) =>
     p.profileId === removed
       ? `<span style="color:${C.red};text-decoration:line-through">${esc(p.name)}</span>`
@@ -374,6 +378,69 @@ export function scheduleEmail(matches: NominationMatch[], logo: string) {
 </table>
 </td></tr></table>
 </body></html>`;
+
+  return { subject, text, html };
+}
+
+// ───────── Izmjena aktivirane utakmice ─────────
+
+export type MatchChange = {
+  starts_at?: { from: string; to: string };
+  hall?: { from: string | null; to: string | null };
+  status?: { from: MatchStatus; to: MatchStatus };
+};
+
+/**
+ * Izmjena aktivirane utakmice (termin, dvorana, otkazana/odgođena): službenim licima na utakmici i klubovima (omladinska liga).
+ * Novi podaci su crveni, i u listi promjena i na kartici utakmice.
+ */
+export function matchChangedEmail(match: CardMatch & { digital_scoresheet: boolean }, change: MatchChange, logo: string) {
+  const teams = `${match.home?.name ?? "?"} – ${match.away?.name ?? "?"}`;
+  const to = change.status?.to;
+  const title = to === "cancelled" ? "Otkazana utakmica" : to === "postponed" ? "Odgođena utakmica" : "Izmjena utakmice";
+  const subject = `${title}: ${teams}, ${formatDayMonth(match.starts_at)}`;
+  const when = (iso: string) => `${date(iso)} u ${formatTime(iso)}`;
+  const lines: { label: string; from: string; to: string }[] = [];
+  if (change.starts_at) lines.push({ label: "Termin", from: when(change.starts_at.from), to: when(change.starts_at.to) });
+  if (change.hall) lines.push({ label: "Dvorana", from: change.hall.from ?? "nije određena", to: change.hall.to ?? "nije određena" });
+  if (change.status) lines.push({ label: "Status", from: MATCH_STATUS_LABEL[change.status.from], to: MATCH_STATUS_LABEL[change.status.to] });
+
+  const text = [
+    `${title.toUpperCase()}: ${teams.toUpperCase()}`,
+    "Košarkaški savez Kantona Sarajevo",
+    "",
+    ...lines.map((l) => `${l.label}: ${l.from} → ${l.to}`),
+    "",
+    textLine(match, true),
+    textTeams(match),
+    "",
+    "Ostali podaci o utakmici ostaju isti.",
+    "",
+    "Takmičarska komisija KSKS",
+  ].join("\n");
+
+  const intro = lines
+    .map(
+      (l) =>
+        `<div style="margin-top:4px">${esc(l.label)}: <span style="color:${C.muted}">${esc(l.from)}</span> <span style="color:${C.faint}">→</span> <strong style="color:${C.red}">${esc(l.to)}</strong></div>`,
+    )
+    .join("");
+  const statusBar =
+    to === "cancelled" || to === "postponed"
+      ? `<tr><td style="padding:0 0 10px"><div style="display:inline-block;padding:6px 12px;border-radius:999px;background:#fdecec;color:${C.red};font-size:13px;font-weight:700">${esc(MATCH_STATUS_LABEL[to])}</div></td></tr>`
+      : "";
+
+  const html = documentHtml({
+    subject,
+    title,
+    subtitle: `${dayTitle.format(new Date(match.starts_at))}, ${formatTime(match.starts_at)}`,
+    intro,
+    body: `${statusBar}<tr><td style="padding:4px 0">${matchCard(match, [], { showNumber: true, crewless: true, changed: { time: Boolean(change.starts_at), hall: Boolean(change.hall) } })}</td></tr>`,
+    button: "",
+    link: "",
+    note: "Ostali podaci o utakmici ostaju isti.",
+    logo,
+  });
 
   return { subject, text, html };
 }

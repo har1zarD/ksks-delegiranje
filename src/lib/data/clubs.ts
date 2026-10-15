@@ -13,7 +13,7 @@ async function clubRows() {
   return rows(
     await createAdminClient()
       .from("clubs")
-      .select("id, name, short_name, city, email, phone, logo_url, active, hall:halls!clubs_hall_id_fkey ( name ), teams ( competition:competitions!teams_competition_id_fkey ( short_name, name, season:seasons!competitions_season_id_fkey ( is_current ) ) )")
+      .select("id, name, short_name, city, email, phone, logo_url, active, youth, hall:halls!clubs_hall_id_fkey ( name ), teams ( competition:competitions!teams_competition_id_fkey ( short_name, name, season:seasons!competitions_season_id_fkey ( is_current ) ) )")
       .order("name"),
   );
 }
@@ -29,6 +29,8 @@ export async function getClubs() {
     phone: c.phone,
     logoUrl: c.logo_url,
     active: c.active,
+    /** Omladinska liga: prima raspored i izmjene utakmica */
+    youth: c.youth,
     hall: c.hall?.name ?? null,
     /** Takmičenja tekuće sezone u kojima klub ima ekipu */
     competitions: [...new Set(c.teams.filter((t) => t.competition?.season?.is_current).map((t) => t.competition!.short_name ?? t.competition!.name))],

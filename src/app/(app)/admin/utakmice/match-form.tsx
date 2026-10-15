@@ -7,6 +7,7 @@ import { CrewEditor } from "@/components/crew-editor";
 import { DateField, TimeField } from "@/components/date-picker";
 import { Bone, ButtonSkeleton, FieldSkeleton, Text } from "@/components/skeleton";
 import { Select } from "@/components/select";
+import { confirmSubmit } from "@/components/confirm";
 import { Button, cx, Field } from "@/components/ui";
 import { crewDefaultsOf, type Crew } from "@/lib/crew";
 import { formatKM, matchCost, type FeeRules } from "@/lib/finance";
@@ -37,6 +38,8 @@ export type MatchFormValues = {
   crew?: Crew;
   status?: MatchStatus;
   notes?: string | null;
+  /** Aktivirana utakmica: izmjena termina, dvorane ili statusa ide mailom službenim licima i klubovima */
+  published_at?: string | null;
 };
 
 export function MatchForm({
@@ -65,7 +68,23 @@ export function MatchForm({
   const cost = crew ? matchCost(competition ?? null, crew) : null;
 
   return (
-    <form action={action} className="grid gap-4 sm:grid-cols-2">
+    <form
+      action={action}
+      className="grid gap-4 sm:grid-cols-2"
+      onSubmit={(e) => {
+        // Aktivirana utakmica: promjena termina, dvorane ili statusa ide mailom, pa prvo upozorenje
+        if (!isEdit || !values.published_at) return;
+        const f = new FormData(e.currentTarget);
+        const changed =
+          f.get("date") !== values.date || f.get("time") !== values.time || String(f.get("hall_id") ?? "") !== (values.hall_id ?? "") || f.get("status") !== values.status;
+        if (!changed) return;
+        confirmSubmit({
+          title: "Poslati izmjenu?",
+          message: "Ova izmjena će biti poslana na email svim službenim licima na utakmici i klubovima (omladinska liga). Promijenjeni podaci su označeni crveno.",
+          confirmLabel: "Sačuvaj i pošalji",
+        })(e);
+      }}
+    >
       {values.id && <input type="hidden" name="id" value={values.id} />}
       <input type="hidden" name="kind" value={kind} />
 

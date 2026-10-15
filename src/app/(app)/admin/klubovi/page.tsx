@@ -51,7 +51,7 @@ async function Clubs() {
                 )}
               </div>
             </div>
-            <ClubForm clubId={c.id} email={c.email} phone={c.phone} />
+            <ClubForm clubId={c.id} email={c.email} phone={c.phone} youth={c.youth} />
           </li>
         ))}
       </Rows>
