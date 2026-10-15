@@ -9,9 +9,9 @@ export const SCORESHEET_BUCKET = "scoresheets";
 /** Koliko dugo važi link za pregled slike */
 const VIEW_SECONDS = 60 * 60;
 
-export type MatchRole = "admin" | "commissioner" | "table" | null;
+export type MatchRole = "admin" | "commissioner" | "table" | "referee" | null;
 
-/** Uloga korisnika na utakmici: admin, prihvaćeni komesar ili prihvaćeni pomoćni sudija (sto, statistika) */
+/** Uloga korisnika na utakmici: admin, prihvaćeni komesar, prihvaćeni pomoćni sudija (sto, statistika) ili prihvaćeni sudija */
 export async function matchRoleOf(user: CurrentUser, matchId: string): Promise<MatchRole> {
   if (user.role === "admin") return "admin";
   const { data } = await createAdminClient()
@@ -24,6 +24,7 @@ export async function matchRoleOf(user: CurrentUser, matchId: string): Promise<M
   const positions = (data ?? []).map((a) => a.position);
   if (positions.includes("commissioner")) return "commissioner";
   if (positions.some((p) => nominationGroupOf(p) === "table")) return "table";
+  if (positions.some((p) => p.startsWith("referee"))) return "referee";
   return null;
 }
 

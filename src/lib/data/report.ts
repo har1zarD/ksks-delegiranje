@@ -64,6 +64,8 @@ export async function getMatchPage(matchId: string) {
     isCommissioner: mine?.position === "commissioner" && mine.status === "accepted",
     /** Prihvaćeni pomoćni sudija (sto, statistika): konačni rezultat i slika zapisnika */
     isTable: mine?.status === "accepted" && nominationGroupOf(mine.position) === "table",
+    /** Prihvaćeni sudija: slika zapisnika */
+    isReferee: mine?.status === "accepted" && mine.position.startsWith("referee"),
   };
 }
 

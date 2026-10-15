@@ -47,7 +47,7 @@ async function Match({ params }: { params: Params }) {
   const { id } = await params;
   const page = await getMatchPage(id);
   if (!page) notFound();
-  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable } = page;
+  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable, isReferee } = page;
 
   const canScore = isCommissioner || isAdmin;
   const open = match.status !== "cancelled" && match.status !== "postponed";
@@ -57,7 +57,8 @@ async function Match({ params }: { params: Params }) {
   const tableScores = isTable && !isAdmin && !match.has_commissioner;
   const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
   const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.status !== "finished" || undoUntil !== null));
-  const scoresheetAccess = isAdmin || isCommissioner || isTable;
+  // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
+  const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
   const homeName = match.home?.name ?? "Domaćin";
   const awayName = match.away?.name ?? "Gost";

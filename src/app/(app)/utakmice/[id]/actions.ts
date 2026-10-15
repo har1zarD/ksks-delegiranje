@@ -216,7 +216,7 @@ const SCORESHEET_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png
 /** Link za upload jedne slike zapisnika direktno u Storage (zaobilazi ograničenje veličine Server Action zahtjeva) */
 export async function createScoresheetUpload(matchId: string, contentType: string): Promise<{ error?: string; path?: string; token?: string }> {
   const user = await getCurrentUser();
-  if (!(await matchRoleOf(user, matchId))) return { error: "Slike dodaje komesar, pomoćni sudija ili savez." };
+  if (!(await matchRoleOf(user, matchId))) return { error: "Slike dodaju sudije, komesar, pomoćne sudije ili savez." };
   const ext = SCORESHEET_EXT[contentType];
   if (!ext) return { error: "Dozvoljene su slike (JPG, PNG, WEBP)." };
 
