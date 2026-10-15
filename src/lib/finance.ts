@@ -88,14 +88,17 @@ export type FeeRules = {
   /** Statistika po osobi (null = nije određeno) */
   fee_stats_km?: number | null;
   fee_commissioner_km: number | null;
+  /** Zapisničar kad je digitalni zapisnik (null = kao sto) */
+  fee_digital_km?: number | null;
 };
 
 const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "assistant_timer", "shot_clock", "timer_shot_clock"];
 const STATS: Position[] = ["statistician_1", "statistician_2", "statistician_3"];
 
-/** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica */
-export function feeFor(position: Position, refereeCount: number, rules: FeeRules | null): number | null {
+/** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica; zapisničar s digitalnim zapisnikom ima svoju cijenu */
+export function feeFor(position: Position, refereeCount: number, rules: FeeRules | null, digital = false): number | null {
   if (!rules) return null;
+  if (position === "scorer" && digital && rules.fee_digital_km != null) return Number(rules.fee_digital_km);
   const v =
     position === "commissioner"
       ? rules.fee_commissioner_km
@@ -114,7 +117,9 @@ export type CostLine = { label: string; count: number; unit: number | null; tota
 /** Trošak utakmice po pravilima takmičenja i sastavu: sudije, sto, statistika, komesar */
 export function matchCost(rules: FeeRules | null, crew: Crew) {
   const refereeCount = crew.refereeCount;
-  const tableCount = [crew.scorer, crew.assistantScorer, crew.timer, crew.assistantTimer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
+  // Digitalni zapisnik sa svojom cijenom ide kao poseban red, ostatak stola po cijeni stola
+  const digitalScorer = crew.scorer && crew.digital && rules?.fee_digital_km != null;
+  const tableCount = [crew.scorer && !digitalScorer, crew.assistantScorer, crew.timer, crew.assistantTimer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
   const line = (label: string, count: number, unit: number | null): CostLine => ({
     label,
     count,
@@ -123,7 +128,8 @@ export function matchCost(rules: FeeRules | null, crew: Crew) {
   });
   const lines = [
     crew.referees && line(refereeCount === 3 ? "Sudije (trojka)" : "Sudije (dvojka)", refereeCount, feeFor("referee_1", refereeCount, rules)),
-    tableCount > 0 && line("Zapisnički sto", tableCount, feeFor("scorer", refereeCount, rules)),
+    digitalScorer && line("Dig. zapisnik", 1, feeFor("scorer", refereeCount, rules, true)),
+    tableCount > 0 && line("Zapisnički sto", tableCount, feeFor("timer", refereeCount, rules)),
     crew.stats > 0 && line("Statistika", crew.stats, feeFor("statistician_1", refereeCount, rules)),
     crew.commissioner && line("Komesar", 1, feeFor("commissioner", refereeCount, rules)),
   ].filter((l): l is CostLine => Boolean(l));
@@ -146,6 +152,7 @@ export type PayrollAssignment = {
     number: number;
     starts_at: string;
     referee_count: number;
+    digital_scoresheet: boolean;
     kind: MatchKind;
     kind_label: string | null;
     competition: ({ name: string; short_name: string | null } & FeeRules) | null;
@@ -263,7 +270,7 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       unpaidCount: 0,
       missing: 0,
     };
-    const ruleAmount = feeFor(a.position, a.match.referee_count, a.match.competition);
+    const ruleAmount = feeFor(a.position, a.match.referee_count, a.match.competition, a.match.digital_scoresheet);
     const custom = a.fee_km != null;
     const amount = custom ? Number(a.fee_km) : ruleAmount;
     person.items.push({

@@ -15,7 +15,7 @@ const FEE_COMPETITION_SELECT = `
     fee_payments ( id, amount_km, paid_on, note ) )
 ` as const;
 
-const FEE_RULES = "fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km" as const;
+const FEE_RULES = "fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, fee_digital_km" as const;
 
 const RULES_COMPETITION_SELECT =
   `id, name, short_name, ${CREW_DEFAULT_COLUMNS}, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
@@ -23,7 +23,7 @@ const RULES_COMPETITION_SELECT =
 const PAYROLL_SELECT = `
   id, position, paid_at, fee_km,
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
-  match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, status, referee_count,
+  match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, status, referee_count, digital_scoresheet,
     competition:competitions!matches_competition_id_fkey ( name, short_name, ${FEE_RULES} ),
     home:teams!matches_home_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ),
     away:teams!matches_away_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ) )
@@ -131,6 +131,7 @@ export async function getFeeRules() {
       fee_table_km: num(c.fee_table_km),
       fee_stats_km: num(c.fee_stats_km),
       fee_commissioner_km: num(c.fee_commissioner_km),
+      fee_digital_km: num(c.fee_digital_km),
     },
   }));
 }

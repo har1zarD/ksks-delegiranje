@@ -18,7 +18,7 @@ export const COMPETITION_SELECT =
 
 /** Pravila naknada takmičenja utakmice (za trošak); poseban alias da MATCH_SELECT ostane mali */
 const MATCH_FEE_RULES =
-  "rules:competitions!matches_competition_id_fkey ( fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, split_nominations )" as const;
+  "rules:competitions!matches_competition_id_fkey ( fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, fee_digital_km, split_nominations )" as const;
 
 /** Rezultat po četvrtinama (box score na listi i detalju) */
 const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points )" as const;
