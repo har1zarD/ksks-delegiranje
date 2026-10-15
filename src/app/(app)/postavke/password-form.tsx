@@ -12,7 +12,7 @@ export function PasswordForm() {
     <form key={state.ok} action={action} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
       <Field label="Nova šifra" name="password" type="password" autoComplete="new-password" minLength={8} required placeholder="Najmanje 8 znakova" />
       <Field label="Ponovi šifru" name="confirm" type="password" autoComplete="new-password" minLength={8} required />
-      <Button type="submit" disabled={pending} className="sm:h-11">
+      <Button type="submit" disabled={pending}>
         {pending ? "Čuvam…" : "Promijeni šifru"}
       </Button>
       {state.error ? (

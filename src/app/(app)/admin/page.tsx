@@ -8,7 +8,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { MatchLine } from "@/components/match-line";
 import { PageIntro } from "@/components/page-intro";
 import { StaffingBadge } from "@/components/staffing-badge";
-import { Bone, MatchRowsSkeleton, SectionTitleSkeleton, Skeleton, StatSkeleton, StatusSkeleton, Text } from "@/components/skeleton";
+import { Bone, MatchRowsSkeleton, Skeleton, StatusSkeleton, Text } from "@/components/skeleton";
 import { ButtonLink, Empty, Panel, Rows, SectionTitle, Stat, Status } from "@/components/ui";
 
 export const metadata = { title: "Pregled — KSKS" };
@@ -69,7 +69,7 @@ async function Overview() {
       )}
 
       <Panel className="overflow-hidden">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
+        <dl className="grid grid-cols-2 items-end gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
           <Stat icon={<CalendarDays />} label={`Utakmica u ${DAYS_AHEAD} dana`} value={active.length} />
           <Stat icon={<CheckCircle2 />} label="Potpuno delegirano" value={full} tone={full === active.length && active.length > 0 ? "mint" : undefined} />
           <Stat icon={<Clock />} label="Čeka odgovor" value={waiting} tone={waiting > 0 ? "gold" : undefined} />
@@ -126,7 +126,12 @@ async function Overview() {
             {upcoming.slice(0, 5).map((m) => (
               <li key={m.id}>
                 <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                  <MatchLine match={m} aside={<StaffingBadge staffing={m.staffing} />} />
+                  {/* Na mobitelu stanje ide uz takmičenje, da ekipe imaju širinu */}
+                  <MatchLine
+                    match={m}
+                    badge={<span className="sm:hidden"><StaffingBadge staffing={m.staffing} /></span>}
+                    aside={<span className="hidden sm:block"><StaffingBadge staffing={m.staffing} /></span>}
+                  />
                 </Link>
               </li>
             ))}
@@ -142,19 +147,24 @@ function OverviewSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <Panel className="overflow-hidden">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
-          <StatSkeleton w="w-10" label="w-32" />
-          <StatSkeleton w="w-10" label="w-32" />
-          <StatSkeleton w="w-10" label="w-24" />
-          <StatSkeleton w="w-10" label="w-36" />
+        <dl className="grid grid-cols-2 items-end gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
+          <Stat icon={<CalendarDays />} label={`Utakmica u ${DAYS_AHEAD} dana`} value={<Text w="w-10" />} />
+          <Stat icon={<CheckCircle2 />} label="Potpuno delegirano" value={<Text w="w-10" />} />
+          <Stat icon={<Clock />} label="Čeka odgovor" value={<Text w="w-10" />} />
+          <Stat icon={<Users />} label="Nedostaje delegiranje" value={<Text w="w-10" />} />
         </dl>
         <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line py-4">
-          <Text className="text-[13px] font-semibold" w="w-52" />
+          <div className="text-[13px] font-semibold text-fg-muted">Trošak delegiranja u {DAYS_AHEAD} dana</div>
           <Text className="scoreboard text-[28px] font-semibold leading-none sm:text-[32px]" w="w-32" />
         </div>
       </Panel>
       <section>
-        <SectionTitleSkeleton count />
+        <SectionTitle icon={<ClipboardList />}>
+          Treba delegirati
+          <span className="inline-flex min-w-6 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+            <Text w="w-2" />
+          </span>
+        </SectionTitle>
         <MatchRowsSkeleton
           meta={
             <div className="flex flex-wrap gap-x-3 gap-y-1">

@@ -48,14 +48,15 @@ export function PageHeaderSkeleton({ subtitle = true, icon }: { subtitle?: boole
   );
 }
 
-/** SectionTitle; `count` = značka s brojem uz naslov */
-export function SectionTitleSkeleton({ w = "w-36", count, action }: { w?: string; count?: boolean; action?: React.ReactNode }) {
+/** SectionTitle; `count` = značka s brojem uz naslov, `icon` = ikonica ispred naslova */
+export function SectionTitleSkeleton({ w = "w-36", count, action, icon }: { w?: string; count?: boolean; action?: React.ReactNode; icon?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4 pb-3">
       <div className="flex min-w-0 items-center gap-2.5 font-display text-[18px] font-semibold">
+        {icon && <Bone className="size-[18px] shrink-0 rounded-[4px]" />}
         <Text w={w} />
         {count && (
-          <span className="inline-flex min-w-6 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+          <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
             <Text w="w-2" />
           </span>
         )}
@@ -71,7 +72,7 @@ export function SegmentsSkeleton({ widths, className }: { widths: string[]; clas
     <div className={cx("-mx-4 overflow-hidden px-4 sm:mx-0 sm:px-0", className)}>
       <div className="inline-flex gap-0.5 rounded-lg bg-track p-[3px]">
         {widths.map((w, i) => (
-          <span key={i} className={cx("rounded-md px-3.5 py-1.5", i === 0 && "bg-panel-3 shadow-segment")}>
+          <span key={i} className={cx("rounded-md px-3.5 py-2.5 sm:py-1.5", i === 0 && "bg-panel-3 shadow-segment")}>
             <Text className="text-[14px]" w={w} />
           </span>
         ))}
@@ -94,12 +95,18 @@ export function TextButtonSkeleton({ w = "w-14", className }: { w?: string; clas
   );
 }
 
-/** Polje forme: pravi naziv (statičan) i prazan okvir polja */
-export function FieldSkeleton({ label, hint, className }: { label?: string; hint?: boolean; className?: string }) {
+/** Polje forme: pravi naziv (statičan) i prazan okvir polja; `icon` kao u Field */
+export function FieldSkeleton({ label, hint, className, icon }: { label?: string; hint?: boolean; className?: string; icon?: React.ReactNode }) {
+  const box = <span aria-hidden className="block h-11 rounded-lg border border-line-strong bg-panel sm:h-10" />;
   return (
     <div className={cx("flex min-w-0 flex-col gap-1.5", className)}>
       {label ? <span className="text-[13px] font-medium text-fg-muted">{label}</span> : <Text className="text-[13px]" w="w-20" />}
-      <span aria-hidden className="block h-11 rounded-lg border border-line-strong bg-panel sm:h-10" />
+      {icon ? (
+        <span className="relative block">
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-fg-muted [&>svg]:size-4">{icon}</span>
+          {box}
+        </span>
+      ) : box}
       {hint && <Text className="text-[12px]" w="w-48" />}
     </div>
   );
@@ -108,18 +115,25 @@ export function FieldSkeleton({ label, hint, className }: { label?: string; hint
 /** Status: tačka + tekst */
 export function StatusSkeleton({ w = "w-20" }: { w?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <Bone className="size-2 rounded-full" />
+    <span className="inline-flex items-center gap-1.5 text-[13px]">
+      <Bone className="size-2 shrink-0 rounded-full" />
       <Text className="text-[13px]" w={w} />
     </span>
   );
 }
 
-/** Stat: opis, pa broj kao na semaforu */
-export function StatSkeleton({ w = "w-14", label = "w-24" }: { w?: string; label?: string }) {
+/** Stat: (ikonica i) opis, pa broj kao na semaforu */
+export function StatSkeleton({ w = "w-14", label = "w-24", icon }: { w?: string; label?: string; icon?: boolean }) {
   return (
     <div className="min-w-0">
-      <Text className="mb-3 text-[13px] font-medium" w={label} />
+      {icon ? (
+        <div className="mb-3 flex items-center gap-2">
+          <Bone className="size-4 shrink-0" />
+          <Text className="text-[13px] font-medium" w={label} />
+        </div>
+      ) : (
+        <Text className="mb-3 text-[13px] font-medium" w={label} />
+      )}
       <Text className="scoreboard text-[28px] font-semibold leading-none sm:text-[32px]" w={w} />
     </div>
   );
@@ -147,6 +161,25 @@ export function DateTileSkeleton({ size = "md", className }: { size?: "md" | "lg
 
 const TEAM_W = ["w-40", "w-32", "w-44", "w-36", "w-28", "w-40"];
 
+/** ClubLogo: isti okvir 48×32, kost u sredini */
+export function ClubLogoSkeleton() {
+  return (
+    <span aria-hidden className="inline-flex h-8 w-12 shrink-0 items-center justify-center">
+      <Bone className="size-7 rounded-md" />
+    </span>
+  );
+}
+
+/** TeamName: logo i naziv u redu visine logoa; `className` nosi tipografiju naziva */
+export function TeamNameSkeleton({ w = "w-32", className }: { w?: string; className?: string }) {
+  return (
+    <span className={cx("flex min-w-0 items-center gap-2", className)}>
+      <ClubLogoSkeleton />
+      <Text className="min-w-0" w={w} />
+    </span>
+  );
+}
+
 /**
  * Kao MatchLine: datum lijevo, takmičenje, dvije ekipe (+ rezultat), dvorana.
  * `meta` = red ispod (npr. pozicija), `aside` = desno (npr. stanje delegiranja).
@@ -168,14 +201,14 @@ export function MatchLineSkeleton({
   hall?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
       <DateTileSkeleton />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-40">
         {label && <Text className="text-[12px] font-semibold" w="w-32" />}
-        <div className={cx("mt-0.5 grid items-baseline gap-x-3", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
-          <Text className="text-[17px] font-semibold leading-snug" w={TEAM_W[i % TEAM_W.length]} />
+        <div className={cx("mt-1 grid items-center gap-x-3 gap-y-1", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
+          <TeamNameSkeleton className="text-[17px] font-semibold leading-snug" w={TEAM_W[i % TEAM_W.length]} />
           {score && <Text className="scoreboard text-[22px] font-semibold leading-tight" w="w-8" />}
-          <Text className="text-[17px] font-semibold leading-snug" w={TEAM_W[(i + 3) % TEAM_W.length]} />
+          <TeamNameSkeleton className="text-[17px] font-semibold leading-snug" w={TEAM_W[(i + 3) % TEAM_W.length]} />
           {score && <Text className="scoreboard text-[22px] font-semibold leading-tight" w="w-8" />}
         </div>
         {hall && (
@@ -186,7 +219,7 @@ export function MatchLineSkeleton({
         )}
         {meta && <div className="mt-2 text-[14px]">{meta}</div>}
       </div>
-      {aside && <div className="shrink-0 self-center">{aside}</div>}
+      {aside && <div className="ml-auto shrink-0 self-center">{aside}</div>}
     </div>
   );
 }
@@ -221,7 +254,7 @@ export function StandingsSkeleton({ rows = 8 }: { rows?: number }) {
     <div className={cx(CARD, "overflow-hidden")}>
       <table className="w-full">
         <thead>
-          <tr className="border-b border-line text-left text-[12px] font-semibold text-fg-faint">
+          <tr className="border-b border-line bg-panel-2 text-left text-[12px] font-semibold text-fg-muted">
             <th className="w-12 py-3 pl-4 font-semibold sm:pl-5">#</th>
             <th className="py-3 pr-2 font-semibold">Ekipa</th>
             <th className={cx(num, "text-right font-semibold")}>U</th>
@@ -236,11 +269,11 @@ export function StandingsSkeleton({ rows = 8 }: { rows?: number }) {
         <tbody className="divide-y divide-line">
           {times(rows, (i) => (
             <tr key={i}>
-              <td className="py-3 pl-4 sm:pl-5">
+              <td className="py-3 pl-4 pr-2 sm:pl-5">
                 <Text className="scoreboard text-[20px] font-semibold" w="w-4" />
               </td>
-              <td className="max-w-0 py-3 pr-2">
-                <Text className="font-display text-[18px] font-semibold sm:text-[20px]" w={TEAM_W[i % TEAM_W.length]} />
+              <td className="max-w-0 py-3 pr-2 font-display text-[18px] font-semibold sm:text-[20px]">
+                <TeamNameSkeleton w={TEAM_W[i % TEAM_W.length]} />
               </td>
               <NumCell />
               <NumCell />
@@ -248,7 +281,7 @@ export function StandingsSkeleton({ rows = 8 }: { rows?: number }) {
               <NumCell className="hidden md:table-cell" w="w-8" />
               <NumCell className="hidden md:table-cell" w="w-8" />
               <NumCell w="w-7" />
-              <NumCell className="pr-4 sm:pr-5" />
+              <NumCell className="pr-4 sm:pr-5" text="text-[22px]" />
             </tr>
           ))}
         </tbody>
@@ -257,10 +290,10 @@ export function StandingsSkeleton({ rows = 8 }: { rows?: number }) {
   );
 }
 
-function NumCell({ className, w = "w-5" }: { className?: string; w?: string }) {
+function NumCell({ className, w = "w-5", text = "text-[18px]" }: { className?: string; w?: string; text?: string }) {
   return (
     <td className={cx("px-1.5 py-3 text-right sm:px-2", className)}>
-      <Text className="scoreboard text-[18px] font-semibold" w={w} />
+      <Text className={cx("scoreboard font-semibold", text)} w={w} />
     </td>
   );
 }
@@ -272,13 +305,13 @@ export function PeriodPickerSkeleton() {
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex items-center gap-1">
         <span className="grid size-10 place-items-center">
-          <Bone className="size-4" />
+          <Bone className="size-5" />
         </span>
         <span className="flex min-w-36 justify-center">
           <Text className="font-display text-[20px] font-semibold" w="w-28" />
         </span>
         <span className="grid size-10 place-items-center">
-          <Bone className="size-4" />
+          <Bone className="size-5" />
         </span>
       </div>
       <SegmentsSkeleton widths={["w-14", "w-8"]} className="sm:ml-2" />
@@ -293,7 +326,7 @@ export function PayrollSummarySkeleton({ aside = true }: { aside?: boolean }) {
       <dl className="grid grid-cols-1 gap-x-6 gap-y-5 py-5 sm:grid-cols-3 sm:py-6">
         {["w-20", "w-20", "w-20"].map((w, i) => (
           <div key={i} className="min-w-0">
-            <div className="mb-3 flex items-center gap-2"><Bone className="size-4" /><Text className="text-[13px] font-medium" w={w} /></div>
+            <div className="mb-3 flex items-center gap-2"><Bone className="size-4 shrink-0" /><Text className="text-[13px] font-medium" w={w} /></div>
             <Text className="scoreboard mt-1 text-[26px] font-semibold leading-none sm:text-[30px]" w="w-32" />
           </div>
         ))}
@@ -314,7 +347,10 @@ export function PayrollItemsSkeleton({ count = 5 }: { count?: number }) {
         <li key={i} className="flex items-center gap-3 py-3 text-[14px]">
           <Text className="scoreboard w-12 shrink-0 text-[17px] font-semibold" w="w-10" />
           <span className="min-w-0 flex-1">
-            <Text className="font-semibold" w={i % 2 ? "w-52" : "w-64"} />
+            <span className="flex min-w-0 flex-col gap-1 font-semibold">
+              <TeamNameSkeleton w={TEAM_W[i % TEAM_W.length]} />
+              <TeamNameSkeleton w={TEAM_W[(i + 3) % TEAM_W.length]} />
+            </span>
             <Text className="text-[13px]" w="w-60" />
           </span>
           <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">

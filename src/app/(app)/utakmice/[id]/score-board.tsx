@@ -214,7 +214,7 @@ function TeamScore({ name, logoUrl, points, trails }: { name: string; logoUrl: s
       <div className={cx("scoreboard whitespace-nowrap text-[clamp(52px,19vw,84px)] font-semibold leading-[0.9] sm:text-[112px] lg:text-[128px]", trails ? "text-fg-faint" : "text-fg")}>
         {points}
       </div>
-      <TeamName name={name} logoUrl={logoUrl} wrap className="mt-3 justify-center font-display text-[17px] font-semibold leading-tight text-fg-muted sm:text-[22px]" />
+      <TeamName name={name} logoUrl={logoUrl} wrap className="mt-3 flex-col justify-center font-display text-[17px] font-semibold leading-tight text-fg-muted sm:flex-row sm:text-[22px]" />
     </div>
   );
 }

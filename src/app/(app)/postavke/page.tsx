@@ -168,6 +168,8 @@ function TokensSkeleton() {
           <div className="min-w-0 flex-1">
             <Text className="text-[15px] font-semibold" w={i ? "w-36" : "w-44"} />
             <Text className="text-[13px]" w="w-64" />
+            {/* Na mobitelu datumi prelaze u drugi red */}
+            <Text className="text-[13px] sm:hidden" w="w-24" />
           </div>
           <TextButtonSkeleton w="w-16" />
         </div>

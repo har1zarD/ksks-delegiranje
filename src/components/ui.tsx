@@ -86,6 +86,10 @@ export function Textarea({
 
 // ───────── Struktura stranice ─────────
 
+/** Bočni razmak stranice; položen telefon (viewport-fit=cover) ne gura sadržaj pod izrez ekrana */
+export const GUTTER =
+  "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:pl-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]";
+
 export function PageHeader({
   title,
   subtitle,
@@ -215,7 +219,7 @@ export function Segment({ href, active, children }: { href: string; active: bool
       href={href}
       aria-current={active ? "page" : undefined}
       className={cx(
-        "whitespace-nowrap rounded-md px-3.5 py-1.5 text-[14px] font-semibold transition-colors",
+        "whitespace-nowrap rounded-md px-3.5 py-2.5 text-[14px] font-semibold transition-colors sm:py-1.5",
         active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
       )}
     >

@@ -153,7 +153,8 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                   <div className="text-[13px] font-semibold text-fg-muted sm:w-32 sm:shrink-0">{positionName(position, crew.digital)}</div>
                   {current ? (
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
-                      <div className="min-w-0 flex-1">
+                      {/* Na mobitelu ime u svom redu, dugmad ispod */}
+                      <div className="min-w-0 flex-1 basis-full sm:basis-0">
                         <div className="truncate text-[17px] font-semibold">{current.profile!.full_name}</div>
                         <div className="mt-0.5">
                           {current.status === "accepted" ? (
@@ -334,8 +335,14 @@ function DelegationSkeleton() {
         <div className="min-w-0 flex-1">
           <Text className="text-[13px] font-semibold" w="w-56" />
           <div className="mt-1 font-display text-[26px] font-semibold leading-tight sm:text-[32px]">
-            <Text w="w-56" />
-            <Text w="w-48" />
+            <span className="flex min-w-0 items-center gap-2">
+              <Bone className="h-8 w-12 shrink-0" />
+              <Text w="w-56" />
+            </span>
+            <span className="mt-2 flex min-w-0 items-center gap-2">
+              <Bone className="h-8 w-12 shrink-0" />
+              <Text w="w-48" />
+            </span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[14px]">
             <Bone className="size-4 shrink-0 rounded-full" />
@@ -346,14 +353,16 @@ function DelegationSkeleton() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section>
-          <SectionTitleSkeleton w="w-28" action={<Text className="scoreboard text-[20px] font-semibold" w="w-10" />} />
+          <SectionTitle icon={<Users />} action={<Text className="scoreboard text-[20px] font-semibold" w="w-10" />}>
+            Delegiranje
+          </SectionTitle>
           <ul className={ROWS}>
             {times(5, (i) => (
               <li key={i} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
                 <Text className="text-[13px] font-semibold sm:w-32 sm:shrink-0" w="w-20" />
                 {i < 2 ? (
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 basis-full sm:basis-0">
                       <Text className="text-[17px] font-semibold" w={i ? "w-36" : "w-44"} />
                       <div className="mt-0.5">
                         <StatusSkeleton w="w-20" />
@@ -386,7 +395,7 @@ function DelegationSkeleton() {
           </Panel>
           <Panel className="py-4 sm:py-5">
             <div className="flex items-baseline justify-between gap-3">
-              <Text className="text-[13px] font-semibold" w="w-28" />
+              <span className="text-[13px] font-semibold text-fg-muted">Trošak utakmice</span>
               <Text className="scoreboard text-[22px] font-semibold leading-none" w="w-24" />
             </div>
             <ul className="mt-3 flex flex-col gap-2 border-t border-line pt-3 text-[14px]">

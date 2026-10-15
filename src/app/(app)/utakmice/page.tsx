@@ -5,7 +5,7 @@ import { ChevronRight, Phone, CalendarDays, CheckCircle2 } from "lucide-react";
 import { getCrews, getMyAssignments, type Crew } from "@/lib/data/official";
 import { positionName, POSITION_ORDER } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
-import { Bone, MatchRowsSkeleton, MatchLineSkeleton, SectionTitleSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
+import { Bone, MatchRowsSkeleton, MatchLineSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
 import { buttonClass, cx, Empty, PageHeader, SectionTitle, Status } from "@/components/ui";
 
 export const metadata = { title: "Moje utakmice — KSKS" };
@@ -118,11 +118,11 @@ function MyMatchesSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <section>
-        <SectionTitleSkeleton w="w-28" count />
+        <SectionTitle icon={<CalendarDays />}>Predstoje<CountSkeleton /></SectionTitle>
         <ul className="flex flex-col gap-3">
           {times(2, (i) => (
             <li key={i} className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
-              <div className="flex items-center py-4 sm:py-5">
+              <div className="flex items-center gap-3 py-4 sm:py-5">
                 <MatchLineSkeleton i={i} meta={<StatusSkeleton w="w-24" />} aside={<Bone className="size-5" />} />
               </div>
               <ul className="-mx-4 grid gap-px border-t border-line bg-line sm:-mx-6 sm:grid-cols-2">
@@ -132,6 +132,12 @@ function MyMatchesSkeleton() {
                       <Text className="text-[12px] font-semibold" w="w-20" />
                       <Text className="text-[15px] font-semibold" w={j % 2 ? "w-28" : "w-36"} />
                     </div>
+                    {/* "Ti" nema dugme za poziv */}
+                    {j !== 1 && (
+                      <span className="grid size-11 shrink-0 place-items-center">
+                        <Bone className="size-5" />
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -140,9 +146,18 @@ function MyMatchesSkeleton() {
         </ul>
       </section>
       <section>
-        <SectionTitleSkeleton w="w-28" count />
-        <MatchRowsSkeleton count={2} row="py-4 sm:py-5" score meta={<Text className="text-[13px]" w="w-24" />} />
+        <SectionTitle icon={<CheckCircle2 />}>Odsuđene<CountSkeleton /></SectionTitle>
+        <MatchRowsSkeleton count={2} row="py-4 sm:py-5" score meta={<Text w="w-24" />} />
       </section>
     </Skeleton>
+  );
+}
+
+/** Značka s brojem uz statičan naslov sekcije (broj stiže s podacima) */
+function CountSkeleton() {
+  return (
+    <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+      <Text w="w-2" />
+    </span>
   );
 }

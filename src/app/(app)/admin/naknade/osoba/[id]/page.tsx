@@ -27,7 +27,7 @@ const ROLE: Record<string, string> = { admin: "Savez", official: "Službeno lice
 export default function PersonPayPage(props: Props) {
   return (
     <>
-      <Link href="/admin/naknade" className="mb-4 inline-flex items-center gap-1 text-[15px] font-semibold text-fg-muted hover:text-fg">
+      <Link href="/admin/naknade" className="-mt-2.5 mb-1.5 inline-flex items-center gap-1 py-2.5 text-[15px] font-semibold text-fg-muted hover:text-fg">
         <ChevronLeft className="size-5" />
         Naknade
       </Link>

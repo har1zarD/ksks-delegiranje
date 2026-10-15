@@ -68,8 +68,8 @@ export function BiltenForm({
           <Field label="Gledalaca" name="spectators" type="number" inputMode="numeric" min={0} defaultValue={values?.spectators ?? ""} className="col-span-2 sm:col-span-1" />
           <TimeField label="Početak" name="started_at" defaultValue={hhmm(values?.started_at)} />
           <TimeField label="Kraj" name="ended_at" defaultValue={hhmm(values?.ended_at)} />
-          <Field label={<TeamName name={`Lične greške, ${homeName}`} logoUrl={homeLogoUrl} wrap />} name="home_fouls" type="number" inputMode="numeric" min={0} max={99} defaultValue={values?.home_fouls ?? ""} />
-          <Field label={<TeamName name={`Lične greške, ${awayName}`} logoUrl={awayLogoUrl} wrap />} name="away_fouls" type="number" inputMode="numeric" min={0} max={99} defaultValue={values?.away_fouls ?? ""} />
+          <Field label={<TeamName name={`Lične greške, ${homeName}`} logoUrl={homeLogoUrl} wrap />} name="home_fouls" type="number" inputMode="numeric" min={0} max={99} defaultValue={values?.home_fouls ?? ""} className="justify-end" />
+          <Field label={<TeamName name={`Lične greške, ${awayName}`} logoUrl={awayLogoUrl} wrap />} name="away_fouls" type="number" inputMode="numeric" min={0} max={99} defaultValue={values?.away_fouls ?? ""} className="justify-end" />
         </div>
       </fieldset>
 

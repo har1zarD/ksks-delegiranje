@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, Trophy, Users, CalendarDays } from "lucide-react";
 import { getCompetitionAdmin } from "@/lib/data/results";
-import { Bone, ButtonSkeleton, FieldSkeleton, SectionTitleSkeleton, Skeleton, StandingsSkeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
+import { Bone, ButtonSkeleton, FieldSkeleton, Skeleton, StandingsSkeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
 import { DateField, TimeField } from "@/components/date-picker";
 import { ButtonLink, Field, Panel, SectionTitle, Textarea } from "@/components/ui";
 import { StandingsTable } from "@/app/(app)/rezultati/standings-table";
@@ -19,7 +19,7 @@ export const metadata = { title: "Takmičenje — KSKS" };
 export default function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
-      <Link href="/admin/takmicenja" className="inline-flex items-center gap-1 text-[15px] font-semibold text-brand hover:opacity-75">
+      <Link href="/admin/takmicenja" className="-my-2.5 inline-flex items-center gap-1 py-2.5 text-[15px] font-semibold text-brand hover:opacity-75">
         <ChevronLeft className="size-4" /> Takmičenja
       </Link>
       <Suspense fallback={<CompetitionSkeleton />}>
@@ -231,7 +231,10 @@ function CompetitionSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <div className="pt-4">
-        <Text className="font-display text-[28px] font-semibold leading-tight sm:text-[32px]" w="w-64" />
+        <div className="flex items-center gap-4">
+          <Bone className="h-8 w-12 shrink-0" />
+          <Text className="min-w-0 font-display text-[28px] font-semibold leading-tight sm:text-[32px]" w="w-64" />
+        </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <ButtonSkeleton className="w-40" />
           <ButtonSkeleton className="w-28" />
@@ -248,16 +251,22 @@ function CompetitionSkeleton() {
           <Text className="text-[15px] font-semibold" w="w-64" />
           <Text className="mt-1 text-[13px]" w="w-40" />
         </div>
-        <Text className="col-span-2 text-[13px] sm:col-span-4" w="w-80" />
+        <p className="col-span-2 text-[13px] text-fg-muted sm:col-span-4">
+          Sastav ekipe i cijene naknada mijenjaš u <span className="font-semibold text-brand">Naknadama</span>.
+        </p>
       </Panel>
       <section>
-        <SectionTitleSkeleton w="w-20" count />
+        <SectionTitle icon={<Users />}>
+          Ekipe
+          <CountSkeleton />
+        </SectionTitle>
         <Panel className="overflow-hidden">
           <ul className="divide-y divide-line border-b border-line">
             {times(6, (i) => (
               <li key={i} className="flex items-center gap-3 py-2">
-                <span className="min-w-0 flex-1">
-                  <Text className="font-display text-[19px] font-semibold" w={i % 2 ? "w-36" : "w-48"} />
+                <span className="flex min-w-0 flex-1 items-center gap-2">
+                  <Bone className="h-8 w-12 shrink-0" />
+                  <Text className="min-w-0 font-display text-[19px] font-semibold" w={i % 2 ? "w-36" : "w-48"} />
                 </span>
                 <TextButtonSkeleton />
               </li>
@@ -273,18 +282,33 @@ function CompetitionSkeleton() {
         </Panel>
       </section>
       <section>
-        <SectionTitleSkeleton w="w-16" />
+        <SectionTitle icon={<Trophy />}>Tabela</SectionTitle>
         <StandingsSkeleton rows={6} />
       </section>
-      {times(2, (i) => (
-        <div key={i} className="flex items-center gap-4 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:px-5">
-          <span className="min-w-0 flex-1">
-            <Text className="font-display text-[22px] font-semibold" w="w-44" />
-            <Text className="text-[13px]" w="w-72" />
-          </span>
-          <Bone className="size-5 shrink-0" />
-        </div>
-      ))}
+      <CollapsedSkeleton title="Druga faza" hint="Liga 4 za prvaka ili liga za plasman, po trenutnoj tabeli" />
+      <CollapsedSkeleton title="Podaci takmičenja" hint="Naziv, početak, kotizacija, trajanje perioda" />
     </Skeleton>
+  );
+}
+
+/** Značka s brojem uz naslov sekcije */
+function CountSkeleton() {
+  return (
+    <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+      <Text w="w-2" />
+    </span>
+  );
+}
+
+/** Zatvoren Collapsible: pravi naslov i opis */
+function CollapsedSkeleton({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="flex items-center gap-4 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:px-5">
+      <span className="min-w-0 flex-1">
+        <span className="block font-display text-[22px] font-semibold tracking-tight">{title}</span>
+        <span className="block text-[13px] text-fg-muted">{hint}</span>
+      </span>
+      <ChevronDown className="size-5 shrink-0 text-fg-faint" />
+    </div>
   );
 }

@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { getMyUnavailability } from "@/lib/data/official";
 import { absenceParts, todayISO } from "@/lib/format";
 import { ConfirmButton } from "@/components/confirm-button";
-import { ButtonSkeleton, FieldSkeleton, SectionTitleSkeleton, Skeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
+import { ButtonSkeleton, FieldSkeleton, Skeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
 import { Empty, PageHeader, ROWS, SectionTitle } from "@/components/ui";
 import { AbsenceForm } from "./absence-form";
 import { deleteAbsence } from "./actions";
@@ -78,17 +78,22 @@ function AbsencesSkeleton() {
         <FieldSkeleton label="Razlog" hint className="col-span-2 lg:col-span-3" />
         <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-1">
           <span aria-hidden className="hidden text-[13px] font-medium lg:block">&nbsp;</span>
-          <ButtonSkeleton className="lg:w-36" />
+          <ButtonSkeleton />
         </div>
       </div>
       <section>
-        <SectionTitleSkeleton w="w-28" count />
+        <SectionTitle icon={<CalendarOff />}>
+          Najavljena
+          <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+            <Text w="w-2" />
+          </span>
+        </SectionTitle>
         <ul className={ROWS}>
           {times(2, (i) => (
             <li key={i} className="flex items-center gap-4 py-4">
               <div className="min-w-0 flex-1">
                 <Text className="scoreboard text-[20px] font-semibold leading-tight sm:text-[22px]" w={i ? "w-28" : "w-56"} />
-                <Text className="text-[14px]" w="w-32" />
+                <Text className="mt-0.5 text-[14px]" w="w-32" />
               </div>
               <TextButtonSkeleton />
             </li>

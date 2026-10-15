@@ -5,7 +5,7 @@ import { getMyAssignments } from "@/lib/data/official";
 import { positionName } from "@/lib/format";
 import { PageIntro } from "@/components/page-intro";
 import { MatchLine } from "@/components/match-line";
-import { ButtonSkeleton, MatchLineSkeleton, SectionTitleSkeleton, Skeleton, StatusSkeleton, times } from "@/components/skeleton";
+import { ButtonSkeleton, MatchLineSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
 import { Empty, ROWS, SectionTitle, Status } from "@/components/ui";
 import { RespondForm } from "./respond-form";
 
@@ -68,13 +68,18 @@ async function Nominations() {
 function NominationsSkeleton() {
   return (
     <Skeleton>
-      <SectionTitleSkeleton count />
+      <SectionTitle icon={<Clock />}>
+        Čeka tvoj odgovor
+        <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+          <Text w="w-2" />
+        </span>
+      </SectionTitle>
       <ul className={ROWS}>
         {times(3, (i) => (
           <li key={i} className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center">
             <MatchLineSkeleton i={i} meta={<StatusSkeleton w="w-24" />} />
-            <div className="grid grid-cols-2 gap-2 sm:flex">
-              <ButtonSkeleton className="sm:w-20" />
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0">
+              <ButtonSkeleton className="sm:w-18" />
               <ButtonSkeleton className="sm:w-32" />
             </div>
           </li>

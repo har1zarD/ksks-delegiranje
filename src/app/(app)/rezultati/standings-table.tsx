@@ -31,7 +31,7 @@ export function StandingsTable({ rows }: { rows: (StandingRow & { logoUrl: strin
                 <td className="py-3 pl-4 pr-2 sm:pl-5">
                   <span className={cx("scoreboard whitespace-nowrap text-[20px] font-semibold", rank === 1 ? "text-brand" : rank <= 3 ? "text-fg" : "text-fg-faint")}>{rank}</span>
                 </td>
-                <td className="max-w-0 truncate py-3 pr-2 font-display text-[18px] font-semibold sm:text-[20px]"><TeamName name={r.name} logoUrl={r.logoUrl} /></td>
+                <td className="max-w-0 truncate py-3 pr-2 font-display text-[18px] font-semibold max-sm:[&>span>[aria-hidden]]:w-8 sm:text-[20px]"><TeamName name={r.name} logoUrl={r.logoUrl} /></td>
                 <td className={cx(NUM, "text-fg-muted")}>{r.played}</td>
                 <td className={NUM}>{r.won}</td>
                 <td className={cx(NUM, "hidden text-fg-muted sm:table-cell")}>{r.lost}</td>

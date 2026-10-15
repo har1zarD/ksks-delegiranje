@@ -4,7 +4,7 @@ import { getCurrentCompetitions, getResults } from "@/lib/data/results";
 import { MATCH_STATUS_LABEL } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
 import { CompetitionLogo } from "@/components/competition-logo";
-import { MatchRowsSkeleton, SectionTitleSkeleton, SegmentsSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
+import { Bone, MatchRowsSkeleton, SectionTitleSkeleton, SegmentsSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
 import { Empty, PageHeader, Rows, SectionTitle, Segment, Segments, Status } from "@/components/ui";
 import { StandingsTable } from "./standings-table";
 
@@ -115,7 +115,7 @@ function ResultRow({ match: m }: { match: ResultMatch }) {
     <li>
       <details className="group">
         <summary className="-mx-4 cursor-pointer list-none px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 [&::-webkit-details-marker]:hidden">{line}</summary>
-        <div className="pb-4 sm:pl-[92px]">
+        <div className="pb-4 sm:pl-[72px]">
           <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
             {periods.map((p) => (
               <div key={p.period} className="flex min-w-[64px] flex-col items-center rounded-md bg-panel px-2.5 py-2">
@@ -140,7 +140,10 @@ function ResultsSkeleton() {
     <Skeleton className="flex flex-col gap-10">
       <SegmentsSkeleton widths={["w-16", "w-20", "w-14", "w-20", "w-16"]} />
       <section>
-        <Text className="font-display text-[22px] font-semibold leading-tight sm:text-[24px]" w="w-56" />
+        <div className="flex items-center gap-3 font-display text-[22px] font-semibold leading-tight sm:text-[24px]">
+          <Bone className="h-8 w-12 shrink-0" />
+          <Text w="w-56" />
+        </div>
         <div className="mt-5">
           <StandingsSkeleton />
         </div>
@@ -148,7 +151,7 @@ function ResultsSkeleton() {
       {times(2, (i) => (
         <section key={i}>
           <SectionTitleSkeleton w="w-20" count />
-          <MatchRowsSkeleton count={4} label={false} score />
+          <MatchRowsSkeleton count={4} score />
         </section>
       ))}
     </Skeleton>

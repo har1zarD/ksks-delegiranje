@@ -5,7 +5,7 @@ import { CalendarDays, ChevronLeft, MapPin, Phone, Printer, Users, ClipboardList
 import { getMatchPage } from "@/lib/data/report";
 import { listScoresheets } from "@/lib/scoresheets";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
-import { Bone, SectionTitleSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
+import { Bone, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
 import { Button, buttonClass, cx, ROWS, SectionTitle, Status } from "@/components/ui";
 import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
@@ -229,7 +229,10 @@ function MatchSkeleton() {
             {times(2, (i) => (
               <div key={i} className={cx("min-w-0", i > 0 && "order-last")}>
                 <Text className="scoreboard text-[clamp(52px,19vw,84px)] font-semibold leading-[0.9] sm:text-[112px] lg:text-[128px]" w="w-[1.2em]" />
-                <Text className="mt-2 font-display text-[17px] font-semibold leading-tight sm:text-[22px]" w="w-28" />
+                <span className="mt-3 flex flex-col items-center justify-center gap-2 font-display text-[17px] font-semibold leading-tight sm:flex-row sm:text-[22px]">
+                  <Bone className="h-8 w-12 shrink-0" />
+                  <Text w="w-24" />
+                </span>
               </div>
             ))}
             <div className="scoreboard pb-6 text-[40px] font-semibold text-fg-faint sm:text-[64px]">:</div>
@@ -237,8 +240,12 @@ function MatchSkeleton() {
           <div className="mt-4 rounded-lg border border-line bg-panel px-4 sm:px-5">
             <div className="grid grid-cols-[3.25rem_1fr_1fr_2.75rem] items-center gap-2 border-b border-line px-3 py-2 text-[12px] font-semibold text-fg-faint sm:grid-cols-[8rem_1fr_1fr_2.75rem] sm:px-4">
               <span>Period</span>
-              <Text className="text-center" w="w-20" />
-              <Text className="text-center" w="w-20" />
+              {times(2, (i) => (
+                <span key={i} className="flex min-w-0 flex-col items-center justify-center gap-2 sm:flex-row">
+                  <Bone className="h-8 w-12 shrink-0" />
+                  <Text w="w-16" />
+                </span>
+              ))}
               <span aria-hidden />
             </div>
             <ul className="divide-y divide-line">
@@ -267,7 +274,12 @@ function MatchSkeleton() {
       </section>
 
       <section>
-        <SectionTitleSkeleton w="w-36" count />
+        <SectionTitle icon={<Users />}>
+          Službena lica
+          <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
+            <Text w="w-2" />
+          </span>
+        </SectionTitle>
         <ul className={ROWS}>
           {times(4, (i) => (
             <li key={i} className="flex min-h-16 items-center gap-3 py-2.5">

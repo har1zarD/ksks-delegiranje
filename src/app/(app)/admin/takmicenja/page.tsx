@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ChevronRight, GitBranch, Layers } from "lucide-react";
 import { CompetitionLogo } from "@/components/competition-logo";
 import { getCompetitionsOverview } from "@/lib/data/results";
-import { Bone, ButtonSkeleton, FieldSkeleton, SectionTitleSkeleton, Skeleton, Text, times } from "@/components/skeleton";
+import { Bone, ButtonSkeleton, FieldSkeleton, Skeleton, Text, times } from "@/components/skeleton";
 import { Empty, Field, PageHeader, Panel, Rows, ROWS, SectionTitle } from "@/components/ui";
 import { SENIOR_CATEGORIES } from "@/lib/crew";
 import { ActionForm, Check } from "./action-form";
@@ -99,6 +99,7 @@ function CompetitionsSkeleton() {
       <ul className={ROWS}>
         {times(6, (i) => (
           <li key={i} className="flex items-center gap-4 py-4">
+            <Bone className="h-8 w-12 shrink-0" />
             <div className="min-w-0 flex-1">
               <Text className="font-display text-[22px] font-semibold leading-tight" w={i % 2 ? "w-44" : "w-56"} />
               <Text className="mt-1 text-[13px]" w="w-64" />
@@ -116,9 +117,11 @@ function CompetitionsSkeleton() {
         ))}
       </ul>
       <section>
-        <SectionTitleSkeleton w="w-24" />
+        <SectionTitle icon={<GitBranch />}>Sistem A</SectionTitle>
         <Panel className="py-4 sm:py-6">
-          <Text className="mb-5 text-[14px]" w="w-96" />
+          <p className="mb-5 max-w-prose text-[14px] text-fg-muted">
+            Novo takmičenje s prvih N ekipa iz izabranih liga, po tabeli nakon zadanog kola. Bodovi se ne prenose.
+          </p>
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldSkeleton label="Naziv" />
@@ -130,7 +133,10 @@ function CompetitionsSkeleton() {
               <span className="block pb-2 text-[13px] font-medium text-fg-muted">Iz takmičenja</span>
               <div className="grid gap-2 sm:grid-cols-2">
                 {times(4, (i) => (
-                  <span key={i} className="block h-12 rounded-md bg-panel-2" />
+                  <span key={i} className="flex min-h-12 items-center gap-3 rounded-md bg-panel-2 px-3.5 py-2.5">
+                    <Bone className="size-5 shrink-0" />
+                    <Text className="text-[15px] font-medium" w={i % 2 ? "w-28" : "w-36"} />
+                  </span>
                 ))}
               </div>
             </div>

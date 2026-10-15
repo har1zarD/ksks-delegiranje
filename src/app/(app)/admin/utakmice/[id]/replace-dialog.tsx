@@ -35,7 +35,7 @@ export function ReplaceButton({
         Zamijeni
       </button>
       {state.done && (
-        <p role="status" className="basis-full text-[13px] text-fg-muted sm:order-last">
+        <p role="status" className="order-last basis-full text-[13px] text-fg-muted">
           <Check className="mr-1 inline size-4 text-mint" />
           {state.done}
         </p>
@@ -55,7 +55,7 @@ export function ReplaceButton({
                 {position}: umjesto <span className="font-semibold text-fg">{current}</span>
               </p>
             </div>
-            <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2 rounded-md p-2 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
+            <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2.5 rounded-md p-2.5 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
               <X className="size-5" />
             </button>
           </div>

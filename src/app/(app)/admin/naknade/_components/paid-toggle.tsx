@@ -41,7 +41,7 @@ export function PaidToggle({ id, paid }: { id: string; paid: boolean }) {
           setError(r.error);
         })
       }
-      className="shrink-0 rounded-md transition-opacity hover:opacity-80 disabled:opacity-60"
+      className="relative shrink-0 rounded-md transition-opacity after:absolute after:-inset-2 hover:opacity-80 disabled:opacity-60"
     >
       <PaidBadge paid={optimistic} className={error ? "ring-1 ring-crest" : undefined} />
     </button>

@@ -47,7 +47,7 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
           <span className="block truncate text-[13px] text-fg-muted">{details}</span>
         </span>
       </button>
-      <div className="flex items-center gap-2 pl-14 sm:pl-0">
+      <div className="flex flex-wrap items-center gap-2 pl-13 sm:pl-0">
         {person.phone && (
           <a href={`tel:${person.phone}`} className={buttonClass("secondary", "h-10 px-3")} aria-label={`Pozovi ${person.full_name}`}>
             <Phone className="size-4" />
