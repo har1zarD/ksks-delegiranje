@@ -90,7 +90,7 @@ export type FeeRules = {
   fee_commissioner_km: number | null;
 };
 
-const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "timer_shot_clock"];
+const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "assistant_timer", "shot_clock", "timer_shot_clock"];
 const STATS: Position[] = ["statistician_1", "statistician_2", "statistician_3"];
 
 /** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica */
@@ -114,7 +114,7 @@ export type CostLine = { label: string; count: number; unit: number | null; tota
 /** Trošak utakmice po pravilima takmičenja i sastavu: sudije, sto, statistika, komesar */
 export function matchCost(rules: FeeRules | null, crew: Crew) {
   const refereeCount = crew.refereeCount;
-  const tableCount = [crew.scorer, crew.assistantScorer, crew.timer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
+  const tableCount = [crew.scorer, crew.assistantScorer, crew.timer, crew.assistantTimer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
   const line = (label: string, count: number, unit: number | null): CostLine => ({
     label,
     count,

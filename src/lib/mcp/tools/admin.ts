@@ -103,6 +103,7 @@ const matchInput = {
   zapisnik: z.boolean().optional(),
   pom_zapisnik: z.boolean().optional().describe("Pomoćni zapisničar"),
   glavno_vrijeme: z.boolean().optional(),
+  pom_semafor: z.boolean().optional().describe("Pomoćni semafor (ABA liga)"),
   sat_24: z.boolean().optional().describe("Operator 24/14"),
   glavno_vrijeme_24: z.boolean().optional().describe("Jedna osoba za glavno vrijeme i 24/14 (omladinska liga)"),
   statistika: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional().describe("Broj statističara (0–3)"),
@@ -110,7 +111,7 @@ const matchInput = {
   napomena: z.string().max(500).optional(),
 };
 
-type CrewInput = Partial<Record<"komesar" | "zapisnik" | "pom_zapisnik" | "glavno_vrijeme" | "sat_24" | "glavno_vrijeme_24" | "digitalni_zapisnik", boolean>> & {
+type CrewInput = Partial<Record<"komesar" | "zapisnik" | "pom_zapisnik" | "glavno_vrijeme" | "pom_semafor" | "sat_24" | "glavno_vrijeme_24" | "digitalni_zapisnik", boolean>> & {
   broj_sudija?: 0 | 2 | 3;
   statistika?: 0 | 1 | 2 | 3;
 };
@@ -124,6 +125,7 @@ function crewWith(base: Crew, a: CrewInput): Crew {
     scorer: a.zapisnik ?? base.scorer,
     assistantScorer: a.pom_zapisnik ?? base.assistantScorer,
     timer: a.glavno_vrijeme ?? base.timer,
+    assistantTimer: a.pom_semafor ?? base.assistantTimer,
     shotClock: a.sat_24 ?? base.shotClock,
     timerShotClock: a.glavno_vrijeme_24 ?? base.timerShotClock,
     stats: a.statistika ?? base.stats,
@@ -131,7 +133,7 @@ function crewWith(base: Crew, a: CrewInput): Crew {
   };
 }
 
-const CREW_KEYS = ["broj_sudija", "komesar", "zapisnik", "pom_zapisnik", "glavno_vrijeme", "sat_24", "glavno_vrijeme_24", "statistika", "digitalni_zapisnik"] as const;
+const CREW_KEYS = ["broj_sudija", "komesar", "zapisnik", "pom_zapisnik", "glavno_vrijeme", "pom_semafor", "sat_24", "glavno_vrijeme_24", "statistika", "digitalni_zapisnik"] as const;
 
 async function checkTeams(db: McpContext["db"], competitionId: string, home: string, away: string) {
   if (home === away) throw new ToolError("Domaćin i gost moraju biti različite ekipe.");
@@ -195,6 +197,7 @@ export const updateMatch = defineTool({
     zapisnik: matchInput.zapisnik,
     pom_zapisnik: matchInput.pom_zapisnik,
     glavno_vrijeme: matchInput.glavno_vrijeme,
+    pom_semafor: matchInput.pom_semafor,
     sat_24: matchInput.sat_24,
     glavno_vrijeme_24: matchInput.glavno_vrijeme_24,
     statistika: matchInput.statistika,

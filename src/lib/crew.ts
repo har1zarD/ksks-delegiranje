@@ -15,6 +15,8 @@ export type Crew = {
   scorer: boolean;
   assistantScorer: boolean;
   timer: boolean;
+  /** Pomoćni semafor (ABA liga): pomoćna sudija uz glavno vrijeme */
+  assistantTimer: boolean;
   shotClock: boolean;
   /** Jedna osoba za glavno vrijeme i 24/14 (omladinska liga) */
   timerShotClock: boolean;
@@ -26,11 +28,11 @@ export type Crew = {
 
 /** Kolone sastava na utakmici (za selecte) */
 export const CREW_COLUMNS =
-  "has_referees, referee_count, has_commissioner, has_scorer, has_assistant_scorer, has_timer, has_shot_clock, has_timer_shot_clock, stats_count, digital_scoresheet" as const;
+  "has_referees, referee_count, has_commissioner, has_scorer, has_assistant_scorer, has_timer, has_assistant_timer, has_shot_clock, has_timer_shot_clock, stats_count, digital_scoresheet" as const;
 
 /** Kolone podrazumijevanog sastava na takmičenju */
 export const CREW_DEFAULT_COLUMNS =
-  "referees_default, referee_count_default, commissioner_default, scorer_default, assistant_scorer_default, timer_default, shot_clock_default, timer_shot_clock_default, stats_default, digital_default, split_nominations" as const;
+  "referees_default, referee_count_default, commissioner_default, scorer_default, assistant_scorer_default, timer_default, assistant_timer_default, shot_clock_default, timer_shot_clock_default, stats_default, digital_default, split_nominations" as const;
 
 type CrewRow = {
   has_referees: boolean;
@@ -39,6 +41,7 @@ type CrewRow = {
   has_scorer: boolean;
   has_assistant_scorer: boolean;
   has_timer: boolean;
+  has_assistant_timer: boolean;
   has_shot_clock: boolean;
   has_timer_shot_clock: boolean;
   stats_count: number;
@@ -52,6 +55,7 @@ type CrewDefaultsRow = {
   scorer_default: boolean;
   assistant_scorer_default: boolean;
   timer_default: boolean;
+  assistant_timer_default: boolean;
   shot_clock_default: boolean;
   timer_shot_clock_default: boolean;
   stats_default: number;
@@ -68,6 +72,7 @@ export function crewOf(m: CrewRow): Crew {
     scorer: m.has_scorer,
     assistantScorer: m.has_assistant_scorer,
     timer: m.has_timer,
+    assistantTimer: m.has_assistant_timer,
     shotClock: m.has_shot_clock,
     timerShotClock: m.has_timer_shot_clock,
     stats: stats(m.stats_count),
@@ -83,6 +88,7 @@ export function crewDefaultsOf(c: CrewDefaultsRow): Crew {
     scorer: c.scorer_default,
     assistantScorer: c.assistant_scorer_default,
     timer: c.timer_default,
+    assistantTimer: c.assistant_timer_default,
     shotClock: c.shot_clock_default,
     timerShotClock: c.timer_shot_clock_default,
     stats: stats(c.stats_default),
@@ -99,6 +105,7 @@ export function crewToRow(c: Crew) {
     has_scorer: c.scorer,
     has_assistant_scorer: c.assistantScorer,
     has_timer: c.timer,
+    has_assistant_timer: c.assistantTimer,
     has_shot_clock: c.shotClock,
     has_timer_shot_clock: c.timerShotClock,
     stats_count: c.stats,
@@ -117,6 +124,7 @@ export function crewToDefaults(c: Crew) {
     scorer_default: c.scorer,
     assistant_scorer_default: c.assistantScorer,
     timer_default: c.timer,
+    assistant_timer_default: c.assistantTimer,
     shot_clock_default: c.shotClock,
     timer_shot_clock_default: c.timerShotClock,
     stats_default: c.stats,
@@ -135,6 +143,7 @@ export function crewFromForm(f: FormData): Crew {
     scorer: on("scorer"),
     assistantScorer: on("assistant_scorer"),
     timer: on("timer"),
+    assistantTimer: on("assistant_timer"),
     shotClock: on("shot_clock"),
     timerShotClock: on("timer_shot_clock"),
     stats: stats(Number(f.get("crew_stats") ?? 0) || 0),
@@ -164,6 +173,7 @@ export function crewPositions(c: Crew): Position[] {
   if (c.scorer) list.push("scorer");
   if (c.assistantScorer) list.push("assistant_scorer");
   if (c.timer) list.push("timer");
+  if (c.assistantTimer) list.push("assistant_timer");
   if (c.shotClock) list.push("shot_clock");
   if (c.timerShotClock) list.push("timer_shot_clock");
   if (c.stats >= 1) list.push("statistician_1");
@@ -186,7 +196,7 @@ export const TABLE_SKILLS: { key: TableSkill; label: string }[] = [
 /** Koju vještinu traži pozicija za stolom (null = nije pozicija za stolom); glavno vrijeme–24/14 traži obje, vidi skillsFor */
 export function skillFor(position: Position): TableSkill | null {
   if (position === "scorer" || position === "assistant_scorer") return "scorer";
-  if (position === "timer" || position === "timer_shot_clock") return "timer";
+  if (position === "timer" || position === "assistant_timer" || position === "timer_shot_clock") return "timer";
   if (position === "shot_clock") return "shot_clock";
   if (position.startsWith("statistician")) return "stats";
   return null;
@@ -207,6 +217,7 @@ export function crewSummary(c: Crew) {
     c.scorer && (c.digital ? "dig. zapisnik" : "zapisnik"),
     c.assistantScorer && "pom. zapisnik",
     c.timer && "glavno vrijeme",
+    c.assistantTimer && "pom. semafor",
     c.shotClock && "24/14",
     c.timerShotClock && "glavno vrijeme i 24/14",
     c.stats > 0 && `${c.stats} statistika`,
