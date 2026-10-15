@@ -12,7 +12,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 type Db = ReturnType<typeof createAdminClient>;
 
 const PUBLISH_SELECT = `
-  id, number, starts_at, round, kind, kind_label, digital_scoresheet,
+  id, number, starts_at, round, kind, kind_label, digital_scoresheet, clubs_notified_at,
   competition:competitions!matches_competition_id_fkey ( name, sort, category ),
   home:teams!matches_home_team_id_fkey ( name ),
   away:teams!matches_away_team_id_fkey ( name ),
@@ -89,8 +89,9 @@ export async function publishMatches(db: Db, matchIds: string[]): Promise<Publis
     .map((kind) => ({ kind, matches: matches.filter((m) => nominationKindOf(m) === kind).length, sent }))
     .filter((d) => d.matches > 0);
 
-  // 4: klubovima raspored omladinske lige (datum, vrijeme, dvorana, ekipe; bez službenih lica)
-  const forClubs = rows.filter((m) => m.kind === "league" && CLUB_CATEGORIES.has(m.competition?.category ?? "")).map((m) => m.id);
+  // 4: klubovima raspored omladinske lige (datum, vrijeme, dvorana, ekipe; bez službenih lica), ali SAMO pri prvom aktiviranju.
+  //    "Objavi izmjene" nakon zamjene sudije ne ide klubovima; promjena termina, dvorane ili statusa ide posebnom obavijesti (notifyMatchChanged).
+  const forClubs = rows.filter((m) => !m.clubs_notified_at && m.kind === "league" && CLUB_CATEGORIES.has(m.competition?.category ?? "")).map((m) => m.id);
   const clubs = forClubs.length ? await sendScheduleToClubs(db, forClubs) : null;
 
   return { matches: rows.length, revealed: pending.length, recipients: recipients.length, documents, emailed: documents.length > 0 && documents.every((d) => d.sent), clubs };
