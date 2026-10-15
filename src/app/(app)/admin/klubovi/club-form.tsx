@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Check, Mail, Phone } from "lucide-react";
-import { Button, Field } from "@/components/ui";
+import { Button, cx, Field } from "@/components/ui";
 import { saveClubContacts, type ClubState } from "./actions";
 
 /** Kontakti jednog kluba: email adrese (klub, trener…) i telefon; čuva se po klubu */
@@ -20,11 +20,10 @@ export function ClubForm({ clubId, email, phone }: { clubId: string; email: stri
         autoComplete="off"
         placeholder="klub@primjer.ba, trener@primjer.ba"
         defaultValue={email ?? ""}
-        hint="Više adresa odvoji zarezom. Na sve ide raspored utakmica."
         icon={<Mail />}
       />
       <Field label="Telefon" name="phone" type="tel" autoComplete="off" placeholder="061 000 000" defaultValue={phone ?? ""} icon={<Phone />} />
-      <Button type="submit" variant="secondary" disabled={pending} className="sm:mb-5">
+      <Button type="submit" variant="secondary" disabled={pending}>
         {pending ? "Čuvam…" : state.saved ? (
           <>
             <Check className="size-4 text-mint" /> Sačuvano
@@ -33,11 +32,10 @@ export function ClubForm({ clubId, email, phone }: { clubId: string; email: stri
           "Sačuvaj"
         )}
       </Button>
-      {state.error && (
-        <p role="alert" className="text-[13px] font-medium text-crest sm:col-span-3">
-          {state.error}
-        </p>
-      )}
+      {/* Uputa ispod cijelog reda, da polja i dugme ostanu u istoj liniji */}
+      <p className={cx("text-[13px] sm:col-span-3", state.error ? "font-medium text-crest" : "text-fg-muted")} role={state.error ? "alert" : undefined}>
+        {state.error ?? "Više adresa odvoji zarezom. Na sve ide raspored utakmica."}
+      </p>
     </form>
   );
 }
