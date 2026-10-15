@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense } from "react";
 import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList } from "lucide-react";
 import { getAdminMatches } from "@/lib/data/admin";
@@ -18,8 +19,14 @@ const DAYS_AHEAD = 14;
 export default function AdminHome() {
   return (
     <>
-      <PageIntro eyebrow="Centar za delegiranje" title="Pregled" subtitle={`Utakmice u narednih ${DAYS_AHEAD} dana i šta još treba delegirati.`}>
-        <ButtonLink href="/admin/utakmice/nova"><Plus className="size-4" aria-hidden="true" />Nova utakmica</ButtonLink>
+      <PageIntro
+        compact
+        eyebrow="Centar za delegiranje"
+        title="Pregled"
+        subtitle={`Raspored i delegiranje za narednih ${DAYS_AHEAD} dana.`}
+        illustration={<Image src="/illustrations/basketball.webp" alt="" width={22} height={22} />}
+      >
+        <ButtonLink href="/admin/utakmice/nova" className="gap-1.5 rounded-xl px-3 text-[13px] sm:text-[13px]"><Plus className="size-4" aria-hidden="true" />Nova utakmica</ButtonLink>
       </PageIntro>
       <Suspense fallback={<OverviewSkeleton />}>
         <Overview />
