@@ -5,10 +5,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // EMAIL_FROM = adresa pošiljaoca ako nije isti Gmail nalog.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 /**
- * PREKIDAČ: dok je true, nijedan email ne ide nikome (upisuje se u email_log kao preskočen).
- * Za slanje uživo promijeni u false. Uz to i EMAIL_ONLY_TO ograničava primaoce dok traje testiranje.
+ * PREKIDAČ: true = nijedan email ne ide nikome (upisuje se u email_log kao preskočen), za testiranje.
+ * Uz to EMAIL_ONLY_TO (ako je postavljen) ograničava primaoce na navedene adrese.
  */
-const EMAILS_OFF = true;
+const EMAILS_OFF = false;
 
 let transport: Transporter | null = null;
 
