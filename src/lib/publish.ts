@@ -108,7 +108,7 @@ export async function sendScheduleToClubs(db: Db, matchIds: string[]): Promise<S
     ),
   ];
   const sent = recipients.length
-    ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "schedule_clubs", ...scheduleEmail(rows.map(toNomination), siteUrl("/icons/icon-192.png")) })
+    ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "schedule_clubs", ...scheduleEmail(rows.map(toNomination), siteUrl("/brand/ksks-logo-512.png")) })
     : false;
   if (sent) {
     const { error } = await db.from("matches").update({ clubs_notified_at: new Date().toISOString() }).in("id", ids);

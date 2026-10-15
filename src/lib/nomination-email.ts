@@ -304,44 +304,76 @@ export function withdrawnEmail(
 
 /**
  * Raspored klubovima: datum, vrijeme, dvorana i ekipe, BEZ sudija, komesara i pomoćnih sudija.
+ * Poseban, pregledan dokument: grb u zaglavlju, po danima tabela s vremenom, utakmicom i dvoranom.
  * Ide svim klubovima (adrese klubova i trenera) kao skrivenim primaocima.
  */
 export function scheduleEmail(matches: NominationMatch[], logo: string) {
   const title = "Raspored utakmica";
-  const subject = `${title} ${dateRange(matches)}`;
+  const range = dateRange(matches);
+  const subject = `${title} ${range}`;
+  const count = `${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`;
+  const label = (m: NominationMatch) =>
+    [nominationKindOf(m) === "youth" ? `Utakmica ${pad(m.number)}` : null, m.competition?.name, m.round ? `${m.round}. kolo` : null, matchKindLabel(m.kind, m.kind_label) || null]
+      .filter(Boolean)
+      .join(" · ");
 
   const text = [
-    `${title.toUpperCase()} ${dateRange(matches)}`,
+    `${title.toUpperCase()} ${range}`,
     "Košarkaški savez Kantona Sarajevo",
     "",
     ...groups(matches).flatMap(([group, list]) => [
-      ...(group ? [group, ""] : []),
-      ...list.flatMap((m) => [textLine(m, true), textTeams(m), ""]),
+      group,
+      "",
+      ...list.flatMap((m) => [`${formatTime(m.starts_at)}  ${m.home?.name ?? "?"} – ${m.away?.name ?? "?"}`, `       ${label(m)}`, `       ${m.hall?.name ?? "dvorana nije određena"}`, ""]),
     ]),
-    "Molimo klubove da budu u dvorani najmanje 30 minuta prije početka.",
+    "Molimo klubove da budu u dvorani najmanje 30 minuta prije početka utakmice.",
     "",
     "Takmičarska komisija KSKS",
   ].join("\n");
 
-  const body = groups(matches)
+  const days = groups(matches)
     .map(
-      ([group, list]) => `<tr><td style="padding:0 0 4px">
-    ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
-    ${list.map((m) => matchCard(m, [], { showNumber: true, crewless: true })).join("")}
-  </td></tr>`,
+      ([group, list], gi) => `
+      <tr><td colspan="2" style="padding:${gi ? 18 : 14}px 16px 6px;font-size:12px;font-weight:700;letter-spacing:.07em;color:${C.muted};background:${C.head};border-top:${gi ? `1px solid ${C.line}` : "0"};border-bottom:1px solid ${C.line}">${esc(group)}</td></tr>
+      ${list
+        .map(
+          (m, i) => `
+      <tr>
+        <td valign="top" width="64" style="padding:13px 0 13px 16px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:17px;font-weight:700;color:${C.ink};white-space:nowrap;line-height:1.2">${esc(formatTime(m.starts_at))}</td>
+        <td valign="top" style="padding:13px 16px 13px 12px;border-top:${i ? `1px solid ${C.line}` : "0"}">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:${C.faint};text-transform:uppercase">${esc(label(m))}</div>
+          <div style="font-size:17px;font-weight:700;color:${C.ink};margin-top:3px;line-height:1.25">${esc(m.home?.name ?? "?")} <span style="color:${C.faint};font-weight:500">–</span> ${esc(m.away?.name ?? "?")}</div>
+          <div style="font-size:13px;color:${C.muted};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>
+        </td>
+      </tr>`,
+        )
+        .join("")}`,
     )
     .join("");
 
-  const html = documentHtml({
-    subject,
-    title,
-    subtitle: `${dateRange(matches)}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`,
-    body,
-    button: "",
-    link: "",
-    note: "Molimo klubove da budu u dvorani najmanje 30 minuta prije početka.",
-    logo,
-  });
+  const html = `<!doctype html><html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${C.bg}"><tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px">
+  <tr><td style="padding:0 4px 20px">
+    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+      <td valign="middle" style="padding-right:16px"><img src="${esc(logo)}" width="64" height="64" alt="KSKS" style="display:block;border:0;width:64px;height:64px"></td>
+      <td valign="middle">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:${C.muted};text-transform:uppercase">Košarkaški savez Kantona Sarajevo</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;color:${C.ink};line-height:1.15;margin-top:2px">${esc(title)}</div>
+        <div style="font-size:14px;color:${C.muted};margin-top:4px">${esc(range)}, ${esc(count)}</div>
+      </td>
+    </tr></table>
+  </td></tr>
+  <tr><td>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;background:${C.panel}">${days}
+    </table>
+  </td></tr>
+  <tr><td style="padding:18px 8px 0;font-size:13px;line-height:1.5;color:${C.muted};text-align:center">Molimo klubove da budu u dvorani najmanje 30 minuta prije početka utakmice.</td></tr>
+  <tr><td style="padding:22px 4px 0;font-size:12px;color:${C.faint};text-align:center">Takmičarska komisija KSKS · app.ksksarajevo.ba</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
 
   return { subject, text, html };
 }
