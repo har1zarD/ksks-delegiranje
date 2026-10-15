@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, FolderPlus } from "lucide-react";
 import { CompetitionLogo } from "@/components/competition-logo";
 import { Bone, Text } from "@/components/skeleton";
-import { getLicenseClubs } from "@/lib/data/licenses";
-import { Folder, FolderClubLogo, FolderGrid, FolderGridSkeleton } from "../_components/folder";
+import { Panel, SectionTitle } from "@/components/ui";
+import { getLicenseClubs, getLicenseFolderOptions } from "@/lib/data/licenses";
+import { Folder, FolderClubLogo, FolderFormSkeleton, FolderGrid, FolderGridSkeleton } from "../_components/folder";
+import { FolderForm } from "../_components/folder-form";
 
 export const metadata = { title: "Licence — KSKS" };
 
@@ -49,8 +51,20 @@ async function Clubs({ params }: { params: Promise<{ id: string }> }) {
           </li>
         ))}
       </FolderGrid>
+      <section className="mt-4">
+        <SectionTitle icon={<FolderPlus />}>Novi klub</SectionTitle>
+        <Panel className="py-4 sm:py-6">
+          <Suspense fallback={<FolderFormSkeleton competition={false} />}>
+            <NewClubFolder competitionId={c.id} />
+          </Suspense>
+        </Panel>
+      </section>
     </div>
   );
+}
+
+async function NewClubFolder({ competitionId }: { competitionId: string }) {
+  return <FolderForm options={await getLicenseFolderOptions()} competitionId={competitionId} />;
 }
 
 function ClubsSkeleton() {

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronLeft, Download, FileText, ShieldUser, Users } from "lucide-react";
+import { ChevronLeft, Download, FileText, ShieldUser, UserPlus, Users } from "lucide-react";
 import { Bone, ButtonSkeleton, SectionTitleSkeleton, Text } from "@/components/skeleton";
-import { buttonClass, SectionTitle } from "@/components/ui";
+import { buttonClass, Empty, Panel, SectionTitle } from "@/components/ui";
 import { getClubLicenses } from "@/lib/data/licenses";
 import { FolderClubLogo } from "../../_components/folder";
 import { LicenseCard, LicenseGrid, LicenseGridSkeleton } from "../../_components/license-card";
+import { LicenseForm } from "../../_components/license-form";
 
 export const metadata = { title: "Licence kluba — KSKS" };
 
@@ -43,25 +44,31 @@ async function Licenses({ params }: { params: Params }) {
               <p className="mt-1 text-[14px] text-fg-muted">{[competition.name, competition.season && `sezona ${competition.season}`].filter(Boolean).join(" · ")}</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <a href={pdf} target="_blank" rel="noopener" className={buttonClass("secondary")}>
-              <FileText className="size-4" aria-hidden="true" /> PDF pregled
-            </a>
-            <a href={`${pdf}?preuzmi`} download className={buttonClass()}>
-              <Download className="size-4" aria-hidden="true" /> Preuzmi PDF
-            </a>
-          </div>
+          {players.length + officials.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <a href={pdf} target="_blank" rel="noopener" className={buttonClass("secondary")}>
+                <FileText className="size-4" aria-hidden="true" /> PDF pregled
+              </a>
+              <a href={`${pdf}?preuzmi`} download className={buttonClass()}>
+                <Download className="size-4" aria-hidden="true" /> Preuzmi PDF
+              </a>
+            </div>
+          )}
         </header>
 
         <section>
           <SectionTitle icon={<Users />} count={players.length}>Igrači</SectionTitle>
-          <LicenseGrid>
-            {players.map((l) => (
-              <li key={l.id}>
-                <LicenseCard license={l} competition={competition} club={club} />
-              </li>
-            ))}
-          </LicenseGrid>
+          {players.length > 0 ? (
+            <LicenseGrid>
+              {players.map((l) => (
+                <li key={l.id}>
+                  <LicenseCard license={l} competition={competition} club={club} />
+                </li>
+              ))}
+            </LicenseGrid>
+          ) : (
+            <Empty icon={<Users />}>Folder je prazan. Dodaj prvog igrača ispod.</Empty>
+          )}
         </section>
 
         {officials.length > 0 && (
@@ -76,6 +83,13 @@ async function Licenses({ params }: { params: Params }) {
             </LicenseGrid>
           </section>
         )}
+
+        <section>
+          <SectionTitle icon={<UserPlus />}>Dodaj u folder</SectionTitle>
+          <Panel className="py-4 sm:py-6">
+            <LicenseForm competitionId={competition.id} clubId={club.id} />
+          </Panel>
+        </section>
       </div>
     </>
   );

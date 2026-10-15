@@ -55,6 +55,8 @@ const WRITES = {
   unavailability: [TAG.unavailability],
   match_reports: [TAG.reports],
   fee_payments: [TAG.payments],
+  licenses: [TAG.licenses],
+  license_folders: [TAG.licenses],
 } as const;
 
 type Table = keyof typeof WRITES;

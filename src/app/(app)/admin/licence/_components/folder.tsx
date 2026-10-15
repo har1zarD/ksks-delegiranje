@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Shield } from "lucide-react";
-import { Bone, Text, times } from "@/components/skeleton";
+import { Bone, ButtonSkeleton, FieldSkeleton, Text, times } from "@/components/skeleton";
 import { cx } from "@/components/ui";
 
 const TAB = "absolute left-0 top-0 z-10 h-[13px] w-24 rounded-t-lg border border-b-0 border-line bg-panel";
@@ -56,5 +56,18 @@ export function FolderGridSkeleton({ count = 3 }: { count?: number }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Kao FolderForm: takmičenje (ako nije zadano) i klub, dugme */
+export function FolderFormSkeleton({ competition = true }: { competition?: boolean }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        {competition && <FieldSkeleton label="Takmičenje" />}
+        <FieldSkeleton label="Klub" />
+      </div>
+      <ButtonSkeleton className="w-full sm:w-40" />
+    </div>
   );
 }

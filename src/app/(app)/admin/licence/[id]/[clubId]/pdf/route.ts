@@ -16,7 +16,7 @@ function slug(s: string) {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; clubId: string }> }) {
   const { id, clubId } = await params;
   const data = await getClubLicenses(id, clubId);
-  if (!data) return new Response("Nema licenci", { status: 404 });
+  if (!data || data.players.length + data.officials.length === 0) return new Response("Nema licenci", { status: 404 });
 
   const pdf = await licensesPdf(data);
   const name = `licence-${slug(data.club.shortName ?? data.club.name)}-${slug(data.competition.name)}.pdf`;

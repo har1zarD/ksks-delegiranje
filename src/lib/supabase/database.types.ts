@@ -195,6 +195,32 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"license_folders": {
+                  Row: {
+                    "club_id": string,"competition_id": string,"created_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "club_id": string,"competition_id": string,"created_at"?: string
+                  }
+                  Update: {
+                    "club_id"?: string,"competition_id"?: string,"created_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "license_folders_club_id_fkey"
+      columns: ["club_id"]
+isOneToOne: false
+      referencedRelation: "clubs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "license_folders_competition_id_fkey"
+      columns: ["competition_id"]
+isOneToOne: false
+      referencedRelation: "competitions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"licenses": {
                   Row: {
                     "birth_date": string | null,"birth_place": string | null,"club_id": string,"competition_id": string,"created_at": string,"first_name": string,"height_cm": number | null,"id": string,"kind": string,"last_name": string,"license_no": string | null,"photo_path": string | null,"position": string | null,"role": string | null,"sort": number
