@@ -20,12 +20,13 @@ import {
   Users,
   Wallet,
   type LucideIcon,
+  BarChart3,
 } from "lucide-react";
 import { Bone, Text } from "@/components/skeleton";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { cx, GUTTER } from "@/components/ui";
 
-export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences";
+export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences" | "stats";
 
 /** `primary` = ima mjesto u donjoj traci na mobitelu; ostale idu pod "Više" */
 export type NavItem = { href: string; label: string; icon: NavIcon; primary?: boolean };
@@ -40,6 +41,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   registrations: Receipt,
   nominations: Inbox,
   absences: CalendarOff,
+  stats: BarChart3,
 };
 
 /** Najduži link koji odgovara putu je aktivan (/admin ne smije biti aktivan na /admin/utakmice) */

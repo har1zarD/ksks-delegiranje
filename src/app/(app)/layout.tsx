@@ -21,6 +21,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/admin/ljudi", label: "Ljudi", icon: "people", primary: true },
     { href: "/admin/takmicenja", label: "Takmičenja", icon: "competitions" },
     { href: "/admin/naknade", label: "Naknade", icon: "fees" },
+    { href: "/admin/statistika", label: "Statistika", icon: "stats" },
     { href: "/admin/kotizacije", label: "Kotizacije", icon: "registrations" },
   ],
   official: PERSONAL,

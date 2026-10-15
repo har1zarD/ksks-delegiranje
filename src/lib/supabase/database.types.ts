@@ -5,7 +5,33 @@ export type Database = {
   
   "public": {
           Tables: {
-            "assignments": {
+            "assignment_declines": {
+                  Row: {
+                    "declined_at": string,"id": string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "declined_at"?: string,"id"?: string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason"?: string | null
+                  }
+                  Update: {
+                    "declined_at"?: string,"id"?: string,"match_id"?: string,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"reason"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assignment_declines_match_id_fkey"
+      columns: ["match_id"]
+isOneToOne: false
+      referencedRelation: "matches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assignment_declines_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"assignments": {
                   Row: {
                     "created_at": string,"created_by": string | null,"decline_reason": string | null,"id": string,"match_id": string,"notified_at": string | null,"paid_at": string | null,"paid_by": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]
                   }

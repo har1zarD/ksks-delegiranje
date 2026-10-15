@@ -28,7 +28,11 @@ export function CrewList({ match, crew, mine, bare }: { match: CrewMatch; crew: 
             <div className="min-w-0 flex-1">
               <div className="text-[12px] font-semibold text-fg-faint">{positionName(position, match.digital_scoresheet)}</div>
               {me ? (
-                <div className="truncate text-[15px] font-semibold text-brand">Ti</div>
+                <div className="flex items-center gap-2 text-[15px] font-semibold text-fg">
+                  <span className="truncate">{c?.name ?? "Ti"}</span>
+                  {/* Oznaka prijavljenog korisnika uz njegovo ime, uočljiva na prvi pogled */}
+                  <span className="shrink-0 rounded-md bg-brand-soft px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">Ti</span>
+                </div>
               ) : c ? (
                 <div className="flex items-center gap-2 text-[15px] font-semibold text-fg" title={ASSIGNMENT_STATUS_LABEL[c.status]}>
                   {/* Tačka stanja: zeleno prihvatio, žuto čeka odgovor */}
