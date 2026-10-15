@@ -50,6 +50,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Sve osim statičkih datoteka, slika, MCP/cron (vlastiti token) i javnih OAuth endpointa (.well-known, registracija, token)
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|icons/|brand/|api/mcp|api/cron|api/oauth|api/well-known|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|opengraph-image|twitter-image|icons/|brand/|api/mcp|api/cron|api/oauth|api/well-known|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
