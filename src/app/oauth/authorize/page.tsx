@@ -2,7 +2,8 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser, type Role } from "@/lib/auth";
-import { Button, Loading } from "@/components/ui";
+import { ButtonSkeleton, Skeleton, Text, times } from "@/components/skeleton";
+import { Button } from "@/components/ui";
 import { decide } from "./actions";
 import { backTo, checkAuthorizeRequest } from "./request";
 
@@ -23,7 +24,7 @@ export default function AuthorizePage({ searchParams }: { searchParams: SearchPa
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-[420px]">
         <Image src="/brand/ksks-logo.svg" alt="" width={56} height={56} priority className="mx-auto mb-5" />
-        <Suspense fallback={<Loading />}>
+        <Suspense fallback={<ConsentSkeleton />}>
           <Consent searchParams={searchParams} />
         </Suspense>
       </div>
@@ -85,5 +86,33 @@ async function Consent({ searchParams }: { searchParams: SearchParams }) {
         </Button>
       </form>
     </div>
+  );
+}
+
+/** Kao kartica za saglasnost: ko traži pristup, šta smije, Odbij / Dozvoli */
+function ConsentSkeleton() {
+  return (
+    <Skeleton className="rounded-lg border border-line bg-panel p-5 shadow-panel sm:p-6">
+      <Text className="text-center font-display text-[24px] font-semibold leading-tight" w="w-60" />
+      <Text className="mt-2 text-center text-[15px]" w="w-72" />
+      <Text className="text-center text-[15px]" w="w-40" />
+      <div className="mt-6 border-t border-line pt-5">
+        <p className="text-[13px] font-medium text-fg-muted">Moći će čitati i mijenjati</p>
+        <ul className="mt-2 flex flex-col gap-1.5 text-[15px]">
+          {times(3, (i) => (
+            <li key={i} className="flex gap-2.5">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-fg-faint" aria-hidden />
+              <Text w={i % 2 ? "w-48" : "w-60"} />
+            </li>
+          ))}
+        </ul>
+        <Text className="mt-4 text-[13px]" w="w-full" />
+        <Text className="text-[13px]" w="w-48" />
+      </div>
+      <div className="mt-6 grid grid-cols-2 gap-2">
+        <ButtonSkeleton />
+        <ButtonSkeleton />
+      </div>
+    </Skeleton>
   );
 }

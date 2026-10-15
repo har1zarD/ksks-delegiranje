@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getCurrentUser, type Role } from "@/lib/auth";
 import { logout } from "@/app/prijava/actions";
 import { InstallApp } from "@/components/install-app";
-import { AppNav, type NavItem } from "./nav";
+import { AppNav, AppNavSkeleton, type NavItem } from "./nav";
 
 const PERSONAL: NavItem[] = [
   { href: "/nominacije", label: "Nominacije", icon: "nominations" },
@@ -35,11 +35,11 @@ const ROLE_LABEL: Record<Role, string> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Suspense fallback={<div className="h-14 border-b border-line bg-panel sm:h-16" />}>
+      <Suspense fallback={<AppNavSkeleton />}>
         <UserNav />
       </Suspense>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 sm:px-6 sm:pt-10 md:pb-20">
-        <InstallApp dismissible className="mb-6 md:hidden" />
+        <InstallApp dismissible floating />
         {children}
       </main>
     </>
@@ -48,9 +48,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 async function UserNav() {
   const user = await getCurrentUser();
-  // Admin koji je i sudija / pomoćni sudija vidi i svoje nominacije (pod "Više" na mobitelu)
+  // Admin koji je i sudija / pomoćni sudija / komesar vidi i svoje nominacije (pod "Više" na mobitelu)
   const items =
-    user.role === "admin" && (user.isReferee || user.isTable)
+    user.role === "admin" && (user.isReferee || user.isTable || user.isCommissioner)
       ? [...NAV.admin, { href: "/nominacije", label: "Moje nominacije", icon: "nominations" as const }]
       : NAV[user.role];
   return <AppNav items={items} user={user.fullName} roleLabel={ROLE_LABEL[user.role]} logout={logout} />;

@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { ChevronDown, KeyRound } from "lucide-react";
+import { ChevronDown, KeyRound, Settings, Link2, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, isoToSarajevo } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmButton } from "@/components/confirm-button";
-import { cx, Loading, PageHeader, Panel, SectionTitle, Status } from "@/components/ui";
+import { Bone, Skeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
+import { cx, PageHeader, Panel, ROWS, SectionTitle, Status } from "@/components/ui";
 import { revokeToken } from "./actions";
 import { PasswordForm } from "./password-form";
 import { CopyBlock, TokenForm } from "./token-form";
@@ -14,10 +15,10 @@ export const metadata = { title: "Postavke — KSKS" };
 export default function SettingsPage() {
   return (
     <>
-      <PageHeader title="Postavke" />
+      <PageHeader icon={<Settings />} title="Postavke" subtitle="Pristup nalogu i povezivanje asistenata." />
       <div className="flex flex-col gap-12">
         <section>
-          <SectionTitle>Šifra</SectionTitle>
+          <SectionTitle icon={<KeyRound />}>Šifra</SectionTitle>
           <p className="-mt-1 mb-5 text-[15px] text-fg-muted">Promijeni početnu šifru koju si dobio od saveza.</p>
           <Panel className="py-4 sm:py-6">
             <PasswordForm />
@@ -25,7 +26,7 @@ export default function SettingsPage() {
         </section>
 
         <section>
-          <SectionTitle>Poveži Claude</SectionTitle>
+          <SectionTitle icon={<Link2 />}>Poveži Claude</SectionTitle>
           <p className="-mt-1 mb-5 max-w-prose text-[15px] text-fg-muted">
             Claude (ili drugi AI asistent) može u tvoje ime raditi u KSKS-u: čitati nominacije, odgovarati na njih, najavljivati
             odsustva, a savez i delegirati. Ima ista prava kao ti i pristup možeš opozvati bilo kad.
@@ -34,8 +35,8 @@ export default function SettingsPage() {
         </section>
 
         <section>
-          <SectionTitle>Povezani pristupi</SectionTitle>
-          <Suspense fallback={<Loading />}>
+          <SectionTitle icon={<ShieldCheck />}>Povezani pristupi</SectionTitle>
+          <Suspense fallback={<TokensSkeleton />}>
             <Tokens />
           </Suspense>
         </section>
@@ -80,7 +81,7 @@ async function Tokens() {
               ) : (
                 <form action={revokeToken}>
                   <input type="hidden" name="id" value={t.id} />
-                  <ConfirmButton message="Opozvati pristup? Asistent koji ga koristi više neće moći raditi u KSKS-u.">Opozovi</ConfirmButton>
+                  <ConfirmButton title="Opozvati pristup?" message="Asistent koji ga koristi više neće moći raditi u KSKS-u." confirmLabel="Opozovi">Opozovi</ConfirmButton>
                 </form>
               )}
             </li>
@@ -154,5 +155,23 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
       <span className="scoreboard w-5 shrink-0 text-right font-semibold text-fg-faint">{n}.</span>
       <span className="min-w-0">{children}</span>
     </li>
+  );
+}
+
+/** Kao lista povezanih pristupa */
+function TokensSkeleton() {
+  return (
+    <Skeleton className={ROWS}>
+      {times(2, (i) => (
+        <div key={i} className="flex items-center gap-3 py-4">
+          <Bone className="size-5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <Text className="text-[15px] font-semibold" w={i ? "w-36" : "w-44"} />
+            <Text className="text-[13px]" w="w-64" />
+          </div>
+          <TextButtonSkeleton w="w-16" />
+        </div>
+      ))}
+    </Skeleton>
   );
 }

@@ -1,9 +1,18 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { Download } from "lucide-react";
+import { Download, Wallet } from "lucide-react";
 import { getFeeRules, getPayroll, resolvePeriod } from "@/lib/data/finance";
 import { formatMonth, matchesLabel, parsePayrollFilter } from "@/lib/finance";
-import { buttonClass, Empty, Loading, PageHeader, SectionTitle } from "@/components/ui";
+import {
+  Bone,
+  PayrollFiltersSkeleton,
+  PayrollSummarySkeleton,
+  PeriodPickerSkeleton,
+  Skeleton,
+  Text,
+  times,
+} from "@/components/skeleton";
+import { buttonClass, Empty, PageHeader, ROWS, SectionTitle } from "@/components/ui";
 import { MarkAllPaid } from "./_components/paid-toggle";
 import { describeFilter, PayrollFilters, PayrollSummary, PayrollTable, PeriodPicker } from "./_components/payroll-view";
 import { RulesForm } from "./rules-form";
@@ -16,12 +25,12 @@ export default function FeesPage({ searchParams }: { searchParams: SearchParams 
   return (
     <>
       <PageHeader
-        title="Naknade"
+        icon={<Wallet />} title="Naknade"
         subtitle="Obračun i isplata po utakmici za sudije, zapisnički sto i komesare. Ispod su cijene po takmičenju."
       />
       <div className="flex flex-col gap-14">
         <section>
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<PayrollSkeleton />}>
             <Payroll searchParams={searchParams} />
           </Suspense>
         </section>
@@ -30,7 +39,7 @@ export default function FeesPage({ searchParams }: { searchParams: SearchParams 
           <p className="-mt-1 pb-5 text-[14px] text-fg-muted">
             Broj sudija i ljudi za stolom ovdje je podrazumijevani za nove utakmice; na svakoj utakmici se može promijeniti.
           </p>
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<RulesSkeleton />}>
             <Rules />
           </Suspense>
         </section>
@@ -78,7 +87,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
         }
       />
       {people.length === 0 ? (
-        <Empty>
+        <Empty icon={<Wallet />}>
           Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
         </Empty>
       ) : (
@@ -94,12 +103,55 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
 
 async function Rules() {
   const competitions = await getFeeRules();
-  if (competitions.length === 0) return <Empty>Nema takmičenja u tekućoj sezoni.</Empty>;
+  if (competitions.length === 0) return <Empty icon={<Wallet />}>Nema takmičenja u tekućoj sezoni.</Empty>;
   return (
     <div className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
       {competitions.map((c) => (
         <RulesForm key={c.id} competition={c} />
       ))}
     </div>
+  );
+}
+
+/** Kao obračun: mjesec, filteri, zbir i osobe (ime, broj utakmica, iznos, dug) */
+function PayrollSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-5">
+      <PeriodPickerSkeleton />
+      <PayrollFiltersSkeleton />
+      <PayrollSummarySkeleton />
+      <ul className={ROWS}>
+        {times(5, (i) => (
+          <li key={i} className="flex items-center gap-3 py-4">
+            <span className="min-w-0 flex-1">
+              <Text className="font-semibold" w={i % 2 ? "w-36" : "w-44"} />
+              <Text className="text-[13px]" w="w-24" />
+            </span>
+            <span className="flex flex-col items-end gap-0.5">
+              <Text className="scoreboard text-[20px] font-semibold" w="w-24" />
+              <Text className="text-[12px] font-semibold" w="w-28" />
+            </span>
+            <Bone className="size-5 shrink-0" />
+          </li>
+        ))}
+      </ul>
+    </Skeleton>
+  );
+}
+
+/** Kao lista takmičenja s cijenama (zatvoreni redovi) */
+function RulesSkeleton() {
+  return (
+    <Skeleton className={ROWS}>
+      {times(5, (i) => (
+        <div key={i} className="flex items-center gap-3 py-4">
+          <span className="min-w-0 flex-1">
+            <Text className="font-display text-[22px] font-semibold leading-tight" w={i % 2 ? "w-48" : "w-60"} />
+            <Text className="text-[13px]" w="w-72" />
+          </span>
+          <Bone className="size-5 shrink-0" />
+        </div>
+      ))}
+    </Skeleton>
   );
 }

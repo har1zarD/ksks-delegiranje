@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { DateField } from "@/components/date-picker";
 import { Button, Field } from "@/components/ui";
 import { addPayment, type PaymentState } from "./actions";
 
@@ -20,7 +21,7 @@ export function PaymentForm({ teamId, today, suggested }: { teamId: string; toda
           defaultValue={suggested > 0 ? String(suggested) : ""}
           className="[&_input]:font-display [&_input]:text-[20px] [&_input]:font-semibold [&_input]:tabular-nums"
         />
-        <Field label="Datum uplate" name="paid_on" type="date" required defaultValue={today} max={today} />
+        <DateField label="Datum uplate" name="paid_on" required defaultValue={today} max={today} />
         <Field label="Napomena" name="note" placeholder="Npr. izvod 12/26" className="col-span-2 sm:col-span-1" />
         <Button type="submit" disabled={pending} className="col-span-2 sm:col-span-1">
           {pending ? "Čuvam…" : "Dodaj uplatu"}

@@ -12,6 +12,7 @@ export type CurrentUser = {
   role: Role;
   isReferee: boolean;
   isTable: boolean;
+  isCommissioner: boolean;
 };
 
 // Data Access Layer: jedino mjesto koje čita sesiju. cache() = jedan upit po zahtjevu.
@@ -21,12 +22,14 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   const userId = claims?.claims.sub;
   if (!userId) redirect("/prijava");
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, is_referee, is_table, active")
+    .select("id, email, full_name, role, is_referee, is_table, is_commissioner, active")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
+  // Greška baze nije neaktivan nalog: ide na stranicu greške umjesto u petlju prijave
+  if (error) throw new Error(`Profil nije učitan: ${error.message}`);
   if (!profile || !profile.active) redirect("/prijava?greska=profil");
 
   return {
@@ -36,6 +39,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     role: profile.role,
     isReferee: profile.is_referee,
     isTable: profile.is_table,
+    isCommissioner: profile.is_commissioner,
   };
 });
 

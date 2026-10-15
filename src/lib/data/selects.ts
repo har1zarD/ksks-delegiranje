@@ -4,8 +4,8 @@ import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS } from "@/lib/crew";
 export const MATCH_SELECT = `
   id, number, kind, kind_label, starts_at, round, status, published_at, ${CREW_COLUMNS}, home_score, away_score,
   competition:competitions!matches_competition_id_fkey ( id, name, short_name ),
-  home:teams!matches_home_team_id_fkey ( id, name ),
-  away:teams!matches_away_team_id_fkey ( id, name ),
+  home:teams!matches_home_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
+  away:teams!matches_away_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
   hall:halls!matches_hall_id_fkey ( id, name )
 ` as const;
 
@@ -14,7 +14,7 @@ export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match
 export const CREW_SELECT = "match_id, position, status, profile:profiles!assignments_profile_id_fkey ( full_name, phone )" as const;
 
 export const COMPETITION_SELECT =
-  `id, name, short_name, category, ${CREW_DEFAULT_COLUMNS}, fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, season:seasons!competitions_season_id_fkey!inner ( is_current ), teams ( id, name, club:clubs!teams_club_id_fkey ( hall_id ) )` as const;
+  `id, name, short_name, category, ${CREW_DEFAULT_COLUMNS}, fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, season:seasons!competitions_season_id_fkey!inner ( is_current ), teams ( id, name, club:clubs!teams_club_id_fkey ( hall_id, logo_url ) )` as const;
 
 /** Pravila naknada takmičenja utakmice (za trošak); poseban alias da MATCH_SELECT ostane mali */
 const MATCH_FEE_RULES =

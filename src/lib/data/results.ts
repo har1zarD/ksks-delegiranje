@@ -18,8 +18,8 @@ const COMPETITION_LIST_SELECT =
 
 const RESULT_MATCH_SELECT = `
   id, number, kind, kind_label, round, starts_at, status, home_team_id, away_team_id, home_score, away_score,
-  home:teams!matches_home_team_id_fkey ( id, name ),
-  away:teams!matches_away_team_id_fkey ( id, name ),
+  home:teams!matches_home_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
+  away:teams!matches_away_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
   hall:halls!matches_hall_id_fkey ( name ),
   match_periods ( period, home_points, away_points )
 ` as const;
@@ -51,7 +51,7 @@ export async function getCurrentCompetitions() {
 async function loadStandings(
   db: Db,
   competition: { id: string; parent_id: string | null; carry_over_h2h: boolean },
-  teams: { id: string; name: string }[],
+  teams: { id: string; name: string; club: { logo_url: string | null } | null }[],
   matches: Parameters<typeof computeStandings>[1],
 ) {
   let carryOver: CarryOver | undefined;
@@ -62,7 +62,8 @@ async function loadStandings(
     ]);
     carryOver = { parentTeams: rows(pt), parentMatches: rows(pm) };
   }
-  return computeStandings(teams, matches, { carryOver });
+  const logos = new Map(teams.map((team) => [team.id, team.club?.logo_url ?? null]));
+  return computeStandings(teams, matches, { carryOver }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
 }
 
 async function getParent(db: Db, parentId: string | null) {
@@ -75,11 +76,11 @@ async function getParent(db: Db, parentId: string | null) {
 async function resultsData(competitionId: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.competitions, TAG.teams, TAG.matches, TAG.periods, TAG.halls);
+  cacheTag(TAG.competitions, TAG.teams, TAG.clubs, TAG.matches, TAG.periods, TAG.halls);
   const db = createAdminClient();
   const [comp, teams, matches] = await Promise.all([
-    db.from("competitions").select("id, name, short_name, parent_id, carry_over_h2h, format").eq("id", competitionId).maybeSingle(),
-    db.from("teams").select("id, name").eq("competition_id", competitionId),
+    db.from("competitions").select("id, name, short_name, category, parent_id, carry_over_h2h, format").eq("id", competitionId).maybeSingle(),
+    db.from("teams").select("id, name, club:clubs!teams_club_id_fkey ( logo_url )").eq("competition_id", competitionId),
     db.from("matches").select(RESULT_MATCH_SELECT).eq("competition_id", competitionId).order("starts_at"),
   ]);
   const competition = row(comp);
@@ -145,11 +146,11 @@ async function competitionAdminData(id: string) {
       .maybeSingle(),
     db
       .from("teams")
-      .select("id, name, sort, club:clubs!teams_club_id_fkey ( id, short_name )")
+      .select("id, name, sort, club:clubs!teams_club_id_fkey ( id, short_name, logo_url )")
       .eq("competition_id", id)
       .order("sort")
       .order("name"),
-    db.from("clubs").select("id, name, short_name").eq("active", true).order("name"),
+    db.from("clubs").select("id, name, short_name, logo_url").eq("active", true).order("name"),
     db.from("matches").select(STANDING_MATCH_SELECT).eq("competition_id", id),
     db.from("competitions").select("id, name").eq("parent_id", id).order("name"),
   ]);

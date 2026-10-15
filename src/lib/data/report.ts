@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nominationGroupOf } from "@/lib/crew";
 import { POSITION_ORDER } from "@/lib/format";
 import { row, rows } from "./db";
 import {
@@ -16,7 +17,7 @@ import {
 async function matchPageRows(matchId: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(tag.match(matchId), TAG.competitions, TAG.teams, TAG.halls, TAG.profiles);
+  cacheTag(tag.match(matchId), TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.profiles);
   const db = createAdminClient();
 
   const [match, crew, periods, report] = await Promise.all([
@@ -61,6 +62,8 @@ export async function getMatchPage(matchId: string) {
     isAdmin,
     /** Prihvaćeni komesar ove utakmice: unosi rezultat i piše bilten */
     isCommissioner: mine?.position === "commissioner" && mine.status === "accepted",
+    /** Prihvaćeni pomoćni sudija (sto, statistika): konačni rezultat i slika zapisnika */
+    isTable: mine?.status === "accepted" && nominationGroupOf(mine.position) === "table",
   };
 }
 

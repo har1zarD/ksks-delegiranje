@@ -1,5 +1,6 @@
 "use client";
 
+import { TeamName } from "@/components/team-name";
 import { useEffect, useState, useTransition } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -17,12 +18,16 @@ export function ScoreBoard({
   matchId,
   homeName,
   awayName,
+  homeLogoUrl,
+  awayLogoUrl,
   initial,
   canEdit,
 }: {
   matchId: string;
   homeName: string;
   awayName: string;
+  homeLogoUrl: string | null;
+  awayLogoUrl: string | null;
   initial: Period[];
   canEdit: boolean;
 }) {
@@ -96,17 +101,17 @@ export function ScoreBoard({
     <div>
       {/* Semafor */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-2 text-center sm:gap-6">
-        <TeamScore name={homeName} points={total.home} trails={homeTrails} />
+        <TeamScore logoUrl={homeLogoUrl} name={homeName} points={total.home} trails={homeTrails} />
         <div className="scoreboard whitespace-nowrap pb-6 text-[40px] font-semibold text-fg-faint sm:text-[64px]">:</div>
-        <TeamScore name={awayName} points={total.away} trails={awayTrails} />
+        <TeamScore logoUrl={awayLogoUrl} name={awayName} points={total.away} trails={awayTrails} />
       </div>
 
       {/* Po četvrtinama */}
       <div className="mt-4 rounded-lg border border-line bg-panel px-4 sm:px-5">
         <div className="grid grid-cols-[3.25rem_1fr_1fr_2.75rem] items-center gap-2 border-b border-line px-3 py-2 text-[12px] font-semibold text-fg-faint sm:grid-cols-[8rem_1fr_1fr_2.75rem] sm:px-4">
           <span>Period</span>
-          <span className="truncate text-center">{homeName}</span>
-          <span className="truncate text-center">{awayName}</span>
+          <TeamName name={homeName} logoUrl={homeLogoUrl} className="flex-col justify-center sm:flex-row" />
+          <TeamName name={awayName} logoUrl={awayLogoUrl} className="flex-col justify-center sm:flex-row" />
           <span aria-hidden />
         </div>
         <ul className="divide-y divide-line">
@@ -191,13 +196,25 @@ export function ScoreBoard({
   );
 }
 
-function TeamScore({ name, points, trails }: { name: string; points: number; trails: boolean }) {
+/** Samo konačni rezultat (bez četvrtina): upisao ga je pomoćni sudija ili savez; "–" dok nije upisan */
+export function FinalScore({ homeName, awayName, homeLogoUrl, awayLogoUrl, home, away }: { homeName: string; awayName: string; homeLogoUrl: string | null; awayLogoUrl: string | null; home: number | null; away: number | null }) {
+  const done = home != null && away != null;
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-2 text-center sm:gap-6">
+      <TeamScore logoUrl={homeLogoUrl} name={homeName} points={home ?? "–"} trails={done && home! < away!} />
+      <div className="scoreboard whitespace-nowrap pb-6 text-[40px] font-semibold text-fg-faint sm:text-[64px]">:</div>
+      <TeamScore logoUrl={awayLogoUrl} name={awayName} points={away ?? "–"} trails={done && away! < home!} />
+    </div>
+  );
+}
+
+function TeamScore({ name, logoUrl, points, trails }: { name: string; logoUrl: string | null; points: number | string; trails: boolean }) {
   return (
     <div className="min-w-0">
-      <div className={cx("scoreboard whitespace-nowrap text-[84px] font-semibold leading-[0.9] sm:text-[128px]", trails ? "text-fg-faint" : "text-fg")}>
+      <div className={cx("scoreboard whitespace-nowrap text-[clamp(52px,19vw,84px)] font-semibold leading-[0.9] sm:text-[112px] lg:text-[128px]", trails ? "text-fg-faint" : "text-fg")}>
         {points}
       </div>
-      <div className="mt-2 line-clamp-2 font-display text-[17px] font-semibold leading-tight text-fg-muted sm:text-[22px]">{name}</div>
+      <TeamName name={name} logoUrl={logoUrl} wrap className="mt-3 justify-center font-display text-[17px] font-semibold leading-tight text-fg-muted sm:text-[22px]" />
     </div>
   );
 }

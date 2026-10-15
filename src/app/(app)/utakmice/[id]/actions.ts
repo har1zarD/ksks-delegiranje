@@ -2,8 +2,10 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { matchRoleOf, SCORESHEET_BUCKET } from "@/lib/scoresheets";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { MatchStatus } from "@/lib/format";
+import { SCORE_UNDO_HOURS, scoreUndoUntil, type MatchStatus } from "@/lib/format";
 import type { TechnicalFoul } from "@/lib/data/report-selects";
 
 /** Admin ili prihvaćeni komesar utakmice. RLS i tako provjerava; ovo daje jasnu poruku. */
@@ -118,8 +120,9 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
   }
 
   const submit = intent === "submit";
-  // Komesar se upisuje kao autor; admin zadržava postojećeg komesara
-  const commissioner = isAdmin ? (existing?.commissioner ?? null) : user.id;
+  // Komesar se upisuje kao autor; admin zadržava postojećeg komesara, osim ako je sam komesar utakmice
+  const ownMatch = isAdmin && !existing?.commissioner && (await supabase.rpc("is_match_commissioner", { m: matchId })).data;
+  const commissioner = isAdmin ? (existing?.commissioner ?? (ownMatch ? user.id : null)) : user.id;
 
   const { error } = await supabase.from("match_reports").upsert({
     match_id: matchId,
@@ -139,4 +142,96 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
 
   invalidate({ table: "match_reports", match: matchId });
   return { saved: submit ? "submitted" : "draft" };
+}
+
+export type FinalScoreState = { error?: string; saved?: number };
+
+/**
+ * Konačni rezultat bez četvrtina: prihvaćeni pomoćni sudija (kad utakmica nema komesara) ili admin.
+ * Utakmica postaje završena. Piše servisni klijent jer matches mijenja samo admin (RLS); pristup je provjeren ovdje.
+ */
+export async function saveFinalScore(prev: FinalScoreState, formData: FormData): Promise<FinalScoreState> {
+  const matchId = String(formData.get("match_id") ?? "");
+  const user = await getCurrentUser();
+  const role = await matchRoleOf(user, matchId);
+  if (role !== "admin" && role !== "table") return { error: "Konačni rezultat upisuje pomoćni sudija za stolom." };
+
+  const db = createAdminClient();
+  const { data: match } = await db.from("matches").select("status, has_commissioner, score_entered_at").eq("id", matchId).maybeSingle();
+  if (!match) return { error: "Utakmica nije pronađena." };
+  if (match.status === "cancelled" || match.status === "postponed") return { error: "Utakmica je otkazana ili odgođena." };
+  const correction = match.status === "finished";
+  if (role === "table") {
+    if (match.has_commissioner) return { error: "Na ovoj utakmici rezultat unosi komesar." };
+    if (correction && !scoreUndoUntil(match.score_entered_at)) {
+      return { error: `Rok od ${SCORE_UNDO_HOURS} sata za ispravku je prošao. Za ispravku se javi savezu.` };
+    }
+  }
+
+  const home = String(formData.get("home") ?? "").trim();
+  const away = String(formData.get("away") ?? "").trim();
+  const h = points(home);
+  const a = points(away);
+  if (!home || !away || h === null || a === null) return { error: "Upiši poene obje ekipe (cijeli broj od 0 do 200)." };
+
+  // Rok stola teče od prvog upisa (ispravka ga ne produžava); rezultat koji upiše savez sto više ne mijenja
+  const enteredAt = role === "table" ? (correction ? match.score_entered_at : new Date().toISOString()) : null;
+  const { error } = await db
+    .from("matches")
+    .update({ home_score: h, away_score: a, status: "finished", score_entered_at: enteredAt })
+    .eq("id", matchId);
+  if (error) return { error: "Rezultat nije sačuvan. Pokušaj ponovo." };
+
+  invalidate({ table: "matches", match: matchId });
+  return { saved: (prev.saved ?? 0) + 1 };
+}
+
+export type UndoScoreState = { error?: string };
+
+/** Pomoćni sudija poništava pogrešno upisan konačni rezultat u roku: utakmica se vraća na zakazanu, bez rezultata */
+export async function undoFinalScore(_prev: UndoScoreState, formData: FormData): Promise<UndoScoreState> {
+  const matchId = String(formData.get("match_id") ?? "");
+  const user = await getCurrentUser();
+  if ((await matchRoleOf(user, matchId)) !== "table") return { error: "Rezultat poništava pomoćni sudija za stolom." };
+
+  const db = createAdminClient();
+  const { data: match } = await db.from("matches").select("status, has_commissioner, score_entered_at").eq("id", matchId).maybeSingle();
+  if (!match) return { error: "Utakmica nije pronađena." };
+  if (match.has_commissioner || match.status !== "finished") return { error: "Nema upisanog rezultata za poništavanje." };
+  if (!scoreUndoUntil(match.score_entered_at)) return { error: `Rok od ${SCORE_UNDO_HOURS} sata je prošao. Za ispravku se javi savezu.` };
+
+  const { error } = await db
+    .from("matches")
+    .update({ home_score: null, away_score: null, status: "scheduled", score_entered_at: null })
+    .eq("id", matchId)
+    .eq("status", "finished");
+  if (error) return { error: "Rezultat nije poništen. Pokušaj ponovo." };
+
+  invalidate({ table: "matches", match: matchId });
+  return {};
+}
+
+const SCORESHEET_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+/** Link za upload jedne slike zapisnika direktno u Storage (zaobilazi ograničenje veličine Server Action zahtjeva) */
+export async function createScoresheetUpload(matchId: string, contentType: string): Promise<{ error?: string; path?: string; token?: string }> {
+  const user = await getCurrentUser();
+  if (!(await matchRoleOf(user, matchId))) return { error: "Slike dodaje komesar, pomoćni sudija ili savez." };
+  const ext = SCORESHEET_EXT[contentType];
+  if (!ext) return { error: "Dozvoljene su slike (JPG, PNG, WEBP)." };
+
+  const path = `${matchId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+  const { data, error } = await createAdminClient().storage.from(SCORESHEET_BUCKET).createSignedUploadUrl(path);
+  if (error) return { error: "Upload nije pripremljen. Pokušaj ponovo." };
+  return { path: data.path, token: data.token };
+}
+
+export async function deleteScoresheet(matchId: string, path: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!(await matchRoleOf(user, matchId))) return { error: "Nemaš pravo brisati slike ove utakmice." };
+  // Samo slika ove utakmice (bez podfoldera i "..")
+  if (!new RegExp(`^${matchId}/[\\w.-]+$`).test(path) || path.includes("..")) return { error: "Nepoznata slika." };
+  const { error } = await createAdminClient().storage.from(SCORESHEET_BUCKET).remove([path]);
+  if (error) return { error: "Slika nije obrisana." };
+  return {};
 }

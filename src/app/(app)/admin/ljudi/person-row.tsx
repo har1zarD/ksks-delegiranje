@@ -15,7 +15,7 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
       (person.table_skills.length >= TABLE_SKILLS.length
         ? "Zapisnički sto"
         : `Sto: ${TABLE_SKILLS.filter((s) => person.table_skills.includes(s.key)).map((s) => s.label.toLowerCase()).join(", ")}`),
-    person.role === "commissioner" && "Komesar",
+    (person.role === "commissioner" || person.is_commissioner) && "Komesar",
     person.role === "admin" && "Admin",
     person.license && `Licenca ${person.license}`,
   ].filter(Boolean) as string[];
@@ -38,6 +38,7 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
         className="group/name flex min-w-0 flex-1 items-center gap-3 text-left"
         aria-label={`Uredi: ${person.full_name}`}
       >
+        <span aria-hidden="true" className={cx("grid size-10 shrink-0 place-items-center rounded-lg border border-line bg-panel-2 text-[12px] font-semibold text-fg-muted", !active && "opacity-50")}>{person.full_name.trim().split(/\s+/).filter(Boolean).map((part) => Array.from(part)[0]).slice(0, 2).join("")}</span>
         <span className="min-w-0 flex-1">
           <span className={cx("block truncate text-[16px] font-semibold leading-tight underline-offset-4 group-hover/name:underline", !active && "text-fg-faint")}>
             {person.full_name}

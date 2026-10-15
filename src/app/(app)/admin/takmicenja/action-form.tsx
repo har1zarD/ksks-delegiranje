@@ -5,7 +5,7 @@ import { Check as CheckIcon } from "lucide-react";
 import { Button, cx } from "@/components/ui";
 import type { FormState } from "./actions";
 
-export { Select } from "@/components/ui";
+export { Select } from "@/components/select";
 
 /** Forma za server akciju s porukom o grešci; resetuje se nakon uspjeha (state.ok) */
 export function ActionForm({
@@ -56,7 +56,7 @@ export function Check({ label, className, ...props }: React.ComponentProps<"inpu
   return (
     <label
       className={cx(
-        "flex min-h-12 cursor-pointer items-center gap-3 rounded-md bg-panel-2 px-3.5 py-2.5 text-[15px] font-medium",
+        "flex min-h-12 cursor-pointer items-center gap-3 rounded-md bg-panel-2 px-3.5 py-2.5 text-[15px] font-medium transition-colors hover:bg-brand-soft",
         className,
       )}
     >

@@ -2,23 +2,22 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { absenceRange } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export type AbsenceState = { error?: string; ok?: number };
 
 export async function addAbsence(prev: AbsenceState, formData: FormData): Promise<AbsenceState> {
   const user = await getCurrentUser();
-  const from = String(formData.get("from") ?? "");
-  const to = String(formData.get("to") ?? "") || from;
-  const reason = String(formData.get("reason") ?? "").trim() || null;
-
-  if (!from) return { error: "Izaberi datum." };
-  if (to < from) return { error: "Kraj ne može biti prije početka." };
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+  const range = absenceRange({ from: get("from"), fromTime: get("from_time"), to: get("to"), toTime: get("to_time") });
+  if ("error" in range) return { error: range.error };
+  const reason = get("reason") || null;
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("unavailability")
-    .insert({ profile_id: user.id, from_date: from, to_date: to, reason });
+    .insert({ profile_id: user.id, starts_at: range.startsAt, ends_at: range.endsAt, reason });
   if (error) return { error: "Odsustvo nije sačuvano. Pokušaj ponovo." };
 
   invalidate("unavailability");

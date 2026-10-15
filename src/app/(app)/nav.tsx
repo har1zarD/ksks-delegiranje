@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   CalendarOff,
+  ChevronDown,
   ChevronRight,
   Ellipsis,
   Inbox,
@@ -20,6 +21,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { Bone, Text } from "@/components/skeleton";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { cx } from "@/components/ui";
 
@@ -65,29 +67,35 @@ export function AppNav({
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 print:hidden">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:h-16 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="KSKS — početna">
-            <Image src="/brand/ksks-logo.svg" alt="" width={30} height={30} priority />
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:h-[72px] sm:px-6">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-75" aria-label="KSKS — početna">
+            <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
             <span className="flex min-w-0 flex-col leading-none">
-              <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS</span>
+              <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
               <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Delegiranje</span>
             </span>
           </Link>
 
-          <nav className="ml-6 hidden min-w-0 flex-1 md:block" aria-label="Glavni meni">
-            <ul className="flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+          <div className="ml-auto shrink-0">
+            <UserMenu user={user} roleLabel={roleLabel} logout={logout} />
+          </div>
+        </div>
+          <nav className="mx-auto hidden max-w-6xl px-6 pb-3 md:block" aria-label="Glavni meni">
+            <ul className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
               {items.map((item) => {
                 const isActive = item.href === active;
+                const Icon = ICONS[item.icon];
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
                       aria-current={isActive ? "page" : undefined}
                       className={cx(
-                        "flex h-9 items-center whitespace-nowrap rounded-md px-3 text-[14px] font-medium transition-colors",
+                        "flex h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors",
                         isActive ? "bg-brand-soft text-brand" : "text-fg-muted hover:bg-panel-2 hover:text-fg",
                       )}
                     >
+                      <Icon className="size-4 shrink-0" strokeWidth={isActive ? 2 : 1.7} aria-hidden="true" />
                       {item.label}
                     </Link>
                   </li>
@@ -96,10 +104,6 @@ export function AppNav({
             </ul>
           </nav>
 
-          <div className="ml-auto shrink-0">
-            <UserMenu user={user} roleLabel={roleLabel} logout={logout} />
-          </div>
-        </div>
       </header>
 
       <BottomNav items={items} active={active} logout={logout} />
@@ -143,7 +147,7 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
                 type="button"
                 onClick={() => setSheetAt(sheetOpen ? null : pathname)}
                 aria-expanded={sheetOpen}
-                className={cx(TAB, restActive || sheetOpen ? "text-brand" : "text-fg-faint")}
+                className={cx(TAB, restActive || sheetOpen ? "text-brand" : "text-fg-faint hover:text-fg-muted")}
               >
                 <Ellipsis className="size-[23px]" strokeWidth={restActive || sheetOpen ? 2.3 : 1.8} />
                 <span>Više</span>
@@ -204,7 +208,9 @@ const TAB = "flex h-[60px] w-full flex-col items-center justify-center gap-1 tex
 function TabLink({ href, label, Icon, active }: { href: string; label: string; Icon: LucideIcon; active: boolean }) {
   return (
     <Link href={href} aria-current={active ? "page" : undefined} className={cx(TAB, active ? "text-brand" : "text-fg-faint hover:text-fg-muted")}>
-      <Icon className="size-[23px]" strokeWidth={active ? 2.3 : 1.8} />
+      <span className={cx("grid h-7 w-12 place-items-center rounded-lg", active && "bg-brand-soft")}>
+        <Icon className="size-[21px]" strokeWidth={active ? 2 : 1.7} aria-hidden="true" />
+      </span>
       <span className="max-w-full truncate px-1">{label}</span>
     </Link>
   );
@@ -241,9 +247,14 @@ function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={`${user}, meni`}
-        className="flex h-10 items-center rounded-lg px-2.5 text-[14px] font-medium transition-colors hover:bg-panel-2"
+        className="flex h-11 items-center gap-2.5 rounded-lg px-2 text-[14px] font-medium transition-colors hover:bg-panel-2"
       >
-        <span className="max-w-[9rem] truncate sm:max-w-[12rem]">{user}</span>
+        <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-lg border border-line-strong bg-panel-2 text-[11px] font-semibold text-fg-muted">{user.trim().split(/\s+/).filter(Boolean).map((part) => Array.from(part)[0]).slice(0, 2).join("")}</span>
+        <span className="flex min-w-0 flex-col items-start">
+          <span className="max-w-[7rem] truncate sm:max-w-[12rem]">{user}</span>
+          <span className="text-[11px] font-normal text-fg-muted">{roleLabel}</span>
+        </span>
+        <ChevronDown className="hidden size-3.5 text-fg-muted sm:block" aria-hidden="true" />
       </button>
       {open && (
         <div className="absolute right-0 top-12 z-50 w-64 rounded-lg border border-line bg-panel p-1 shadow-pop">
@@ -270,5 +281,54 @@ function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string
         </div>
       )}
     </div>
+  );
+}
+
+/** Navigacija dok se čita korisnik: isti grb i naziv, stavke i ime kao kosti, donja traka na mobitelu */
+export function AppNavSkeleton() {
+  return (
+    <>
+      <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 print:hidden">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:h-[72px] sm:px-6">
+          <span className="flex min-w-0 items-center gap-2.5">
+            <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
+            <span className="flex min-w-0 flex-col leading-none">
+              <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
+              <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Delegiranje</span>
+            </span>
+          </span>
+          <div className="ml-auto flex h-11 shrink-0 items-center gap-2.5 px-2">
+            <Bone className="size-8 rounded-lg" />
+            <span>
+              <Text className="text-[14px]" w="w-24" />
+              <Text className="text-[11px]" w="w-16" />
+            </span>
+          </div>
+        </div>
+        <div className="mx-auto hidden max-w-6xl px-6 pb-3 md:block" aria-hidden>
+          <ul className="flex items-center gap-1 overflow-hidden">
+            {["w-14", "w-16", "w-16", "w-10", "w-20", "w-16", "w-16"].map((w, i) => (
+              <li key={i} className="flex h-10 shrink-0 items-center gap-2 px-3">
+                <Bone className="size-4" />
+                <Text className="text-[13px]" w={w} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </header>
+      <nav
+        aria-hidden
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-panel/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 md:hidden print:hidden"
+      >
+        <ul className="mx-auto grid max-w-md grid-cols-5">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <li key={i} className={TAB}>
+              <Bone className="size-[23px] rounded-md" />
+              <Text className="text-[11px]" w="w-10" />
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </>
   );
 }

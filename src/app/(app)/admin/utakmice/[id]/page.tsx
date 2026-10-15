@@ -1,7 +1,8 @@
+import { TeamName } from "@/components/team-name";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, FileText, MapPin, Printer } from "lucide-react";
+import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Users } from "lucide-react";
 import { getCompetitions, getDelegation, getHalls, type Candidate } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, NOMINATION_GROUP_LABEL, nominationGroupOf, skillFor, type NominationGroup } from "@/lib/crew";
@@ -9,13 +10,25 @@ import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, positionNam
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile, KindTag } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
-import { buttonClass, cx, Empty, Loading, Panel, SectionTitle, Status } from "@/components/ui";
+import {
+  Bone,
+  ButtonSkeleton,
+  DateTileSkeleton,
+  SectionTitleSkeleton,
+  Skeleton,
+  StatusSkeleton,
+  Text,
+  TextButtonSkeleton,
+  times,
+} from "@/components/skeleton";
+import { buttonClass, cx, Empty, Panel, ROWS, SectionTitle, Status } from "@/components/ui";
 import { deleteMatch } from "../actions";
-import { MatchForm } from "../match-form";
+import { MatchForm, MatchFormSkeleton } from "../match-form";
 import { unassign } from "./actions";
 import { AssignForm } from "./assign-form";
 import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
+import { listScoresheets } from "@/lib/scoresheets";
 
 export const metadata = { title: "Delegiranje — KSKS" };
 
@@ -26,7 +39,7 @@ export default function DelegationPage({ params }: { params: Promise<{ id: strin
         <ChevronLeft className="size-5" />
         Utakmice
       </Link>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<DelegationSkeleton />}>
         <Delegation params={params} />
       </Suspense>
     </>
@@ -49,7 +62,7 @@ const STATUS_TONE: Record<MatchStatus, "crest" | "mint" | "orange" | "muted"> = 
 
 async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const data = await getDelegation(id);
+  const [data, sheets] = await Promise.all([getDelegation(id), listScoresheets(id)]);
   if (!data) notFound();
   const { match, assignments, candidates } = data;
 
@@ -73,7 +86,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
     <div className="flex flex-col gap-8">
       {/* Zaglavlje: datum kao semafor + ekipe */}
       <header className="flex items-start gap-4 sm:gap-6">
-        <DateTile iso={match.starts_at} className="w-[72px] sm:w-[84px] [&>span:nth-child(2)]:text-[30px] sm:[&>span:nth-child(2)]:text-[46px]" />
+        <DateTile iso={match.starts_at} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-semibold text-fg-faint">
             <span>
@@ -88,8 +101,8 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
             )}
           </div>
           <h1 className="mt-1 font-display text-[26px] font-semibold leading-tight tracking-[-0.03em] sm:text-[32px]">
-            <span className="block">{match.home?.name}</span>
-            <span className="block text-fg-muted">{match.away?.name}</span>
+            <TeamName name={match.home?.name ?? "Domaćin"} logoUrl={match.home?.club?.logo_url} wrap />
+            <TeamName name={match.away?.name ?? "Gost"} logoUrl={match.away?.club?.logo_url} className="mt-2 text-fg-muted" wrap />
           </h1>
           <p className="mt-2 flex items-center gap-1.5 text-[14px] text-fg-muted">
             <MapPin className="size-4 shrink-0" />
@@ -116,6 +129,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
         {/* Pozicije */}
         <section>
           <SectionTitle
+            icon={<Users />}
             action={
               <span className={cx("scoreboard whitespace-nowrap text-[20px] font-semibold", filled === positions.length ? "text-mint" : "text-orange")}>
                 {filled}/{positions.length}
@@ -186,12 +200,12 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           </ul>
           </div>
           ))}
-          {positions.length === 0 && <Empty>Sastav ove utakmice nema nijednu poziciju. Promijeni ga u „Uredi utakmicu”.</Empty>}
+          {positions.length === 0 && <Empty icon={<Users />}>Sastav ove utakmice nema nijednu poziciju. Promijeni ga u „Uredi utakmicu”.</Empty>}
           </div>
         </section>
 
         {/* Bočno: slanje, trošak, bilten */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-36">
           <Panel className="flex flex-col gap-4 py-4 sm:py-5">
             <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} />
             <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
@@ -225,6 +239,25 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
             </ul>
           </Panel>
 
+          {sheets.length > 0 && (
+            <Panel className="py-4 sm:py-5">
+              <h2 className="flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted">
+                <FileImage className="size-4" aria-hidden="true" />
+                Zapisnik
+              </h2>
+              <ul className="mt-3 grid grid-cols-3 gap-2">
+                {sheets.map((s, i) => (
+                  <li key={s.path}>
+                    <a href={s.url} target="_blank" rel="noopener" className="block overflow-hidden rounded-md border border-line bg-panel-2 hover:opacity-90">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- privremeni potpisani link iz Storagea */}
+                      <img src={s.url} alt={`Zapisnik, slika ${i + 1}`} className="aspect-[3/4] w-full object-cover" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <Link href={`/utakmice/${match.id}`} className={buttonClass("secondary", "text-[14px]")}>
               <FileText className="size-4" />
@@ -245,13 +278,13 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           <ChevronDown className="size-5 text-fg-faint transition-transform group-open:rotate-180" />
         </summary>
         <div className="border-t border-line py-4 sm:py-6">
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<MatchFormSkeleton edit />}>
             <EditMatch match={match} />
           </Suspense>
           <form action={deleteMatch} className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
             <input type="hidden" name="id" value={match.id} />
             <p className="text-[13px] text-fg-muted">Brisanje uklanja utakmicu i sva delegiranja na njoj.</p>
-            <ConfirmButton variant="danger" message="Obrisati utakmicu i sva delegiranja na njoj?">
+            <ConfirmButton variant="danger" title="Obrisati utakmicu?" message="Brišu se i sva delegiranja na njoj." confirmLabel="Obriši">
               Obriši utakmicu
             </ConfirmButton>
           </form>
@@ -289,5 +322,96 @@ async function EditMatch({
         notes: match.notes,
       }}
     />
+  );
+}
+
+/** Kao delegiranje: zaglavlje utakmice, pozicije (dodijeljene i prazne), bočni paneli i "Uredi utakmicu" */
+function DelegationSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-8">
+      <div className="flex items-start gap-4 sm:gap-6">
+        <DateTileSkeleton size="lg" />
+        <div className="min-w-0 flex-1">
+          <Text className="text-[13px] font-semibold" w="w-56" />
+          <div className="mt-1 font-display text-[26px] font-semibold leading-tight sm:text-[32px]">
+            <Text w="w-56" />
+            <Text w="w-48" />
+          </div>
+          <div className="mt-2 flex items-center gap-1.5 text-[14px]">
+            <Bone className="size-4 shrink-0 rounded-full" />
+            <Text w="w-36" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section>
+          <SectionTitleSkeleton w="w-28" action={<Text className="scoreboard text-[20px] font-semibold" w="w-10" />} />
+          <ul className={ROWS}>
+            {times(5, (i) => (
+              <li key={i} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
+                <Text className="text-[13px] font-semibold sm:w-32 sm:shrink-0" w="w-20" />
+                {i < 2 ? (
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
+                    <div className="min-w-0 flex-1">
+                      <Text className="text-[17px] font-semibold" w={i ? "w-36" : "w-44"} />
+                      <div className="mt-0.5">
+                        <StatusSkeleton w="w-20" />
+                      </div>
+                    </div>
+                    <ButtonSkeleton className="h-10 w-24 sm:h-10" />
+                    <TextButtonSkeleton />
+                  </div>
+                ) : (
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="flex min-w-0 gap-2">
+                      <span aria-hidden className="block h-11 min-w-0 flex-1 rounded-lg border border-line-strong bg-panel sm:h-10" />
+                      <ButtonSkeleton className="w-24" />
+                    </div>
+                    <Text className="text-[12px]" w="w-28" />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <aside className="flex flex-col gap-4">
+          <Panel className="flex flex-col gap-4 py-4 sm:py-5">
+            <div className="flex flex-col gap-2">
+              <Text className="text-[13px]" w="w-56" />
+              <ButtonSkeleton className="w-full" />
+            </div>
+            <Text className="border-t border-line pt-3 text-[13px]" w="w-48" />
+          </Panel>
+          <Panel className="py-4 sm:py-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <Text className="text-[13px] font-semibold" w="w-28" />
+              <Text className="scoreboard text-[22px] font-semibold leading-none" w="w-24" />
+            </div>
+            <ul className="mt-3 flex flex-col gap-2 border-t border-line pt-3 text-[14px]">
+              {times(3, (i) => (
+                <li key={i} className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0">
+                    <Text className="font-semibold" w="w-24" />
+                    <Text className="text-[13px]" w="w-20" />
+                  </span>
+                  <Text className="scoreboard text-[18px] font-semibold" w="w-16" />
+                </li>
+              ))}
+            </ul>
+          </Panel>
+          <div className="grid grid-cols-2 gap-2">
+            <ButtonSkeleton />
+            <ButtonSkeleton />
+          </div>
+        </aside>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:px-6">
+        <span className="font-display text-[20px] font-semibold">Uredi utakmicu</span>
+        <Bone className="size-5" />
+      </div>
+    </Skeleton>
   );
 }

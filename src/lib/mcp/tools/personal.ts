@@ -2,8 +2,8 @@ import { z } from "zod";
 import { invalidateFromRoute } from "@/lib/cache";
 import { MY_ASSIGNMENT_SELECT } from "@/lib/data/selects";
 import { respondToNomination as respond } from "@/lib/delegation";
-import { ASSIGNMENT_STATUS_LABEL, todayISO } from "@/lib/format";
-import { dateSchema, defineTool, must, ToolError, uuidSchema } from "../define";
+import { absenceRange, ASSIGNMENT_STATUS_LABEL, formatAbsence } from "@/lib/format";
+import { dateSchema, defineTool, must, timeSchema, ToolError, uuidSchema } from "../define";
 import { matchView, positionView } from "../view";
 
 const DELEGATES = ["official", "commissioner"] as const;
@@ -89,46 +89,53 @@ export const myMatches = defineTool({
 
 export const listUnavailability = defineTool({
   name: "list_unavailability",
-  description: "Moja najavljena odsustva od danas nadalje.",
+  description: "Moja najavljena odsustva koja još traju ili tek dolaze (od – do, sarajevsko vrijeme).",
   roles: [...DELEGATES],
   input: {},
   readOnly: true,
   async run(_args, { db, profile }) {
-    return must(
+    const rows = must(
       await db
         .from("unavailability")
-        .select("id, from_date, to_date, reason")
+        .select("id, starts_at, ends_at, reason")
         .eq("profile_id", profile.id)
-        .gte("to_date", todayISO())
-        .order("from_date"),
+        .gt("ends_at", new Date().toISOString())
+        .order("starts_at"),
     );
+    return rows.map(absenceView);
   },
 });
 
 export const addUnavailability = defineTool({
   name: "add_unavailability",
-  description: "Najavi odsustvo (dane kad nisam dostupan za delegiranje).",
+  description:
+    "Najavi odsustvo (period kad nisam dostupan za delegiranje). Bez vremena = cijeli dan; savez me u tom periodu ne vidi pri delegiranju.",
   roles: [...DELEGATES],
   input: {
     od: dateSchema.describe("Prvi dan odsustva, YYYY-MM-DD"),
-    do: dateSchema.optional().describe("Zadnji dan (uključivo); izostavi za jedan dan"),
+    od_vrijeme: timeSchema.optional().describe("Od kad tog dana, HH:MM; izostavi za od početka dana"),
+    do: dateSchema.optional().describe("Zadnji dan, YYYY-MM-DD; izostavi za isti dan"),
+    do_vrijeme: timeSchema.optional().describe("Do kad tog dana, HH:MM; izostavi za do kraja dana"),
     razlog: z.string().max(200).optional(),
   },
-  async run({ od, do: to, razlog }, { db, profile }) {
-    const end = to ?? od;
-    if (end < od) throw new ToolError("Kraj ne može biti prije početka.");
-    if (end < todayISO()) throw new ToolError("Odsustvo mora biti u budućnosti.");
+  async run({ od, od_vrijeme, do: to, do_vrijeme, razlog }, { db, profile }) {
+    const range = absenceRange({ from: od, fromTime: od_vrijeme, to, toTime: do_vrijeme });
+    if ("error" in range) throw new ToolError(range.error);
     const created = must(
       await db
         .from("unavailability")
-        .insert({ profile_id: profile.id, from_date: od, to_date: end, reason: razlog?.trim() || null })
-        .select("id, from_date, to_date, reason")
+        .insert({ profile_id: profile.id, starts_at: range.startsAt, ends_at: range.endsAt, reason: razlog?.trim() || null })
+        .select("id, starts_at, ends_at, reason")
         .single(),
     );
     invalidateFromRoute("unavailability");
-    return created;
+    return absenceView(created);
   },
 });
+
+function absenceView(a: { id: string; starts_at: string; ends_at: string; reason: string | null }) {
+  return { id: a.id, period: formatAbsence(a.starts_at, a.ends_at), od: a.starts_at, do: a.ends_at, razlog: a.reason };
+}
 
 export const deleteUnavailability = defineTool({
   name: "delete_unavailability",

@@ -2,11 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, UserRound, Wallet } from "lucide-react";
 import { getPeople } from "@/lib/data/admin";
 import { getPersonPayroll, resolvePeriod } from "@/lib/data/finance";
 import { formatMonth, matchesLabel, parsePayrollFilter } from "@/lib/finance";
-import { Empty, Loading, PageHeader } from "@/components/ui";
+import {
+  PageHeaderSkeleton,
+  PayrollFiltersSkeleton,
+  PayrollItemsSkeleton,
+  PayrollSummarySkeleton,
+  PeriodPickerSkeleton,
+  Skeleton,
+} from "@/components/skeleton";
+import { CARD, cx, Empty, PageHeader } from "@/components/ui";
 import { MarkAllPaid } from "../../_components/paid-toggle";
 import { describeFilter, PayrollFilters, PayrollItems, PayrollSummary, PeriodPicker } from "../../_components/payroll-view";
 
@@ -23,7 +31,7 @@ export default function PersonPayPage(props: Props) {
         <ChevronLeft className="size-5" />
         Naknade
       </Link>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<PersonPaySkeleton />}>
         <PersonPay {...props} />
       </Suspense>
     </>
@@ -54,7 +62,7 @@ async function PersonPay({ params, searchParams }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={profile.full_name} subtitle={[roles.join(", "), profile.email, profile.phone].filter(Boolean).join(", ")} />
+      <PageHeader icon={<UserRound />} title={profile.full_name} subtitle={[roles.join(", "), profile.email, profile.phone].filter(Boolean).join(", ")} />
       <PeriodPicker period={period} basePath={base} params={current} />
       <PayrollSummary
         total={summary?.total ?? 0}
@@ -69,7 +77,7 @@ async function PersonPay({ params, searchParams }: Props) {
       />
       <PayrollFilters basePath={base} params={current} groups={false} />
       {!person ? (
-        <Empty>
+        <Empty icon={<Wallet />}>
           Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
         </Empty>
       ) : (
@@ -78,5 +86,20 @@ async function PersonPay({ params, searchParams }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Kao stranica osobe: ime i kontakt, mjesec, zbir, filteri i stavke */
+function PersonPaySkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-5">
+      <PageHeaderSkeleton icon />
+      <PeriodPickerSkeleton />
+      <PayrollSummarySkeleton />
+      <PayrollFiltersSkeleton groups={false} />
+      <div className={cx(CARD, "px-4 sm:px-6")}>
+        <PayrollItemsSkeleton />
+      </div>
+    </Skeleton>
   );
 }

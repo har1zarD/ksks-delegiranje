@@ -9,7 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { sendReplacementNomination } from "@/lib/publish";
 import { cancellationEmail, declinedEmail } from "@/lib/emails";
 import { CREW_COLUMNS, crewOf, crewPositions, skillFor } from "@/lib/crew";
-import type { MatchStatus, Position } from "@/lib/format";
+import { formatAbsence, matchWindow, type MatchStatus, type Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Db = SupabaseClient<Database>;
@@ -20,8 +20,12 @@ export class DelegationError extends Error {}
 /** Pomoćne sudije: zapisnik, pom. zapisnik, glavno vrijeme, 24/14, statistika */
 const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "statistician_3"];
 
-export function eligibleFor(position: Position, p: { role: string; is_referee: boolean; is_table: boolean; table_skills: string[] }) {
-  if (position === "commissioner") return p.role === "commissioner";
+export function eligibleFor(
+  position: Position,
+  p: { role: string; is_referee: boolean; is_table: boolean; is_commissioner: boolean; table_skills: string[] },
+) {
+  // Admin (savez) može biti i komesar ako je tako označen u Ljudima
+  if (position === "commissioner") return p.role === "commissioner" || (p.role === "admin" && p.is_commissioner);
   // Admin (savez) može i suditi/raditi za stolom ako je tako označen u Ljudima
   const official = p.role === "official" || p.role === "admin";
   // Pomoćne sudije: samo za pozicije koje osoba zna (zapisnik, glavno vrijeme, 24/14, statistika)
@@ -32,13 +36,26 @@ export function eligibleFor(position: Position, p: { role: string; is_referee: b
 /** Smije li osoba na poziciju ove utakmice (baca DelegationError s razlogom) */
 async function checkAssignable(db: Db, matchId: string, profileId: string, position: Position) {
   const [{ data: match }, { data: person }] = await Promise.all([
-    db.from("matches").select(CREW_COLUMNS).eq("id", matchId).maybeSingle(),
-    db.from("profiles").select("full_name, email, role, is_referee, is_table, table_skills, active").eq("id", profileId).maybeSingle(),
+    db.from("matches").select(`starts_at, ${CREW_COLUMNS}`).eq("id", matchId).maybeSingle(),
+    db.from("profiles").select("full_name, email, role, is_referee, is_table, is_commissioner, table_skills, active").eq("id", profileId).maybeSingle(),
   ]);
   if (!match) throw new DelegationError("Utakmica nije pronađena.");
   if (!person?.active) throw new DelegationError("Osoba nije pronađena ili nije aktivna.");
   if (!crewPositions(crewOf(match)).includes(position)) throw new DelegationError("Ova utakmica nema tu poziciju.");
   if (!eligibleFor(position, person)) throw new DelegationError("Osoba nije registrovana za ovu poziciju.");
+
+  // Najavljeno odsustvo koje se preklapa s utakmicom
+  const { start, end } = matchWindow(match.starts_at);
+  const { data: away } = await db
+    .from("unavailability")
+    .select("starts_at, ends_at")
+    .eq("profile_id", profileId)
+    .lt("starts_at", end)
+    .gt("ends_at", start)
+    .limit(1);
+  if (away?.length) {
+    throw new DelegationError(`${person.full_name} je najavio odsustvo u vrijeme utakmice (${formatAbsence(away[0].starts_at, away[0].ends_at)}).`);
+  }
   return person;
 }
 

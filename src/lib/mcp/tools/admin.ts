@@ -7,6 +7,8 @@ import { publishMatches } from "@/lib/publish";
 import {
   addDays,
   addMonths,
+  formatAbsence,
+  matchWindow,
   POSITION_LABEL,
   POSITION_ORDER,
   sarajevoToISO,
@@ -240,11 +242,11 @@ export const listPeople = defineTool({
   },
   readOnly: true,
   async run({ uloga, samo_aktivni = true }, { db }) {
-    let q = db.from("profiles").select("id, full_name, email, phone, role, is_referee, is_table, table_skills, license, active");
+    let q = db.from("profiles").select("id, full_name, email, phone, role, is_referee, is_table, is_commissioner, table_skills, license, active");
     if (samo_aktivni) q = q.eq("active", true);
     if (uloga === "sudija") q = q.eq("role", "official").eq("is_referee", true);
     if (uloga === "sto") q = q.eq("role", "official").eq("is_table", true);
-    if (uloga === "komesar") q = q.eq("role", "commissioner");
+    if (uloga === "komesar") q = q.or("role.eq.commissioner,and(role.eq.admin,is_commissioner.eq.true)");
     if (uloga === "admin") q = q.eq("role", "admin");
     return must(await q.order("full_name")).map((p) => ({
       id: p.id,
@@ -255,6 +257,7 @@ export const listPeople = defineTool({
       sudija: p.is_referee,
       sto: p.is_table,
       sto_zna: p.is_table ? p.table_skills : [],
+      komesar: p.role === "commissioner" || (p.role === "admin" && p.is_commissioner),
       licenca: p.license,
       aktivan: p.active,
     }));
@@ -264,7 +267,7 @@ export const listPeople = defineTool({
 export const whoIsFree = defineTool({
   name: "who_is_free",
   description:
-    "Ko je slobodan na dan: za svaku osobu (opcionalno samo one koje mogu na poziciju) najavljeno odsustvo, druge utakmice istog dana i broj utakmica u mjesecu. Slobodni prvi, najmanje opterećeni prvi.",
+    "Ko je slobodan na dan: za svaku osobu (opcionalno samo one koje mogu na poziciju) najavljeno odsustvo, druge utakmice istog dana i broj utakmica u mjesecu. Slobodni prvi, najmanje opterećeni prvi. Sa utakmica_id odsustvo se gleda za vrijeme te utakmice (početak + 2 sata), inače za cijeli dan; odsutnu osobu assign odbija.",
   roles: [...ADMIN],
   input: {
     datum: dateSchema,
@@ -274,6 +277,9 @@ export const whoIsFree = defineTool({
   readOnly: true,
   async run({ datum, pozicija, utakmica_id }, { db }) {
     const day = dayRange(datum);
+    // Odsustvo: u vrijeme utakmice ako je zadana, inače bilo kad tog dana
+    const match = utakmica_id ? must(await db.from("matches").select("starts_at").eq("id", utakmica_id).maybeSingle()) : null;
+    const window = match ? matchWindow(match.starts_at) : day;
     const month = {
       start: sarajevoToISO(`${datum.slice(0, 7)}-01`, "00:00"),
       end: sarajevoToISO(addMonths(`${datum.slice(0, 7)}-01`, 1), "00:00"),
@@ -287,8 +293,8 @@ export const whoIsFree = defineTool({
     if (utakmica_id) sameDayQ = sameDayQ.neq("match_id", utakmica_id);
 
     const [people, absences, sameDay, monthly] = await Promise.all([
-      db.from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).or("role.neq.admin,is_referee.eq.true,is_table.eq.true").order("full_name"),
-      db.from("unavailability").select("profile_id, reason").lte("from_date", datum).gte("to_date", datum),
+      db.from("profiles").select("id, full_name, role, is_referee, is_table, is_commissioner, table_skills").eq("active", true).or("role.neq.admin,is_referee.eq.true,is_table.eq.true,is_commissioner.eq.true").order("full_name"),
+      db.from("unavailability").select("profile_id, reason, starts_at, ends_at").lt("starts_at", window.end).gt("ends_at", window.start),
       sameDayQ,
       db
         .from("assignments")
@@ -307,7 +313,7 @@ export const whoIsFree = defineTool({
           id: p.id,
           ime: p.full_name,
           slobodan: !absence && busy.length === 0,
-          odsustvo: absence ? (absence.reason ?? "da") : null,
+          odsustvo: absence ? [formatAbsence(absence.starts_at, absence.ends_at), absence.reason].filter(Boolean).join(", ") : null,
           utakmice_istog_dana: busy.map((a) => matchTime(a.match.starts_at)),
           utakmica_u_mjesecu: must(monthly).filter((a) => a.profile_id === p.id).length,
         };

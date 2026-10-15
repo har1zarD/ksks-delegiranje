@@ -65,7 +65,7 @@ export function ThemeSwitch({ className }: { className?: string }) {
             onClick={() => apply(value)}
             className={cx(
               "grid h-8 place-items-center rounded-md transition-colors",
-              active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-faint hover:text-fg",
+              active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-faint hover:bg-panel-3/60 hover:text-fg",
             )}
           >
             <Icon className="size-4" strokeWidth={active ? 2.2 : 1.8} />

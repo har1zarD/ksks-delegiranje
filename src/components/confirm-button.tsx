@@ -1,15 +1,17 @@
 "use client";
 
+import { confirm, type ConfirmOptions } from "@/components/confirm";
 import { buttonClass } from "@/components/ui";
 
-/** Submit dugme za nepovratne radnje: traži potvrdu prije slanja forme */
+/** Submit dugme za nepovratne radnje: traži potvrdu u KSKS prozoru prije slanja forme */
 export function ConfirmButton({
+  title,
   message,
+  confirmLabel,
   children,
   variant = "destructive",
   className,
-}: {
-  message: string;
+}: Omit<ConfirmOptions, "tone"> & {
   children: React.ReactNode;
   variant?: "destructive" | "danger";
   className?: string;
@@ -18,7 +20,9 @@ export function ConfirmButton({
     <button
       type="submit"
       onClick={(e) => {
-        if (!window.confirm(message)) e.preventDefault();
+        e.preventDefault();
+        const button = e.currentTarget;
+        void confirm({ title, message, confirmLabel, tone: "danger" }).then((ok) => ok && button.form?.requestSubmit(button));
       }}
       className={buttonClass(variant, className)}
     >

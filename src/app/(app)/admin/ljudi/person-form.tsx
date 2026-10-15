@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Button, cx, Field, Select } from "@/components/ui";
+import { Select } from "@/components/select";
+import { Button, cx, Field } from "@/components/ui";
 import type { Role } from "@/lib/auth";
 import { TABLE_SKILLS } from "@/lib/crew";
 import { addPerson, updatePerson, type PersonState } from "./actions";
@@ -15,6 +16,7 @@ export type PersonValues = {
   role: Role;
   is_referee: boolean;
   is_table: boolean;
+  is_commissioner: boolean;
   table_skills: string[];
 };
 
@@ -65,6 +67,14 @@ export function PersonForm({ person, onDone }: { person?: PersonValues; onDone?:
           <div className="flex gap-2">
             <Check name="is_referee" label="Sudija" defaultChecked={person?.is_referee ?? true} />
             <Check name="is_table" label="Zapisnički sto" defaultChecked={person?.is_table} onChange={setTable} />
+          </div>
+        </fieldset>
+      )}
+      {role === "admin" && (
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="pb-1.5 text-[13px] font-medium text-fg-muted">Šta još radi</legend>
+          <div className="flex gap-2">
+            <Check name="is_commissioner" label="Komesar" defaultChecked={person?.is_commissioner} />
           </div>
         </fieldset>
       )}
@@ -120,7 +130,7 @@ function Check({
   return (
     <label
       className={cx(
-        "flex h-12 flex-1 cursor-pointer items-center gap-2.5 rounded-md bg-panel-2 px-3.5 text-[15px] font-semibold sm:h-11",
+        "flex h-12 flex-1 cursor-pointer items-center gap-2.5 rounded-md bg-panel-2 px-3.5 text-[15px] font-semibold transition-colors hover:bg-brand-soft sm:h-11",
         "has-[:checked]:ring-2 has-[:checked]:ring-brand",
       )}
     >

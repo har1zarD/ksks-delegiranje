@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
-import { todayISO } from "@/lib/format";
+import { sarajevoToISO, todayISO } from "@/lib/format";
 import { rows } from "./db";
 import { CREW_SELECT, MY_ASSIGNMENT_SELECT } from "./selects";
 
@@ -14,7 +14,7 @@ import { CREW_SELECT, MY_ASSIGNMENT_SELECT } from "./selects";
 async function myAssignmentRows(profileId: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.halls);
+  cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls);
   return rows(
     await createAdminClient()
       .from("assignments")
@@ -49,10 +49,10 @@ async function unavailabilityRows(profileId: string, today: string) {
   return rows(
     await createAdminClient()
       .from("unavailability")
-      .select("id, from_date, to_date, reason")
+      .select("id, starts_at, ends_at, reason")
       .eq("profile_id", profileId)
-      .gte("to_date", today)
-      .order("from_date"),
+      .gt("ends_at", sarajevoToISO(today, "00:00"))
+      .order("starts_at"),
   );
 }
 

@@ -1,10 +1,12 @@
+import { TeamName } from "@/components/team-name";
 import { Suspense } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Receipt, CheckCircle2, Clock, CircleAlert, Users } from "lucide-react";
 import { getFeeOverview } from "@/lib/data/finance";
 import { FEE_STATE_LABEL, formatAmount, formatKM, round2, type FeeState } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { ConfirmButton } from "@/components/confirm-button";
-import { Empty, Loading, PageHeader, Rows, SectionTitle, Stat, Status } from "@/components/ui";
+import { Bone, SectionTitleSkeleton, Skeleton, StatSkeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
+import { Empty, PageHeader, Rows, ROWS, SectionTitle, Stat, Status } from "@/components/ui";
 import { deletePayment } from "./actions";
 import { PaymentForm } from "./payment-form";
 
@@ -21,8 +23,8 @@ const STATE_TONE: Record<FeeState, "mint" | "orange" | "gold" | "muted"> = {
 export default function FeesPage() {
   return (
     <>
-      <PageHeader title="Kotizacije" subtitle="Uplate ekipa po takmičenju i rokovi za prvi dio." />
-      <Suspense fallback={<Loading />}>
+      <PageHeader icon={<Receipt />} title="Kotizacije" subtitle="Uplate ekipa po takmičenju i rokovi za prvi dio." />
+      <Suspense fallback={<FeesSkeleton />}>
         <Fees />
       </Suspense>
     </>
@@ -31,7 +33,7 @@ export default function FeesPage() {
 
 async function Fees() {
   const { today, competitions, clubs } = await getFeeOverview();
-  if (competitions.length === 0) return <Empty>Nema takmičenja u tekućoj sezoni.</Empty>;
+  if (competitions.length === 0) return <Empty icon={<Receipt />}>Nema takmičenja u tekućoj sezoni.</Empty>;
 
   const totalDue = round2(clubs.reduce((s, c) => s + c.due, 0));
   const totalPaid = round2(clubs.reduce((s, c) => s + c.paid, 0));
@@ -40,10 +42,10 @@ async function Fees() {
   return (
     <div className="flex flex-col gap-12">
       <dl className="grid grid-cols-2 gap-x-6 gap-y-6 rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-6 sm:grid-cols-4">
-        <Stat label="Ukupno kotizacija" value={formatAmount(totalDue)} unit="KM" />
-        <Stat label="Uplaćeno" value={formatAmount(totalPaid)} unit="KM" tone="mint" />
-        <Stat label="Preostalo" value={formatAmount(Math.max(round2(totalDue - totalPaid), 0))} unit="KM" tone="gold" />
-        <Stat label="Ekipa kasni" value={late} tone={late > 0 ? "orange" : undefined} />
+        <Stat icon={<Receipt />} label="Ukupno kotizacija" value={formatAmount(totalDue)} unit="KM" />
+        <Stat icon={<CheckCircle2 />} label="Uplaćeno" value={formatAmount(totalPaid)} unit="KM" tone="mint" />
+        <Stat icon={<Clock />} label="Preostalo" value={formatAmount(Math.max(round2(totalDue - totalPaid), 0))} unit="KM" tone="gold" />
+        <Stat icon={<CircleAlert />} label="Ekipa kasni" value={late} tone={late > 0 ? "orange" : undefined} />
       </dl>
 
       {competitions.map((c) => (
@@ -67,7 +69,7 @@ async function Fees() {
             )}
           </p>
           {c.teams.length === 0 ? (
-            <Empty>Takmičenje nema ekipa.</Empty>
+            <Empty icon={<Receipt />}>Takmičenje nema ekipa.</Empty>
           ) : (
             <Rows>
               {c.teams.map((t) => (
@@ -75,7 +77,7 @@ async function Fees() {
                   <details className="group">
                     <summary className="-mx-4 flex cursor-pointer list-none items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 [&::-webkit-details-marker]:hidden">
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-display text-[19px] font-semibold leading-tight">{t.name}</span>
+                        <span className="block truncate font-display text-[19px] font-semibold leading-tight"><TeamName name={t.name} logoUrl={t.club?.logo_url} /></span>
                         <span className="mt-1 block">
                           <Status tone={STATE_TONE[t.state]}>{FEE_STATE_LABEL[t.state]}</Status>
                         </span>
@@ -104,7 +106,7 @@ async function Fees() {
                               </span>
                               <form action={deletePayment}>
                                 <input type="hidden" name="id" value={p.id} />
-                                <ConfirmButton message={`Obrisati uplatu od ${formatKM(p.amount_km)}?`}>
+                                <ConfirmButton title={`Obrisati uplatu od ${formatKM(p.amount_km)}?`} confirmLabel="Obriši">
                                   <span className="text-[14px] font-semibold">Obriši</span>
                                 </ConfirmButton>
                               </form>
@@ -125,14 +127,14 @@ async function Fees() {
       ))}
 
       <section>
-        <SectionTitle>Po klubovima</SectionTitle>
+        <SectionTitle icon={<Users />}>Po klubovima</SectionTitle>
         <Rows>
           {clubs.map((c) => {
             const left = Math.max(round2(c.due - c.paid), 0);
             return (
               <li key={c.id} className="flex items-center gap-3 py-4">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-display text-[19px] font-semibold leading-tight">{c.name}</span>
+                  <span className="block truncate font-display text-[19px] font-semibold leading-tight"><TeamName name={c.name} logoUrl={c.logo_url} /></span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-fg-muted">
                     <span>
                       Uplaćeno <span className="scoreboard whitespace-nowrap text-[15px] font-semibold text-fg">{formatKM(c.paid)}</span> od{" "}
@@ -153,5 +155,46 @@ async function Fees() {
         </Rows>
       </section>
     </div>
+  );
+}
+
+/** Kao kotizacije: zbir, pa takmičenja s ekipama (stanje, uplaćeno, preostalo) */
+function FeesSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-12">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-6 rounded-lg border border-line bg-panel px-4 py-6 shadow-panel sm:grid-cols-4 sm:px-5">
+        <StatSkeleton w="w-28" label="w-28" />
+        <StatSkeleton w="w-28" label="w-16" />
+        <StatSkeleton w="w-28" label="w-16" />
+        <StatSkeleton w="w-8" label="w-20" />
+      </dl>
+      {times(2, (c) => (
+        <section key={c}>
+          <SectionTitleSkeleton w="w-48" />
+          <div className="-mt-1 flex flex-wrap gap-x-4 gap-y-1 pb-4">
+            <Text className="text-[16px]" w="w-36" />
+            <Text className="text-[16px]" w="w-28" />
+            <Text className="text-[16px]" w="w-20" />
+          </div>
+          <ul className={ROWS}>
+            {times(4, (i) => (
+              <li key={i} className="flex items-center gap-3 py-4">
+                <span className="min-w-0 flex-1">
+                  <Text className="font-display text-[19px] font-semibold leading-tight" w={i % 2 ? "w-36" : "w-48"} />
+                  <span className="mt-1 block">
+                    <StatusSkeleton w="w-20" />
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end">
+                  <Text className="scoreboard text-[22px] font-semibold leading-none" w="w-24" />
+                  <Text className="mt-1 text-[12px]" w="w-16" />
+                </span>
+                <Bone className="size-5 shrink-0" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </Skeleton>
   );
 }

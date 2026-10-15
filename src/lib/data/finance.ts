@@ -11,7 +11,7 @@ import { computePayroll, feeStatus, filterPayroll, monthBounds, parseMonth, payr
 const FEE_COMPETITION_SELECT = `
   id, name, short_name, fee_km, fee_first_km, fee_due_on,
   season:seasons!competitions_season_id_fkey!inner ( is_current ),
-  teams ( id, name, club:clubs!teams_club_id_fkey ( id, name ),
+  teams ( id, name, club:clubs!teams_club_id_fkey ( id, name, logo_url ),
     fee_payments ( id, amount_km, paid_on, note ) )
 ` as const;
 
@@ -25,8 +25,8 @@ const PAYROLL_SELECT = `
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
   match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, status, referee_count,
     competition:competitions!matches_competition_id_fkey ( name, short_name, ${FEE_RULES} ),
-    home:teams!matches_home_team_id_fkey ( name ),
-    away:teams!matches_away_team_id_fkey ( name ) )
+    home:teams!matches_home_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ),
+    away:teams!matches_away_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ) )
 ` as const;
 
 // ───────── Kotizacije ─────────
@@ -84,11 +84,11 @@ export async function getFeeOverview() {
   }));
 
   // Zbir po klubu (klub plaća za sve svoje ekipe)
-  const clubs = new Map<string, { id: string; name: string; due: number; paid: number; late: number }>();
+  const clubs = new Map<string, { id: string; name: string; logo_url: string | null; due: number; paid: number; late: number }>();
   for (const c of competitions) {
     for (const t of c.teams) {
       if (!t.club) continue;
-      const club = clubs.get(t.club.id) ?? { id: t.club.id, name: t.club.name, due: 0, paid: 0, late: 0 };
+      const club = clubs.get(t.club.id) ?? { id: t.club.id, name: t.club.name, logo_url: t.club.logo_url, due: 0, paid: 0, late: 0 };
       club.due = round2(club.due + (c.fee ?? 0));
       club.paid = round2(club.paid + t.paid);
       if (t.state === "late") club.late++;
@@ -151,7 +151,7 @@ export function resolvePeriod(value: unknown): PayrollPeriod {
 async function payrollRows(period: PayrollPeriod, profileId: string | null) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.profiles);
+  cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.profiles);
   const db = createAdminClient();
 
   // PostgREST vraća najviše 1000 redova po upitu, pa se čita po stranicama

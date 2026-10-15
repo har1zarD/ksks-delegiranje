@@ -1,6 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus } from "lucide-react";
+import { Plus, CalendarDays, FileImage } from "lucide-react";
 import { getAdminMatches, getCompetitions } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
@@ -8,7 +9,9 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch } from "@/components/publish";
 import { MatchLine } from "@/components/match-line";
 import { StaffingBadge } from "@/components/staffing-badge";
-import { ButtonLink, Empty, Loading, PageHeader, Rows, Segment, Segments, Status } from "@/components/ui";
+import { matchesWithScoresheets } from "@/lib/scoresheets";
+import { MatchLineSkeleton, SegmentsSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
+import { ButtonLink, Empty, PageHeader, Rows, ROWS, Segment, Segments, Status } from "@/components/ui";
 
 export const metadata = { title: "Utakmice — KSKS" };
 
@@ -25,13 +28,13 @@ function formatDay(day: string) {
 export default function AdminMatchesPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader title="Utakmice" subtitle="Raspored po danima. Otvori utakmicu da delegiraš sudije, sto i komesara.">
+      <PageHeader icon={<CalendarDays />} title="Utakmice" subtitle="Raspored po danima. Otvori utakmicu da delegiraš sudije, sto i komesara.">
         <ButtonLink href="/admin/utakmice/nova">
           <Plus className="size-5" strokeWidth={2.2} />
           Nova utakmica
         </ButtonLink>
       </PageHeader>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<MatchesSkeleton />}>
         <Matches searchParams={searchParams} />
       </Suspense>
     </>
@@ -43,9 +46,10 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const competitionId = typeof sp.takmicenje === "string" ? sp.takmicenje : undefined;
   const past = sp.prikaz === "odigrane";
 
-  const [competitions, matches] = await Promise.all([
+  const [competitions, matches, withSheets] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
+    matchesWithScoresheets(),
   ]);
 
   const href = (p: { takmicenje?: string; prikaz?: string }) => {
@@ -94,7 +98,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
       </div>
 
       {matches.length === 0 ? (
-        <Empty action={!past && <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>}>
+        <Empty icon={<Image src="/brand/calendar-icon.webp" alt="" width={40} height={40} className="size-10" />} action={!past && <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>}>
           {past ? "Nema odigranih utakmica za ovaj izbor." : "Nema zakazanih utakmica za ovaj izbor. Dodaj utakmicu ili napravi raspored u Takmičenjima."}
         </Empty>
       ) : (
@@ -128,7 +132,12 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                         ) : undefined
                       }
                       aside={
-                        m.status === "scheduled" ? (
+                        withSheets.has(m.id) && m.status !== "scheduled" ? (
+                          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted" title="Ima sliku zapisnika">
+                            <FileImage className="size-4" aria-hidden="true" />
+                            Zapisnik
+                          </span>
+                        ) : m.status === "scheduled" ? (
                           <StaffingBadge staffing={m.staffing} />
                         ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
                           <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
@@ -146,4 +155,36 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   );
 
   return past ? content : <PublishSelection>{content}</PublishSelection>;
+}
+
+/** Kao raspored: filteri, pa dani s utakmicama (kvačica, utakmica, stanje delegiranja) */
+function MatchesSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-8">
+      <div className="flex flex-col gap-3">
+        <SegmentsSkeleton widths={["w-16", "w-16"]} />
+        <SegmentsSkeleton widths={["w-24", "w-16", "w-20", "w-14", "w-20", "w-16"]} />
+      </div>
+      {times(2, (d) => (
+        <section key={d}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
+            <Text className="font-display text-[20px] font-semibold sm:text-[22px]" w="w-52" />
+            <Text className="text-[13px] font-semibold" w="w-20" />
+          </div>
+          <ul className={ROWS}>
+            {times(3, (i) => (
+              <li key={i} className="flex items-center gap-1">
+                <span className="flex size-11 shrink-0 items-center justify-center">
+                  <span className="size-[18px] rounded-[4px] border border-line-strong" />
+                </span>
+                <div className="flex min-w-0 flex-1 items-center py-4">
+                  <MatchLineSkeleton i={d * 3 + i} aside={<StatusSkeleton w="w-20" />} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </Skeleton>
+  );
 }

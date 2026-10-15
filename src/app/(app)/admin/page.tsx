@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList } from "lucide-react";
 import { getAdminMatches } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
 import { POSITION_LABEL } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { MatchLine } from "@/components/match-line";
+import { PageIntro } from "@/components/page-intro";
 import { StaffingBadge } from "@/components/staffing-badge";
-import { ButtonLink, Empty, Loading, PageHeader, Panel, Rows, SectionTitle, Stat, Status } from "@/components/ui";
+import { Bone, MatchRowsSkeleton, SectionTitleSkeleton, Skeleton, StatSkeleton, StatusSkeleton, Text } from "@/components/skeleton";
+import { ButtonLink, Empty, Panel, Rows, SectionTitle, Stat, Status } from "@/components/ui";
 
 export const metadata = { title: "Pregled — KSKS" };
 
@@ -16,10 +18,10 @@ const DAYS_AHEAD = 14;
 export default function AdminHome() {
   return (
     <>
-      <PageHeader title="Pregled" subtitle={`Utakmice u narednih ${DAYS_AHEAD} dana i šta još treba delegirati.`}>
-        <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>
-      </PageHeader>
-      <Suspense fallback={<Loading />}>
+      <PageIntro eyebrow="Centar za delegiranje" title="Pregled" subtitle={`Utakmice u narednih ${DAYS_AHEAD} dana i šta još treba delegirati.`}>
+        <ButtonLink href="/admin/utakmice/nova"><Plus className="size-4" aria-hidden="true" />Nova utakmica</ButtonLink>
+      </PageIntro>
+      <Suspense fallback={<OverviewSkeleton />}>
         <Overview />
       </Suspense>
     </>
@@ -45,7 +47,7 @@ async function Overview() {
       {live.length > 0 && (
         <section>
           <LiveRefresh matchIds={live.map((m) => m.id)} />
-          <SectionTitle count={live.length}>Uživo</SectionTitle>
+          <SectionTitle icon={<Radio />} count={live.length}>Uživo</SectionTitle>
           <Rows>
             {live.map((m) => (
               <li key={m.id}>
@@ -68,10 +70,10 @@ async function Overview() {
 
       <Panel className="overflow-hidden">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
-          <Stat label={`Utakmica u ${DAYS_AHEAD} dana`} value={active.length} />
-          <Stat label="Potpuno delegirano" value={full} tone={full === active.length && active.length > 0 ? "mint" : undefined} />
-          <Stat label="Čeka odgovor" value={waiting} tone={waiting > 0 ? "gold" : undefined} />
-          <Stat label="Nedostaje delegiranje" value={open.length} tone={open.length > 0 ? "orange" : undefined} />
+          <Stat icon={<CalendarDays />} label={`Utakmica u ${DAYS_AHEAD} dana`} value={active.length} />
+          <Stat icon={<CheckCircle2 />} label="Potpuno delegirano" value={full} tone={full === active.length && active.length > 0 ? "mint" : undefined} />
+          <Stat icon={<Clock />} label="Čeka odgovor" value={waiting} tone={waiting > 0 ? "gold" : undefined} />
+          <Stat icon={<Users />} label="Nedostaje delegiranje" value={open.length} tone={open.length > 0 ? "orange" : undefined} />
         </dl>
         <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line py-4">
           <div>
@@ -87,10 +89,10 @@ async function Overview() {
       </Panel>
 
       <section>
-        <SectionTitle count={open.length}>Treba delegirati</SectionTitle>
+        <SectionTitle icon={<ClipboardList />} count={open.length}>Treba delegirati</SectionTitle>
         {open.length === 0 ? (
-          <Empty action={<ButtonLink href="/admin/utakmice" variant="secondary">Sve utakmice</ButtonLink>}>
-            Sve utakmice u narednih {DAYS_AHEAD} dana imaju popunjene pozicije.
+          <Empty icon={<CheckCircle2 />} title={active.length > 0 ? "Delegiranje je popunjeno" : "Nema predstojećih utakmica"} action={<ButtonLink href="/admin/utakmice" variant="secondary">Sve utakmice</ButtonLink>}>
+            {active.length > 0 ? `Sve utakmice u narednih ${DAYS_AHEAD} dana imaju popunjene pozicije.` : `Nema zakazanih utakmica u narednih ${DAYS_AHEAD} dana.`}
           </Empty>
         ) : (
           <Rows>
@@ -119,7 +121,7 @@ async function Overview() {
 
       {open.length === 0 && upcoming.length > 0 && (
         <section>
-          <SectionTitle>Sljedeće utakmice</SectionTitle>
+          <SectionTitle icon={<CalendarDays />}>Sljedeće utakmice</SectionTitle>
           <Rows>
             {upcoming.slice(0, 5).map((m) => (
               <li key={m.id}>
@@ -132,5 +134,37 @@ async function Overview() {
         </section>
       )}
     </div>
+  );
+}
+
+/** Kao pregled: brojke i trošak, pa utakmice kojima nedostaje delegiranje */
+function OverviewSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-10">
+      <Panel className="overflow-hidden">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-6 py-5 sm:py-7 lg:grid-cols-4">
+          <StatSkeleton w="w-10" label="w-32" />
+          <StatSkeleton w="w-10" label="w-32" />
+          <StatSkeleton w="w-10" label="w-24" />
+          <StatSkeleton w="w-10" label="w-36" />
+        </dl>
+        <div className="flex flex-wrap items-end justify-between gap-3 border-t border-line py-4">
+          <Text className="text-[13px] font-semibold" w="w-52" />
+          <Text className="scoreboard text-[28px] font-semibold leading-none sm:text-[32px]" w="w-32" />
+        </div>
+      </Panel>
+      <section>
+        <SectionTitleSkeleton count />
+        <MatchRowsSkeleton
+          meta={
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              <StatusSkeleton w="w-16" />
+              <StatusSkeleton w="w-24" />
+            </div>
+          }
+          aside={<Bone className="size-5" />}
+        />
+      </section>
+    </Skeleton>
   );
 }

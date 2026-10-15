@@ -1,3 +1,4 @@
+import type { TeamIdentity } from "@/components/team-name";
 // Čisti proračuni za kotizacije i naknade (bez Next-a i baze, testabilno).
 import type { Crew } from "@/lib/crew";
 import { matchKindLabel, MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type MatchKind, type Position } from "@/lib/format";
@@ -146,8 +147,8 @@ export type PayrollAssignment = {
     kind: MatchKind;
     kind_label: string | null;
     competition: ({ name: string; short_name: string | null } & FeeRules) | null;
-    home: { name: string } | null;
-    away: { name: string } | null;
+    home: TeamIdentity | null;
+    away: TeamIdentity | null;
   };
 };
 
@@ -160,6 +161,8 @@ export type PayrollItem = {
   /** "Prijateljska", "Turnir", vlastiti naziv; prazno za ligu */
   kind: string;
   teams: string;
+  home: TeamIdentity | null;
+  away: TeamIdentity | null;
   position: Position;
   refereeCount: number;
   /** null = naknada za takmičenje i poziciju nije određena */
@@ -263,6 +266,8 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       competition: a.match.competition?.short_name ?? a.match.competition?.name ?? "",
       kind: matchKindLabel(a.match.kind, a.match.kind_label),
       teams: `${a.match.home?.name ?? ""} – ${a.match.away?.name ?? ""}`,
+      home: a.match.home,
+      away: a.match.away,
       position: a.position,
       refereeCount: a.match.referee_count,
       amount,

@@ -80,3 +80,17 @@ ${siteUrl("/nominacije")}
 Košarkaški savez Kantona Sarajevo`,
   };
 }
+
+export function passwordResetEmail(name: string, link: string) {
+  return {
+    subject: "Nova šifra za KSKS Delegiranje",
+    text: `Zdravo ${name},
+
+zatražena je nova šifra za tvoj nalog. Otvori link i upiši novu šifru:
+${link}
+
+Link važi kratko vrijeme i može se iskoristiti samo jednom. Ako nisi ti tražio novu šifru, zanemari ovaj email; stara šifra i dalje važi.
+
+Košarkaški savez Kantona Sarajevo`,
+  };
+}

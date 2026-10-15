@@ -100,7 +100,7 @@ function Choice({ options }: { options: { label: string; active: boolean; onClic
           onClick={o.onClick}
           className={cx(
             "h-8 min-w-10 rounded-md px-3 text-[14px] font-semibold transition-colors",
-            o.active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:text-fg",
+            o.active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
           )}
         >
           {o.label}
@@ -118,7 +118,7 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
       onClick={onClick}
       className={cx(
         "h-9 rounded-md border px-3 text-[14px] font-semibold transition-colors",
-        on ? "border-transparent bg-brand text-brand-ink" : "border-line-strong bg-panel text-fg-muted hover:text-fg",
+        on ? "border-transparent bg-brand text-brand-ink hover:bg-brand-hover" : "border-line-strong bg-panel text-fg-muted hover:border-line-hover hover:bg-panel-2 hover:text-fg",
       )}
     >
       {label}

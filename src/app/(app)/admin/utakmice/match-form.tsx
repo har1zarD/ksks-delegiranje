@@ -1,8 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { TeamSelect } from "@/components/team-select";
 import { CrewEditor } from "@/components/crew-editor";
-import { Button, cx, Field, Select } from "@/components/ui";
+import { DateField, TimeField } from "@/components/date-picker";
+import { Bone, ButtonSkeleton, FieldSkeleton, Text } from "@/components/skeleton";
+import { Select } from "@/components/select";
+import { Button, cx, Field } from "@/components/ui";
 import { crewDefaultsOf, type Crew } from "@/lib/crew";
 import { formatKM, matchCost, type FeeRules } from "@/lib/finance";
 import { MATCH_KIND_LABEL, MATCH_STATUS_LABEL, type MatchKind, type MatchStatus } from "@/lib/format";
@@ -12,7 +16,7 @@ type Competition = FeeRules &
   Parameters<typeof crewDefaultsOf>[0] & {
   id: string;
   name: string;
-  teams: { id: string; name: string; club: { hall_id: string | null } | null }[];
+  teams: { id: string; name: string; club: { hall_id: string | null; logo_url: string | null } | null }[];
 };
 
 export type MatchFormValues = {
@@ -88,7 +92,7 @@ export function MatchForm({
               onClick={() => setKind(k)}
               className={cx(
                 "h-9 rounded-md px-4 text-[14px] font-semibold transition-colors",
-                kind === k ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:text-fg",
+                kind === k ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
               )}
             >
               {MATCH_KIND_LABEL[k]}
@@ -132,46 +136,29 @@ export function MatchForm({
       </Select>
 
       {/* key: kad se promijeni takmičenje, izbor ekipa se resetuje */}
-      <Select
+      <TeamSelect
         key={`home-${competitionId}`}
         label="Domaćin"
         name="home_team_id"
         defaultValue={values.competition_id === competitionId ? values.home_team_id : ""}
+        options={teams.map((t) => ({ id: t.id, name: t.name, logoUrl: t.club?.logo_url ?? null }))}
         onChange={(e) => {
-          // Dvorana domaćina kao prijedlog, ako dvorana još nije izabrana
           const hall = teams.find((t) => t.id === e.target.value)?.club?.hall_id;
           if (hall && !hallId) setHallId(hall);
         }}
         required
-      >
-        <option value="" disabled>
-          Izaberi ekipu
-        </option>
-        {teams.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </Select>
-      <Select
+      />
+      <TeamSelect
         key={`away-${competitionId}`}
         label="Gost"
         name="away_team_id"
         defaultValue={values.competition_id === competitionId ? values.away_team_id : ""}
+        options={teams.map((t) => ({ id: t.id, name: t.name, logoUrl: t.club?.logo_url ?? null }))}
         required
-      >
-        <option value="" disabled>
-          Izaberi ekipu
-        </option>
-        {teams.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </Select>
+      />
 
-      <Field label="Datum" name="date" type="date" defaultValue={values.date} required />
-      <Field label="Vrijeme" name="time" type="time" step={300} defaultValue={values.time ?? "18:00"} required />
+      <DateField label="Datum" name="date" defaultValue={values.date} required />
+      <TimeField label="Vrijeme" name="time" step={300} defaultValue={values.time ?? "18:00"} required />
 
       <Select label="Dvorana" name="hall_id" value={hallId} onChange={(e) => setHallId(e.target.value)}>
         <option value="">Nije određena</option>
@@ -233,5 +220,65 @@ export function MatchForm({
         )}
       </div>
     </form>
+  );
+}
+
+/** Kao MatchForm dok se učitavaju takmičenja i dvorane: ista polja, sastav ekipe i trošak */
+export function MatchFormSkeleton({ edit }: { edit?: boolean }) {
+  return (
+    <div role="status" aria-busy="true" aria-label="Učitavam" className="grid gap-4 sm:grid-cols-2">
+      <FieldSkeleton label="Broj utakmice" hint={!edit} />
+      <FieldSkeleton label="Kolo" />
+      <div className="flex flex-col gap-1.5 sm:col-span-2">
+        <span className="text-[13px] font-medium text-fg-muted">Vrsta utakmice</span>
+        <div className="grid grid-cols-2 gap-0.5 rounded-lg bg-track p-[3px] sm:inline-grid sm:w-fit sm:grid-cols-4">
+          {(Object.keys(MATCH_KIND_LABEL) as MatchKind[]).map((k, i) => (
+            <span
+              key={k}
+              className={cx("flex h-9 items-center justify-center rounded-md px-4 text-[14px] font-semibold text-fg-muted", i === 0 && "bg-panel-3 text-fg shadow-segment")}
+            >
+              {MATCH_KIND_LABEL[k]}
+            </span>
+          ))}
+        </div>
+      </div>
+      <FieldSkeleton label="Takmičenje" className="sm:col-span-2" />
+      <FieldSkeleton label="Domaćin" />
+      <FieldSkeleton label="Gost" />
+      <FieldSkeleton label="Datum" />
+      <FieldSkeleton label="Vrijeme" />
+      <FieldSkeleton label="Dvorana" />
+      <FieldSkeleton label={edit ? "Status" : "Napomena"} />
+      <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-4 shadow-panel sm:col-span-2 sm:px-5 sm:py-5">
+        <div>
+          <p className="text-[15px] font-semibold">Sastav ekipe</p>
+          <Text className="mt-0.5 text-[13px]" w="w-80" />
+        </div>
+        <div className="flex flex-col gap-4">
+          {[
+            { label: "Sudije", items: ["w-28", "w-24"] },
+            { label: "Sto", items: ["w-20", "w-28", "w-28", "w-14"] },
+            { label: "Statistika", items: ["w-40", "w-36"] },
+          ].map((row) => (
+            <div key={row.label} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <span className="w-24 shrink-0 text-[13px] font-semibold text-fg-muted">{row.label}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {row.items.map((w, i) => (
+                  <Bone key={i} className={cx("h-9", w)} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-baseline justify-between gap-3 border-t border-line pt-4">
+          <span className="text-[13px] text-fg-muted">Trošak utakmice</span>
+          <Text className="scoreboard text-[26px] font-semibold" w="w-28" />
+        </div>
+      </div>
+      {edit && <FieldSkeleton label="Napomena" className="sm:col-span-2" />}
+      <div className="sm:col-span-2">
+        <ButtonSkeleton className="w-full sm:w-40" />
+      </div>
+    </div>
   );
 }

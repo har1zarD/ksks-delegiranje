@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, CalendarPlus } from "lucide-react";
 import { getCompetitions, getHalls, getNextMatchNumbers } from "@/lib/data/admin";
-import { Loading, PageHeader, Panel } from "@/components/ui";
-import { MatchForm } from "../match-form";
+import { PageHeader, Panel } from "@/components/ui";
+import { MatchForm, MatchFormSkeleton } from "../match-form";
 
 export const metadata = { title: "Nova utakmica — KSKS" };
 
@@ -15,11 +15,11 @@ export default function NewMatchPage() {
         Utakmice
       </Link>
       <PageHeader
-        title="Nova utakmica"
+        icon={<CalendarPlus />} title="Nova utakmica"
         subtitle="Broj utakmice, termin, dvorana i sastav ekipe. Sastav dolazi iz pravila takmičenja i može se promijeniti."
       />
       <Panel className="py-4 sm:py-6">
-        <Suspense fallback={<Loading />}>
+        <Suspense fallback={<MatchFormSkeleton />}>
           <NewMatch />
         </Suspense>
       </Panel>

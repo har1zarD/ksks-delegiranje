@@ -1,15 +1,17 @@
+import { TeamName } from "@/components/team-name";
 import type { StandingRow } from "@/lib/standings";
 import { cx } from "@/components/ui";
 
 const NUM = "scoreboard whitespace-nowrap px-1.5 py-3 text-right text-[18px] font-semibold sm:px-2";
 
 /** Tabela takmičenja. Na mobitelu se kriju porazi i postignuti/primljeni koševi. */
-export function StandingsTable({ rows }: { rows: StandingRow[] }) {
+export function StandingsTable({ rows }: { rows: (StandingRow & { logoUrl: string | null })[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-panel">
       <table className="w-full">
+        <caption className="sr-only">Tabela takmičenja: plasman, odigrane utakmice, pobjede, porazi, koš razlika i bodovi.</caption>
         <thead>
-          <tr className="border-b border-line text-left text-[12px] font-semibold text-fg-faint">
+          <tr className="border-b border-line bg-panel-2 text-left text-[12px] font-semibold text-fg-muted">
             <th className="w-12 py-3 pl-4 font-semibold sm:pl-5">#</th>
             <th className="py-3 pr-2 font-semibold">Ekipa</th>
             <th className="w-9 py-3 pr-1.5 text-right font-semibold sm:w-12" title="Utakmice">U</th>
@@ -25,11 +27,11 @@ export function StandingsTable({ rows }: { rows: StandingRow[] }) {
           {rows.map((r, i) => {
             const rank = i + 1;
             return (
-              <tr key={r.teamId} className={cx(rank === 1 && "bg-brand-soft/60")}>
-                <td className="py-3 pl-4 sm:pl-5">
+              <tr key={r.teamId} className={cx("transition-colors hover:bg-panel-2", rank === 1 && "bg-brand-soft/60")}>
+                <td className="py-3 pl-4 pr-2 sm:pl-5">
                   <span className={cx("scoreboard whitespace-nowrap text-[20px] font-semibold", rank === 1 ? "text-brand" : rank <= 3 ? "text-fg" : "text-fg-faint")}>{rank}</span>
                 </td>
-                <td className="max-w-0 truncate py-3 pr-2 font-display text-[18px] font-semibold sm:text-[20px]">{r.name}</td>
+                <td className="max-w-0 truncate py-3 pr-2 font-display text-[18px] font-semibold sm:text-[20px]"><TeamName name={r.name} logoUrl={r.logoUrl} /></td>
                 <td className={cx(NUM, "text-fg-muted")}>{r.played}</td>
                 <td className={NUM}>{r.won}</td>
                 <td className={cx(NUM, "hidden text-fg-muted sm:table-cell")}>{r.lost}</td>

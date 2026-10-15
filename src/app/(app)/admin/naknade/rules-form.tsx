@@ -92,7 +92,7 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
 
   return (
     <details className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-3 py-4 [&::-webkit-details-marker]:hidden">
+      <summary className="-mx-4 flex cursor-pointer list-none items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
           <span className="block font-display text-[22px] font-semibold leading-tight tracking-tight">
             {competition.name}

@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { crewOf, crewPositions, type Crew } from "@/lib/crew";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { addDays, addMonths, isoToSarajevo, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
+import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
   ADMIN_MATCH_SELECT,
@@ -88,7 +88,7 @@ const POOL_LIMIT = 400;
 async function matchPool(when: "upcoming" | "past", competitionId: string | null, day: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.halls, TAG.assignments, TAG.periods);
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods);
   let q = createAdminClient().from("matches").select(ADMIN_MATCH_SELECT);
   if (competitionId) q = q.eq("competition_id", competitionId);
   if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.eq.live`);
@@ -124,7 +124,7 @@ export type Candidate = {
   /** Šta zna za stolom (zapisnik, glavno vrijeme, 24/14, statistika) */
   tableSkills: string[];
   isCommissioner: boolean;
-  /** Najavljeno odsustvo na dan utakmice */
+  /** Najavljeno odsustvo u vrijeme utakmice (period i razlog); takva osoba se ne nudi za delegiranje */
   absence: string | null;
   /** Druge utakmice istog dana (vrijeme početka) */
   sameDay: string[];
@@ -135,7 +135,7 @@ export type Candidate = {
 async function delegationMatch(matchId: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(tag.match(matchId), TAG.competitions, TAG.teams, TAG.halls);
+  cacheTag(tag.match(matchId), TAG.competitions, TAG.teams, TAG.clubs, TAG.halls);
   return row(await createAdminClient().from("matches").select(DELEGATION_MATCH_SELECT).eq("id", matchId).maybeSingle());
 }
 
@@ -152,15 +152,19 @@ async function activePeople() {
   cacheLife(LIFE.people);
   cacheTag(TAG.profiles);
   return rows(
-    await createAdminClient().from("profiles").select("id, full_name, role, is_referee, is_table, table_skills").eq("active", true).or("role.neq.admin,is_referee.eq.true,is_table.eq.true").order("full_name"),
+    await createAdminClient().from("profiles").select("id, full_name, role, is_referee, is_table, is_commissioner, table_skills").eq("active", true).or("role.neq.admin,is_referee.eq.true,is_table.eq.true,is_commissioner.eq.true").order("full_name"),
   );
 }
 
-async function absencesOn(date: string) {
+/** Odsustva koja se preklapaju s vremenom utakmice (početak + MATCH_MINUTES) */
+async function absencesDuring(startsAt: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
   cacheTag(TAG.unavailability);
-  return rows(await createAdminClient().from("unavailability").select("profile_id, reason").lte("from_date", date).gte("to_date", date));
+  const { start, end } = matchWindow(startsAt);
+  return rows(
+    await createAdminClient().from("unavailability").select("profile_id, reason, starts_at, ends_at").lt("starts_at", end).gt("ends_at", start),
+  );
 }
 
 /** Aktivna delegiranja (čeka/prihvaćeno) na utakmicama u danu, po osobi */
@@ -207,7 +211,7 @@ export async function getDelegation(matchId: string) {
   const [assignments, people, absences, sameDay, load] = await Promise.all([
     delegationAssignments(matchId),
     activePeople(),
-    absencesOn(date),
+    absencesDuring(match.starts_at),
     busyOn(date),
     monthLoadOf(`${date.slice(0, 7)}-01`),
   ]);
@@ -220,8 +224,8 @@ export async function getDelegation(matchId: string) {
       canReferee: (p.role === "official" || p.role === "admin") && p.is_referee,
       canTable: (p.role === "official" || p.role === "admin") && p.is_table,
       tableSkills: (p.role === "official" || p.role === "admin") && p.is_table ? p.table_skills : [],
-      isCommissioner: p.role === "commissioner",
-      absence: absence ? (absence.reason ?? "") : null,
+      isCommissioner: p.role === "commissioner" || (p.role === "admin" && p.is_commissioner),
+      absence: absence ? [formatAbsence(absence.starts_at, absence.ends_at), absence.reason].filter(Boolean).join(", ") : null,
       sameDay: sameDay.filter((a) => a.profileId === p.id && a.matchId !== matchId).map((a) => a.startsAt),
       monthLoad: load[p.id] ?? 0,
     };
@@ -241,7 +245,7 @@ async function peopleRows() {
   return rows(
     await createAdminClient()
       .from("profiles")
-      .select("id, email, full_name, phone, role, is_referee, is_table, table_skills, license, city, active")
+      .select("id, email, full_name, phone, role, is_referee, is_table, is_commissioner, table_skills, license, city, active")
       .order("full_name"),
   );
 }

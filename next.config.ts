@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "fxdzcncfoutxunfwcyhi.supabase.co", port: "", pathname: "/storage/v1/object/public/club-logos/**", search: "" }],
+  },
+  experimental: {
+    // Klijent čuva posjećenu stranicu 60 s: povratak na nju se ne učitava ponovo.
+    // Svaka izmjena (Server Action s updateTag) i router.refresh odmah brišu ovaj keš.
+    staleTimes: { dynamic: 60 },
+  },
   // OAuth za MCP connector: standardne /.well-known adrese (i varijante s putanjom resursa, npr. /api/mcp)
   async rewrites() {
     return [

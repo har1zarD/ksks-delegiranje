@@ -1,3 +1,4 @@
+import { TeamName, type TeamIdentity } from "@/components/team-name";
 import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
 import { formatTime, isoToSarajevo, matchKindLabel, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS, type MatchKind } from "@/lib/format";
@@ -13,21 +14,27 @@ export type MatchSummary = {
   home_score: number | null;
   away_score: number | null;
   competition: { short_name: string | null; name: string } | null;
-  home: { name: string } | null;
-  away: { name: string } | null;
+  home: TeamIdentity | null;
+  away: TeamIdentity | null;
   hall: { name: string } | null;
 };
 
-/** Datum: dan u sedmici, veliki broj, mjesec; vrijeme u akcent boji */
-export function DateTile({ iso, className }: { iso: string; className?: string }) {
+/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice. */
+export function DateTile({ iso, size = "md", className }: { iso: string; size?: "md" | "lg"; className?: string }) {
   const { date } = isoToSarajevo(iso);
   const d = new Date(`${date}T12:00:00Z`);
+  const lg = size === "lg";
+  const label = cx("font-semibold uppercase leading-none tracking-[0.1em] text-fg-faint", lg ? "text-[11px]" : "text-[10px]");
   return (
-    <div className={cx("flex w-12 shrink-0 flex-col items-center", className)}>
-      <span className="text-[11px] font-semibold text-fg-faint">{WEEKDAYS[d.getUTCDay()]}</span>
-      <span className="scoreboard whitespace-nowrap text-[24px] font-semibold leading-none">{d.getUTCDate()}</span>
-      <span className="text-[11px] font-semibold text-fg-muted">{MONTHS_SHORT[d.getUTCMonth()]}</span>
-      <span className="scoreboard mt-1 whitespace-nowrap text-[14px] font-semibold text-brand">{formatTime(iso)}</span>
+    <div className={cx("flex shrink-0 flex-col overflow-hidden rounded-lg border border-line text-center", lg ? "w-[76px] sm:w-[92px]" : "w-14", className)}>
+      <div className={cx("flex flex-col items-center bg-panel-2", lg ? "gap-1.5 py-2.5 sm:gap-2 sm:py-3" : "gap-1 py-2")}>
+        <span className={label}>{WEEKDAYS[d.getUTCDay()]}</span>
+        <span className={cx("scoreboard font-semibold leading-none tracking-[-0.03em]", lg ? "text-[32px] sm:text-[42px]" : "text-[24px]")}>{d.getUTCDate()}</span>
+        <span className={label}>{MONTHS_SHORT[d.getUTCMonth()]}</span>
+      </div>
+      <span className={cx("scoreboard whitespace-nowrap border-t border-line bg-panel font-semibold", lg ? "py-1.5 text-[15px] sm:text-[16px]" : "py-1 text-[13px]")}>
+        {formatTime(iso)}
+      </span>
     </div>
   );
 }
@@ -70,7 +77,7 @@ export function MatchLine({
   );
   const hall = match.hall && (
     <div className="mt-1 flex items-center gap-1 truncate text-[13px] text-fg-muted">
-      <MapPin className="size-3.5 shrink-0" />
+      <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
       <span className="truncate">{match.hall.name}</span>
     </div>
   );
@@ -101,13 +108,13 @@ export function MatchLine({
           <span>{competition}</span>
           {badge}
         </div>
-        <div className={cx("mt-0.5 grid items-baseline gap-x-3", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
+        <div className={cx("mt-1 grid items-center gap-x-3 gap-y-1", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !homeWon && "text-fg-muted")}>
-            {match.home?.name}
+            <TeamName name={match.home?.name ?? "—"} logoUrl={match.home?.club?.logo_url} />
           </span>
           {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", homeWon ? "text-brand" : "text-fg-muted")}>{match.home_score}</span>}
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !awayWon && "text-fg-muted")}>
-            {match.away?.name}
+            <TeamName name={match.away?.name ?? "—"} logoUrl={match.away?.club?.logo_url} />
           </span>
           {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", awayWon ? "text-brand" : "text-fg-muted")}>{match.away_score}</span>}
         </div>
@@ -153,10 +160,11 @@ export function BoxScore({
           {badge}
         </div>
       )}
+      <div className="overflow-x-auto">
       <div
         style={{ "--n": cols.length } as React.CSSProperties}
         className={cx(
-          "grid items-center gap-x-1 sm:gap-x-2",
+          "grid min-w-[340px] items-center gap-x-1 sm:min-w-0 sm:gap-x-2",
           lg
             ? "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),3.5rem)_5rem]"
             : "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_3.5rem]",
@@ -177,7 +185,7 @@ export function BoxScore({
         const key = side === "home" ? "home_points" : "away_points";
         return [
           <span key={`${side}-name`} className={cx(team, !leads && points !== other && "text-fg-muted")}>
-            {match[side]?.name}
+            <TeamName name={match[side]?.name ?? "—"} logoUrl={match[side]?.club?.logo_url} />
           </span>,
           ...cols.map((c) => {
             const v = c[key];
@@ -193,6 +201,7 @@ export function BoxScore({
           </span>,
         ];
       })}
+      </div>
       </div>
     </div>
   );

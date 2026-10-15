@@ -166,3 +166,64 @@ export function addMonths(date: string, n: number) {
   d.setUTCMonth(d.getUTCMonth() + n);
   return d.toISOString().slice(0, 10);
 }
+
+/** Pomoćni sudija smije ispraviti ili poništiti konačni rezultat ovoliko sati nakon upisa */
+export const SCORE_UNDO_HOURS = 24;
+
+/** Do kada sto smije ispraviti ili poništiti rezultat; null kad je rok prošao ili rezultat nije upisao sto */
+export function scoreUndoUntil(enteredAt: string | null, now = Date.now()) {
+  if (!enteredAt) return null;
+  const until = new Date(enteredAt).getTime() + SCORE_UNDO_HOURS * 60 * 60 * 1000;
+  return until > now ? new Date(until).toISOString() : null;
+}
+
+// ───────── Odsustva ─────────
+
+/** Koliko utakmica zauzima osobu od početka (s produžecima i pauzama); odsustvo u tom prozoru isključuje delegiranje */
+export const MATCH_MINUTES = 120;
+
+/** Vrijeme koje utakmica zauzima: [početak, početak + MATCH_MINUTES) kao ISO */
+export function matchWindow(startsAt: string) {
+  const start = new Date(startsAt).getTime();
+  return { start: new Date(start).toISOString(), end: new Date(start + MATCH_MINUTES * 60_000).toISOString() };
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * Odsustvo iz forme: datum od (+ vrijeme), datum do (+ vrijeme). Bez vremena = cijeli dan
+ * (od 00:00 prvog dana do 00:00 dana poslije zadnjeg); bez datuma "do" = isti dan.
+ */
+export function absenceRange(input: { from: string; fromTime?: string; to?: string; toTime?: string }): { startsAt: string; endsAt: string } | { error: string } {
+  const date = /^\d{4}-\d{2}-\d{2}$/;
+  const to = input.to || input.from;
+  if (!date.test(input.from) || !date.test(to)) return { error: "Izaberi datum." };
+  if ((input.fromTime && !HHMM.test(input.fromTime)) || (input.toTime && !HHMM.test(input.toTime))) return { error: "Vrijeme upiši kao SS:MM." };
+  const startsAt = sarajevoToISO(input.from, input.fromTime || "00:00");
+  const endsAt = input.toTime ? sarajevoToISO(to, input.toTime) : sarajevoToISO(addDays(to, 1), "00:00");
+  if (endsAt <= startsAt) return { error: "Kraj mora biti poslije početka." };
+  if (endsAt <= new Date().toISOString()) return { error: "To vrijeme je već prošlo." };
+  return { startsAt, endsAt };
+}
+
+/** Početak i kraj odsustva za prikaz: cijeli dani bez vremena, inače dan u sedmici, datum i vrijeme */
+export function absenceParts(startsAt: string, endsAt: string): { from: string; to: string | null; allDay: boolean } {
+  const s = isoToSarajevo(startsAt);
+  const e = isoToSarajevo(endsAt);
+  const day = (d: string) => {
+    const p = parts(d);
+    return `${WEEKDAYS[p.weekday]} ${p.d}. ${p.m}.`;
+  };
+  if (s.time === "00:00" && e.time === "00:00") {
+    const last = addDays(e.date, -1);
+    return { from: formatDate(s.date), to: last === s.date ? null : formatDate(last), allDay: true };
+  }
+  if (s.date === e.date) return { from: `${day(s.date)} ${s.time}`, to: e.time, allDay: false };
+  return { from: `${day(s.date)} ${s.time}`, to: `${day(e.date)} ${e.time}`, allDay: false };
+}
+
+/** Odsustvo u jednom redu (MCP, opis kandidata) */
+export function formatAbsence(startsAt: string, endsAt: string) {
+  const { from, to } = absenceParts(startsAt, endsAt);
+  return to ? `${from} – ${to}` : from;
+}

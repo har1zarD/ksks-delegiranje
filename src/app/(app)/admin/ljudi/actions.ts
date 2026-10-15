@@ -25,6 +25,8 @@ function readPerson(formData: FormData) {
     // Sudija/sto ima smisla samo za ulogu official
     is_referee: isOfficial && formData.get("is_referee") === "on",
     is_table: isOfficial && formData.get("is_table") === "on",
+    // Komesar kao oznaka samo za admina; uloga commissioner je komesar sama po sebi
+    is_commissioner: role === "admin" && formData.get("is_commissioner") === "on",
     // Šta zna za stolom; bez polja (npr. nije označen sto) ostaju sve vještine
     table_skills: formData.has("table_skills")
       ? formData.getAll("table_skills").map(String).filter((s) => (TABLE_SKILL_KEYS as string[]).includes(s))
@@ -77,10 +79,10 @@ export async function updatePerson(_prev: PersonState, formData: FormData): Prom
 
   const supabase = await createClient();
   // Email je vezan za Auth nalog i ovdje se ne mijenja
-  const { full_name, phone, license, role, is_referee, is_table, table_skills } = person;
+  const { full_name, phone, license, role, is_referee, is_table, is_commissioner, table_skills } = person;
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name, phone, license, role, is_referee, is_table, table_skills })
+    .update({ full_name, phone, license, role, is_referee, is_table, is_commissioner, table_skills })
     .eq("id", id);
   if (error) return { error: "Izmjene nisu sačuvane." };
 

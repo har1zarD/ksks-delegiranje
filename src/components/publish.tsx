@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useTransition } from "react";
 import { Check, Send } from "lucide-react";
+import { confirm } from "@/components/confirm";
 import { Button, cx } from "@/components/ui";
 import { publish, type PublishState } from "@/app/(app)/admin/utakmice/actions";
 
@@ -14,8 +15,11 @@ function resultText(r: NonNullable<PublishState["result"]>) {
   return `Aktivirano utakmica: ${r.matches}. ${mail}`;
 }
 
-const CONFIRM = (n: number) =>
-  `Aktivirati ${n === 1 ? "utakmicu" : `${n} utakmica`}? Delegirani će vidjeti nominaciju, a svim sudijama i pomoćnim sudijama ide nominacija emailom.`;
+const CONFIRM = (n: number) => ({
+  title: `Aktivirati ${n === 1 ? "utakmicu" : `${n} utakmica`}?`,
+  message: "Delegirani će vidjeti nominaciju, a svim sudijama i pomoćnim sudijama ide nominacija emailom.",
+  confirmLabel: "Aktiviraj",
+});
 
 // ───────── Lista utakmica: označavanje i traka s akcijom ─────────
 
@@ -95,8 +99,8 @@ function PublishBar() {
             <Button
               className="ml-auto"
               disabled={pending}
-              onClick={() => {
-                if (!window.confirm(CONFIRM(ids.length))) return;
+              onClick={async () => {
+                if (!(await confirm(CONFIRM(ids.length)))) return;
                 start(async () => {
                   const r = await publish(ids);
                   if (r.result) ctx.setMany(ids, false);
@@ -144,8 +148,8 @@ export function PublishMatch({ matchId, publishedAt, unpublished }: { matchId: s
         <Button
           className="w-full"
           disabled={pending}
-          onClick={() => {
-            if (!window.confirm(CONFIRM(1))) return;
+          onClick={async () => {
+            if (!(await confirm(CONFIRM(1)))) return;
             start(async () => {
               const r = await publish([matchId]);
               setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });

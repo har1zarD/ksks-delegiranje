@@ -55,15 +55,17 @@ export function ReplaceButton({
                 {position}: umjesto <span className="font-semibold text-fg">{current}</span>
               </p>
             </div>
-            <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2 p-2 text-fg-faint hover:text-fg">
+            <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2 rounded-md p-2 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
               <X className="size-5" />
             </button>
           </div>
 
-          {candidates.length > 0 ? (
+          {candidates.some((c) => c.absence === null) ? (
             <CandidateSelect candidates={candidates} />
           ) : (
-            <p className="text-[14px] text-fg-faint">Nema slobodnih osoba za ovu poziciju.</p>
+            <p className="text-[14px] text-fg-faint">
+              {candidates.length > 0 ? "Svi za ovu poziciju su najavili odsustvo u vrijeme utakmice." : "Nema slobodnih osoba za ovu poziciju."}
+            </p>
           )}
 
           <p className="text-[13px] text-fg-muted">

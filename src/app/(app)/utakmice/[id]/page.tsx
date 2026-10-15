@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CalendarDays, ChevronLeft, MapPin, Phone, Printer } from "lucide-react";
+import { CalendarDays, ChevronLeft, MapPin, Phone, Printer, Users, ClipboardList, FileImage } from "lucide-react";
 import { getMatchPage } from "@/lib/data/report";
-import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, type MatchStatus } from "@/lib/format";
-import { Button, buttonClass, Loading, SectionTitle, Status } from "@/components/ui";
+import { listScoresheets } from "@/lib/scoresheets";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
+import { Bone, SectionTitleSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
+import { Button, buttonClass, cx, ROWS, SectionTitle, Status } from "@/components/ui";
 import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
+import { FinalScoreForm } from "./final-score-form";
 import { FinishButton } from "./finish-button";
-import { ScoreBoard } from "./score-board";
+import { FinalScore, ScoreBoard } from "./score-board";
+import { Scoresheets } from "./scoresheets";
 
 export const metadata = { title: "Utakmica — KSKS" };
 
@@ -31,7 +35,7 @@ export default function MatchPage({ params }: { params: Params }) {
       >
         <ChevronLeft className="size-5" /> Moje utakmice
       </Link>
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<MatchSkeleton />}>
         <Match params={params} />
       </Suspense>
     </>
@@ -42,9 +46,18 @@ async function Match({ params }: { params: Params }) {
   const { id } = await params;
   const page = await getMatchPage(id);
   if (!page) notFound();
-  const { match, crew, periods, report, isAdmin, isCommissioner } = page;
+  const { match, crew, periods, report, isAdmin, isCommissioner, isTable } = page;
 
   const canScore = isCommissioner || isAdmin;
+  const open = match.status !== "cancelled" && match.status !== "postponed";
+  // Bez komesara (i bez četvrtina) vodi se samo konačni rezultat: upisuje ga pomoćni sudija sa zapisnika
+  const finalOnly = periods.length === 0 && (match.home_score != null || !match.has_commissioner);
+  // Pomoćni sudija smije ispraviti ili poništiti svoj rezultat još 24 sata nakon upisa
+  const tableScores = isTable && !isAdmin && !match.has_commissioner;
+  const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
+  const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.status !== "finished" || undoUntil !== null));
+  const scoresheetAccess = isAdmin || isCommissioner || isTable;
+  const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
   const homeName = match.home?.name ?? "Domaćin";
   const awayName = match.away?.name ?? "Gost";
 
@@ -62,20 +75,26 @@ async function Match({ params }: { params: Params }) {
           </Status>
         </div>
         <div className="pb-5 pt-4 sm:pb-8 sm:pt-6">
-          <ScoreBoard
-            matchId={match.id}
-            homeName={homeName}
-            awayName={awayName}
-            initial={periods}
-            canEdit={isAdmin ? match.status !== "cancelled" && match.status !== "postponed" : isCommissioner && match.status === "live"}
-          />
+          {finalOnly ? (
+            <FinalScore homeName={homeName} awayName={awayName} homeLogoUrl={match.home?.club?.logo_url ?? null} awayLogoUrl={match.away?.club?.logo_url ?? null} home={match.home_score} away={match.away_score} />
+          ) : (
+            <ScoreBoard
+              matchId={match.id}
+              homeName={homeName}
+              awayName={awayName}
+              homeLogoUrl={match.home?.club?.logo_url ?? null}
+              awayLogoUrl={match.away?.club?.logo_url ?? null}
+              initial={periods}
+              canEdit={isAdmin ? open : isCommissioner && match.status === "live"}
+            />
+          )}
           {isCommissioner && !isAdmin && match.status === "scheduled" && (
             <p className="pt-3 text-[14px] text-fg-muted">Rezultat se unosi kad započneš utakmicu.</p>
           )}
           {isCommissioner && !isAdmin && match.status === "finished" && (
             <p className="pt-3 text-[14px] text-fg-muted">Utakmica je završena. Za ispravku rezultata javi se savezu.</p>
           )}
-          {canScore && (match.status === "scheduled" || match.status === "live") && (
+          {canScore && !finalOnly && (match.status === "scheduled" || match.status === "live") && (
             <div className="mt-5 border-t border-line pt-5">
               {match.status === "scheduled" ? (
                 <form action={setStatus}>
@@ -105,8 +124,45 @@ async function Match({ params }: { params: Params }) {
         {match.notes && <p className="border-t border-line py-3 text-[14px]">{match.notes}</p>}
       </section>
 
+      {scoresheetAccess && (
+        <section>
+          <SectionTitle icon={<FileImage />} count={sheets.length}>
+            Zapisnik
+          </SectionTitle>
+          <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
+            {canFinal && (
+              <div>
+                <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">Konačni rezultat sa zapisnika</h3>
+                {/* key: nakon poništavanja forma kreće ispočetka (prazna polja, bez stare poruke) */}
+                <FinalScoreForm
+                  key={match.home_score == null ? "new" : "entered"}
+                  matchId={match.id}
+                  homeName={homeName}
+                  awayName={awayName}
+                  homeLogoUrl={match.home?.club?.logo_url ?? null}
+                  awayLogoUrl={match.away?.club?.logo_url ?? null}
+                  home={match.home_score}
+                  away={match.away_score}
+                  byTable={tableScores}
+                  undoUntil={undoUntil}
+                />
+              </div>
+            )}
+            {tableScores && match.status === "finished" && !undoUntil && (
+              <p className="text-[14px] text-fg-muted">Rezultat je upisan i utakmica je završena. Za ispravku se javi savezu.</p>
+            )}
+            <div className={cx(canFinal && "border-t border-line pt-5")}>
+              <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">
+                Slike zapisnika, statistike i sl. <span className="font-normal text-faint">(nije obavezno)</span>
+              </h3>
+              <Scoresheets matchId={match.id} sheets={sheets} canEdit={open} />
+            </div>
+          </div>
+        </section>
+      )}
+
       <section>
-        <SectionTitle count={crew.length}>Službena lica</SectionTitle>
+        <SectionTitle icon={<Users />} count={crew.length}>Službena lica</SectionTitle>
         <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-panel shadow-panel [&>*]:px-4 sm:[&>*]:px-6">
           {crew.map((c) => (
             <li key={c.id} className="flex min-h-16 items-center gap-3 py-2.5">
@@ -135,6 +191,7 @@ async function Match({ params }: { params: Params }) {
       {(isCommissioner || isAdmin || report?.submitted_at) && (
         <section>
           <SectionTitle
+            icon={<ClipboardList />}
             action={
               report && (
                 <Link href={`/bilten/${match.id}`} className={buttonClass("secondary")}>
@@ -146,7 +203,7 @@ async function Match({ params }: { params: Params }) {
             Bilten
           </SectionTitle>
           {isCommissioner || isAdmin ? (
-            <BiltenForm matchId={match.id} homeName={homeName} awayName={awayName} values={report} isAdmin={isAdmin} />
+            <BiltenForm matchId={match.id} homeName={homeName} awayName={awayName} homeLogoUrl={match.home?.club?.logo_url ?? null} awayLogoUrl={match.away?.club?.logo_url ?? null} values={report} isAdmin={isAdmin} />
           ) : (
             <p className="rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5 py-6 text-[15px] text-fg-muted">
               Komesar je poslao bilten.
@@ -155,5 +212,76 @@ async function Match({ params }: { params: Params }) {
         </section>
       )}
     </div>
+  );
+}
+
+/** Kao stranica utakmice: semafor s četvrtinama, termin, pa službena lica */
+function MatchSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-10">
+      <section className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
+          <Text className="text-[13px] font-semibold" w="w-56" />
+          <StatusSkeleton w="w-14" />
+        </div>
+        <div className="pb-5 pt-4 sm:pb-8 sm:pt-6">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-2 text-center sm:gap-6">
+            {times(2, (i) => (
+              <div key={i} className={cx("min-w-0", i > 0 && "order-last")}>
+                <Text className="scoreboard text-[clamp(52px,19vw,84px)] font-semibold leading-[0.9] sm:text-[112px] lg:text-[128px]" w="w-[1.2em]" />
+                <Text className="mt-2 font-display text-[17px] font-semibold leading-tight sm:text-[22px]" w="w-28" />
+              </div>
+            ))}
+            <div className="scoreboard pb-6 text-[40px] font-semibold text-fg-faint sm:text-[64px]">:</div>
+          </div>
+          <div className="mt-4 rounded-lg border border-line bg-panel px-4 sm:px-5">
+            <div className="grid grid-cols-[3.25rem_1fr_1fr_2.75rem] items-center gap-2 border-b border-line px-3 py-2 text-[12px] font-semibold text-fg-faint sm:grid-cols-[8rem_1fr_1fr_2.75rem] sm:px-4">
+              <span>Period</span>
+              <Text className="text-center" w="w-20" />
+              <Text className="text-center" w="w-20" />
+              <span aria-hidden />
+            </div>
+            <ul className="divide-y divide-line">
+              {times(4, (i) => (
+                <li key={i} className="grid grid-cols-[3.25rem_1fr_1fr_2.75rem] items-center gap-2 px-3 py-2 sm:grid-cols-[8rem_1fr_1fr_2.75rem] sm:px-4">
+                  <Text className="scoreboard text-[20px] font-semibold sm:text-[15px]" w="w-8 sm:w-20" />
+                  <Text className="scoreboard py-2 text-center text-[26px] font-semibold" w="w-8" />
+                  <Text className="scoreboard py-2 text-center text-[26px] font-semibold" w="w-8" />
+                  <span aria-hidden />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Text className="mt-3 text-[13px]" w="w-48" />
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-line py-3 text-[14px]">
+          <span className="inline-flex items-center gap-1.5">
+            <Bone className="size-4" />
+            <Text w="w-40" />
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Bone className="size-4 rounded-full" />
+            <Text w="w-32" />
+          </span>
+        </div>
+      </section>
+
+      <section>
+        <SectionTitleSkeleton w="w-36" count />
+        <ul className={ROWS}>
+          {times(4, (i) => (
+            <li key={i} className="flex min-h-16 items-center gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <Text className="text-[12px] font-semibold" w="w-20" />
+                <Text className="text-[15px] font-semibold" w={i % 2 ? "w-32" : "w-40"} />
+              </div>
+              <span className="grid size-11 shrink-0 place-items-center">
+                <Bone className="size-5" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </Skeleton>
   );
 }

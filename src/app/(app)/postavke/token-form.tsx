@@ -54,7 +54,7 @@ export function CopyBlock({ text }: { text: string }) {
           await navigator.clipboard.writeText(text);
           setCopied(true);
         }}
-        className="grid size-10 shrink-0 place-items-center rounded-md text-brand hover:bg-panel-2"
+        className="grid size-10 shrink-0 place-items-center rounded-md text-brand transition-colors hover:bg-panel-3"
         aria-label={copied ? "Kopirano" : "Kopiraj"}
         title={copied ? "Kopirano" : "Kopiraj"}
       >

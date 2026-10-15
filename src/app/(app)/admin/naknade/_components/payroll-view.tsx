@@ -1,5 +1,6 @@
+import { TeamName } from "@/components/team-name";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Search, Wallet, CheckCircle2, Clock } from "lucide-react";
 import {
   formatKM,
   formatMonth,
@@ -123,9 +124,9 @@ export function PayrollSummary({
   return (
     <div className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
       <dl className="grid grid-cols-1 gap-x-6 gap-y-5 py-5 sm:grid-cols-3 sm:py-6">
-        <Amount label="Zarađeno" value={total} />
-        <Amount label="Isplaćeno" value={paid} tone="text-mint" />
-        <Amount label="Duguje se" value={unpaid} tone={unpaid > 0 ? "text-crest" : "text-fg-muted"} />
+        <Amount icon={<Wallet />} label="Zarađeno" value={total} />
+        <Amount icon={<CheckCircle2 />} label="Isplaćeno" value={paid} tone="text-mint" />
+        <Amount icon={<Clock />} label="Duguje se" value={unpaid} tone={unpaid > 0 ? "text-crest" : "text-fg-muted"} />
       </dl>
       {(note || aside) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4">
@@ -137,10 +138,10 @@ export function PayrollSummary({
   );
 }
 
-function Amount({ label, value, tone }: { label: string; value: number; tone?: string }) {
+function Amount({ label, value, tone, icon }: { label: string; value: number; tone?: string; icon: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[13px] font-medium text-fg-muted">{label}</dt>
+      <dt className="mb-3 flex items-center gap-2 text-[13px] font-medium text-fg-muted"><span aria-hidden="true" className="[&>svg]:size-4 [&>svg]:stroke-[1.7]">{icon}</span>{label}</dt>
       <dd className={cx("scoreboard mt-1 whitespace-nowrap text-[26px] font-semibold leading-none sm:text-[30px]", tone)}>{formatKM(value)}</dd>
     </div>
   );
@@ -154,7 +155,10 @@ export function PayrollItems({ person, editable }: { person: PayrollPerson; edit
         <li key={i.assignmentId} className="flex items-center gap-3 py-3 text-[14px]">
           <span className="scoreboard w-12 shrink-0 whitespace-nowrap text-[17px] font-semibold text-fg-muted">{formatDayMonth(i.startsAt)}</span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-semibold">{i.teams}</span>
+            <span className="flex min-w-0 flex-col gap-1 font-semibold">
+              <TeamName name={i.home?.name ?? "Domaćin"} logoUrl={i.home?.club?.logo_url} />
+              <TeamName name={i.away?.name ?? "Gost"} logoUrl={i.away?.club?.logo_url} />
+            </span>
             <span className="block text-[13px] text-fg-muted">
               <span className="font-semibold text-fg">{matchNo(i.number)}</span>, {i.competition}
               {i.kind && ` (${i.kind})`}, {POSITION_LABEL[i.position].toLowerCase()}

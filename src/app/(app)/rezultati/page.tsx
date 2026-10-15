@@ -1,9 +1,11 @@
 import { Suspense } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trophy } from "lucide-react";
 import { getCurrentCompetitions, getResults } from "@/lib/data/results";
 import { MATCH_STATUS_LABEL } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
-import { Empty, Loading, PageHeader, Rows, SectionTitle, Segment, Segments, Status } from "@/components/ui";
+import { CompetitionLogo } from "@/components/competition-logo";
+import { MatchRowsSkeleton, SectionTitleSkeleton, SegmentsSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
+import { Empty, PageHeader, Rows, SectionTitle, Segment, Segments, Status } from "@/components/ui";
 import { StandingsTable } from "./standings-table";
 
 export const metadata = { title: "Rezultati — KSKS" };
@@ -13,8 +15,8 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default function ResultsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader title="Rezultati" subtitle="Tabela i rezultati po kolima, uživo dok komesar unosi četvrtine." />
-      <Suspense fallback={<Loading />}>
+      <PageHeader icon={<Trophy />} title="Rezultati" subtitle="Tabela i rezultati po kolima, uživo dok komesar unosi četvrtine." />
+      <Suspense fallback={<ResultsSkeleton />}>
         <Results searchParams={searchParams} />
       </Suspense>
     </>
@@ -24,7 +26,7 @@ export default function ResultsPage({ searchParams }: { searchParams: SearchPara
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const competitions = await getCurrentCompetitions();
-  if (competitions.length === 0) return <Empty>Nema takmičenja u ovoj sezoni.</Empty>;
+  if (competitions.length === 0) return <Empty icon={<Trophy />}>Nema takmičenja u ovoj sezoni.</Empty>;
 
   const selectedId =
     typeof sp.takmicenje === "string" && competitions.some((c) => c.id === sp.takmicenje)
@@ -43,11 +45,11 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
       </Segments>
 
       {!data ? (
-        <Empty>Takmičenje nije pronađeno.</Empty>
+        <Empty icon={<Trophy />}>Takmičenje nije pronađeno.</Empty>
       ) : (
         <>
           <section>
-            <h2 className="font-display text-[22px] font-semibold leading-tight tracking-[-0.03em] sm:text-[24px]">{data.competition.name}</h2>
+            <h2 className="flex items-center gap-3 font-display text-[22px] font-semibold leading-tight tracking-[-0.03em] sm:text-[24px]"><CompetitionLogo name={data.competition.name} category={data.competition.category} />{data.competition.name}</h2>
             {data.competition.parent && data.competition.carry_over_h2h && (
               <p className="mt-1 text-[14px] text-fg-muted">
                 Prenose se rezultati međusobnih utakmica iz takmičenja {data.competition.parent.name}.
@@ -55,7 +57,7 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
             )}
             <div className="mt-5">
               {data.standings.length === 0 ? (
-                <Empty>Ekipe još nisu upisane.</Empty>
+                <Empty icon={<Trophy />}>Ekipe još nisu upisane.</Empty>
               ) : (
                 <StandingsTable rows={data.standings} />
               )}
@@ -63,7 +65,7 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
           </section>
 
           {data.rounds.length === 0 ? (
-            <Empty>Raspored još nije objavljen.</Empty>
+            <Empty icon={<Trophy />}>Raspored još nije objavljen.</Empty>
           ) : (
             data.rounds.map(([round, matches]) => (
               <section key={round ?? "ostalo"}>
@@ -129,5 +131,26 @@ function ResultRow({ match: m }: { match: ResultMatch }) {
         </div>
       </details>
     </li>
+  );
+}
+
+/** Kao stranica rezultata: takmičenja, naziv, tabela, pa kola s utakmicama */
+function ResultsSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-10">
+      <SegmentsSkeleton widths={["w-16", "w-20", "w-14", "w-20", "w-16"]} />
+      <section>
+        <Text className="font-display text-[22px] font-semibold leading-tight sm:text-[24px]" w="w-56" />
+        <div className="mt-5">
+          <StandingsSkeleton />
+        </div>
+      </section>
+      {times(2, (i) => (
+        <section key={i}>
+          <SectionTitleSkeleton w="w-20" count />
+          <MatchRowsSkeleton count={4} label={false} score />
+        </section>
+      ))}
+    </Skeleton>
   );
 }

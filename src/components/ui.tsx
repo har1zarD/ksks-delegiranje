@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Inbox } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -15,7 +16,7 @@ const BUTTON_BASE =
 const BUTTON_VARIANT: Record<Variant, string> = {
   primary: "bg-brand text-brand-ink shadow-panel hover:bg-brand-hover",
   secondary: "border border-line-strong bg-panel text-fg shadow-panel hover:border-line-hover hover:bg-panel-2",
-  plain: "px-2 text-fg-muted hover:text-fg",
+  plain: "px-2 text-fg-muted hover:bg-panel-2 hover:text-fg",
   destructive: "px-2 text-crest hover:bg-crest/[0.06]",
   danger: "bg-crest-deep text-white shadow-panel hover:bg-crest-deep-hover",
 };
@@ -41,7 +42,7 @@ export function ButtonLink({
 export const inputClass =
   "h-11 w-full rounded-lg border border-line-strong bg-panel px-3 text-[16px] text-fg placeholder:text-faint outline-none transition-[border-color,box-shadow] hover:border-line-hover focus:border-fg-muted focus:ring-4 focus:ring-fg/8 disabled:bg-panel-2 disabled:opacity-60 sm:h-10 sm:text-[14px]";
 
-function Label({ label, hint, children, className }: { label: string; hint?: string; children: ReactNode; className?: string }) {
+export function Label({ label, hint, children, className }: { label: ReactNode; hint?: string; children: ReactNode; className?: string }) {
   return (
     <label className={cx("flex min-w-0 flex-col gap-1.5", className)}>
       <span className="text-[13px] font-medium text-fg-muted">{label}</span>
@@ -54,35 +55,21 @@ function Label({ label, hint, children, className }: { label: string; hint?: str
 export function Field({
   label,
   hint,
+  icon,
   className,
   ...props
-}: ComponentProps<"input"> & { label: string; hint?: string }) {
+}: ComponentProps<"input"> & { label: ReactNode; hint?: string; icon?: ReactNode }) {
   return (
     <Label label={label} hint={hint} className={className}>
-      <input className={inputClass} {...props} />
+      {icon ? (
+        <span className="relative block">
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-fg-muted [&>svg]:size-4">{icon}</span>
+          <input className={cx(inputClass, "pl-10")} {...props} />
+        </span>
+      ) : <input className={inputClass} {...props} />}
     </Label>
   );
 }
-
-export function Select({
-  label,
-  hint,
-  className,
-  children,
-  ...props
-}: ComponentProps<"select"> & { label: string; hint?: string }) {
-  return (
-    <Label label={label} hint={hint} className={className}>
-      <select className={cx(inputClass, "appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-9", SELECT_ARROW)} {...props}>
-        {children}
-      </select>
-    </Label>
-  );
-}
-
-// Strelica za select (SVG u boji --muted)
-const SELECT_ARROW =
-  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8b95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]";
 
 export function Textarea({
   label,
@@ -102,24 +89,29 @@ export function Textarea({
 export function PageHeader({
   title,
   subtitle,
+  icon,
   children,
 }: {
   title: string;
   subtitle?: ReactNode;
+  icon?: ReactNode;
   children?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pb-6 sm:pb-8">
-      <div className="min-w-0">
-        <h1 className="font-display text-[28px] font-semibold leading-tight tracking-[-0.04em] sm:text-[32px]">{title}</h1>
-        {subtitle && <p className="mt-1.5 max-w-prose text-[14px] text-fg-muted">{subtitle}</p>}
+    <header className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-b border-line pb-6 sm:mb-8">
+      <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
+        {icon && <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-lg border border-line bg-panel text-fg-muted shadow-panel sm:size-12 [&>svg]:size-[22px] [&>svg]:stroke-[1.6]">{icon}</span>}
+        <div className="min-w-0">
+          <h1 className="font-display text-[28px] font-semibold leading-tight tracking-[-0.04em] sm:text-[32px]">{title}</h1>
+          {subtitle && <p className="mt-1.5 max-w-prose text-[14px] leading-relaxed text-fg-muted">{subtitle}</p>}
+        </div>
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </header>
   );
 }
 
-/** Kartica: bijela površina, tanka ivica, radius 8px, jedva vidljiva sjena */
+/** Kartica: bijela površina, tanka ivica, radius 10px, jedva vidljiva sjena */
 export const CARD = "rounded-lg border border-line bg-panel shadow-panel";
 
 export function Panel({ className, ...props }: ComponentProps<"section">) {
@@ -127,12 +119,13 @@ export function Panel({ className, ...props }: ComponentProps<"section">) {
 }
 
 /** Naslov sekcije unutar stranice */
-export function SectionTitle({ children, count, action }: { children: ReactNode; count?: number; action?: ReactNode }) {
+export function SectionTitle({ children, count, action, icon }: { children: ReactNode; count?: number; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 pb-3">
-      <h2 className="font-display text-[18px] font-semibold tracking-[-0.02em]">
+      <h2 className="flex min-w-0 items-center gap-2.5 font-display text-[18px] font-semibold tracking-[-0.02em]">
+        {icon && <span aria-hidden="true" className="shrink-0 text-fg-muted [&>svg]:size-[18px] [&>svg]:stroke-[1.7]">{icon}</span>}
         {children}
-        {count !== undefined && <span className="ml-2 text-fg-faint">{count}</span>}
+        {count !== undefined && <span className="tabular inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px] font-medium text-fg-muted">{count}</span>}
       </h2>
       {action}
     </div>
@@ -147,21 +140,13 @@ export function Rows({ className, ...props }: ComponentProps<"ul">) {
   return <ul className={cx(ROWS, className)} {...props} />;
 }
 
-export function Empty({ children, action }: { children: ReactNode; action?: ReactNode }) {
+export function Empty({ children, action, icon = <Inbox />, title }: { children: ReactNode; action?: ReactNode; icon?: ReactNode; title?: string }) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-line-strong px-6 py-12 text-center">
-      <p className="max-w-sm text-[15px] text-fg-muted">{children}</p>
-      {action}
-    </div>
-  );
-}
-
-export function Loading() {
-  return (
-    <div className="flex flex-col gap-3" aria-busy="true" aria-label="Učitavam">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-20 animate-pulse rounded-lg border border-line bg-panel" />
-      ))}
+    <div className="flex flex-col items-center rounded-lg border border-line bg-panel px-6 py-10 text-center shadow-panel sm:py-12">
+      <span aria-hidden="true" className="mb-5 grid size-14 place-items-center rounded-xl border border-line bg-panel-2 text-fg-muted [&>svg]:size-6 [&>svg]:stroke-[1.5]">{icon}</span>
+      {title && <h3 className="mb-2 text-[16px] font-semibold tracking-[-0.02em]">{title}</h3>}
+      <p className="max-w-sm text-[14px] leading-relaxed text-fg-muted">{children}</p>
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
@@ -199,14 +184,17 @@ export function Status({ tone, children, pulse }: { tone: Tone; children: ReactN
 }
 
 /** Broj kao na semaforu, s opisom ispod */
-export function Stat({ label, value, unit, tone }: { label: string; value: ReactNode; unit?: string; tone?: Tone }) {
+export function Stat({ label, value, unit, tone, icon }: { label: string; value: ReactNode; unit?: string; tone?: Tone; icon?: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dd className={cx("scoreboard whitespace-nowrap text-[28px] font-semibold leading-none tracking-[-0.04em] sm:text-[32px]", tone && TONE[tone])}>
+      <dt className="mb-3 flex items-center gap-2 text-[13px] font-medium text-fg-muted">
+        {icon && <span aria-hidden="true" className="shrink-0 [&>svg]:size-4 [&>svg]:stroke-[1.7]">{icon}</span>}
+        {label}
+      </dt>
+      <dd className={cx("scoreboard break-words text-[28px] font-semibold leading-none tracking-[-0.04em] sm:text-[32px]", tone && TONE[tone])}>
         {value}
         {unit && <span className="ml-1 text-[18px] font-semibold text-fg-muted sm:text-[22px]">{unit}</span>}
       </dd>
-      <dt className="mt-1.5 text-[13px] text-fg-muted">{label}</dt>
     </div>
   );
 }
@@ -228,7 +216,7 @@ export function Segment({ href, active, children }: { href: string; active: bool
       aria-current={active ? "page" : undefined}
       className={cx(
         "whitespace-nowrap rounded-md px-3.5 py-1.5 text-[14px] font-semibold transition-colors",
-        active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:text-fg",
+        active ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
       )}
     >
       {children}
