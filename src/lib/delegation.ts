@@ -5,10 +5,10 @@
 // s tabelom "assignments" i utakmicom (povratne vrijednosti nose matchId).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
-import { sendEmail } from "@/lib/email";
+import { senderAddress, sendEmail } from "@/lib/email";
 import { sendReplacementNomination } from "@/lib/publish";
-import { cancellationEmail, declinedEmail } from "@/lib/emails";
-import { CREW_COLUMNS, crewOf, crewPositions, skillFor } from "@/lib/crew";
+import { acceptedEmail, cancellationEmail, declinedEmail } from "@/lib/emails";
+import { CREW_COLUMNS, crewOf, crewPositions, skillsFor } from "@/lib/crew";
 import { formatAbsence, matchWindow, type MatchStatus, type Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -18,7 +18,7 @@ type Db = SupabaseClient<Database>;
 export class DelegationError extends Error {}
 
 /** Pomoćne sudije: zapisnik, pom. zapisnik, glavno vrijeme, 24/14, statistika */
-const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "statistician_3"];
+const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "assistant_timer", "shot_clock", "timer_shot_clock", "statistician_1", "statistician_2", "statistician_3"];
 
 export function eligibleFor(
   position: Position,
@@ -29,7 +29,7 @@ export function eligibleFor(
   // Admin (savez) može i suditi/raditi za stolom ako je tako označen u Ljudima
   const official = p.role === "official" || p.role === "admin";
   // Pomoćne sudije: samo za pozicije koje osoba zna (zapisnik, glavno vrijeme, 24/14, statistika)
-  if (TABLE.includes(position)) return official && p.is_table && p.table_skills.includes(skillFor(position)!);
+  if (TABLE.includes(position)) return official && p.is_table && skillsFor(position).every((s) => p.table_skills.includes(s));
   return official && p.is_referee;
 }
 
@@ -148,7 +148,7 @@ export async function replaceAssignment(
 }
 
 /**
- * Odgovor na vlastitu, poslanu nominaciju. Odbijanje (i otkazivanje prihvaćene) javlja adminima.
+ * Odgovor na vlastitu, poslanu nominaciju. Prihvatanje javlja savezu (adresa pošiljaoca), odbijanje (i otkazivanje prihvaćene) svim adminima.
  * Vraća funkciju za slanje obavijesti, da je web može pokrenuti nakon odgovora (after()).
  */
 export async function respondToNomination(
@@ -175,12 +175,16 @@ export async function respondToNomination(
   if (!row) throw new DelegationError("Nominacija nije pronađena ili se na nju više ne može odgovoriti.");
 
   const notifyAdmins = async () => {
-    if (accept) return;
-    const [{ data: match }, { data: admins }] = await Promise.all([
-      db.from("matches").select(MATCH_SELECT).eq("id", row.match_id).single(),
-      db.from("profiles").select("id, email").eq("role", "admin").eq("active", true),
-    ]);
+    const { data: match } = await db.from("matches").select(MATCH_SELECT).eq("id", row.match_id).single();
     if (!match) return;
+    if (accept) {
+      // Potvrda prihvatanja ide savezu, na adresu pošiljaoca (ksksdelegiranje@gmail.com)
+      const to = senderAddress();
+      const { data: office } = await db.from("profiles").select("id").eq("email", to).maybeSingle();
+      await sendEmail({ to, kind: "accepted", profileId: office?.id, assignmentId: row.id, ...acceptedEmail(row.profile?.full_name ?? "", row.position, match) });
+      return;
+    }
+    const { data: admins } = await db.from("profiles").select("id, email").eq("role", "admin").eq("active", true);
     const email = declinedEmail(row.profile?.full_name ?? "", row.position, why!, match);
     for (const admin of admins ?? []) {
       await sendEmail({ to: admin.email, kind: "declined", profileId: admin.id, assignmentId: row.id, ...email });

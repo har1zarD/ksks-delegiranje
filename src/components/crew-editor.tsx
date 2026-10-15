@@ -40,7 +40,10 @@ export function CrewEditor({
         <Toggle label={value.digital ? "Dig. zapisnik" : "Zapisnik"} on={value.scorer} onClick={() => set({ scorer: !value.scorer })} />
         <Toggle label="Pom. zapisnik" on={value.assistantScorer} onClick={() => set({ assistantScorer: !value.assistantScorer })} />
         <Toggle label="Glavno vrijeme" on={value.timer} onClick={() => set({ timer: !value.timer })} />
+        <Toggle label="Pom. semafor" on={value.assistantTimer} onClick={() => set({ assistantTimer: !value.assistantTimer })} />
         <Toggle label="24/14" on={value.shotClock} onClick={() => set({ shotClock: !value.shotClock })} />
+        {/* Omladinska liga: jedna osoba radi glavno vrijeme i 24/14 */}
+        <Toggle label="Glavno vrijeme – 24/14" on={value.timerShotClock} onClick={() => set({ timerShotClock: !value.timerShotClock })} />
       </Row>
 
       <Row label="Statistika">
@@ -72,7 +75,9 @@ export function CrewHiddenFields({ crew }: { crew: Crew }) {
       <input type="hidden" name="crew_scorer" value={b(crew.scorer)} />
       <input type="hidden" name="crew_assistant_scorer" value={b(crew.assistantScorer)} />
       <input type="hidden" name="crew_timer" value={b(crew.timer)} />
+      <input type="hidden" name="crew_assistant_timer" value={b(crew.assistantTimer)} />
       <input type="hidden" name="crew_shot_clock" value={b(crew.shotClock)} />
+      <input type="hidden" name="crew_timer_shot_clock" value={b(crew.timerShotClock)} />
       <input type="hidden" name="crew_stats" value={crew.stats} />
       <input type="hidden" name="crew_digital" value={b(crew.digital)} />
     </>

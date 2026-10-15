@@ -5,7 +5,33 @@ export type Database = {
   
   "public": {
           Tables: {
-            "assignments": {
+            "assignment_declines": {
+                  Row: {
+                    "declined_at": string,"id": string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "declined_at"?: string,"id"?: string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason"?: string | null
+                  }
+                  Update: {
+                    "declined_at"?: string,"id"?: string,"match_id"?: string,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"reason"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assignment_declines_match_id_fkey"
+      columns: ["match_id"]
+isOneToOne: false
+      referencedRelation: "matches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assignment_declines_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"assignments": {
                   Row: {
                     "created_at": string,"created_by": string | null,"decline_reason": string | null,"id": string,"match_id": string,"notified_at": string | null,"paid_at": string | null,"paid_by": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]
                   }
@@ -59,14 +85,14 @@ isOneToOne: false
                   ]
                 },"competitions": {
                   Row: {
-                    "carry_over_h2h": boolean,"fee_referee_2_km": number | null,"referees_default": boolean,"commissioner_default": boolean,"scorer_default": boolean,"assistant_scorer_default": boolean,"timer_default": boolean,"shot_clock_default": boolean,"stats_default": number,"digital_default": boolean,"fee_stats_km": number | null,"split_nominations": boolean,"fee_referee_3_km": number | null,"fee_table_km": number | null,"fee_commissioner_km": number | null,"referee_count_default": number,"table_count_default": number,"category": string,"fee_due_on": string | null,"fee_first_km": number | null,"fee_km": number | null,"format": string | null,"gender": string,"id": string,"name": string,"parent_id": string | null,"period_min": number,"periods": number,"season_id": string,"short_name": string | null,"sort": number,"starts_on": string | null
+                    "carry_over_h2h": boolean,"fee_referee_2_km": number | null,"referees_default": boolean,"commissioner_default": boolean,"scorer_default": boolean,"assistant_scorer_default": boolean,"assistant_timer_default": boolean,"timer_default": boolean,"shot_clock_default": boolean,"timer_shot_clock_default": boolean,"stats_default": number,"digital_default": boolean,"fee_stats_km": number | null,"split_nominations": boolean,"fee_referee_3_km": number | null,"fee_table_km": number | null,"fee_commissioner_km": number | null,"referee_count_default": number,"table_count_default": number,"category": string,"fee_due_on": string | null,"fee_first_km": number | null,"fee_km": number | null,"format": string | null,"gender": string,"id": string,"name": string,"parent_id": string | null,"period_min": number,"periods": number,"season_id": string,"short_name": string | null,"sort": number,"starts_on": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category": string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name": string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id": string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
+                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"assistant_timer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"timer_shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category": string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name": string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id": string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
                   }
                   Update: {
-                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category"?: string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name"?: string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id"?: string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
+                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"assistant_timer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"timer_shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category"?: string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name"?: string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id"?: string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
                   }
                   Relationships: [
                     {
@@ -223,14 +249,14 @@ isOneToOne: true
                   ]
                 },"matches": {
                   Row: {
-                    "away_score": number | null,"table_count": number,"away_team_id": string,"competition_id": string,"created_at": string,"hall_id": string | null,"home_score": number | null,"home_team_id": string,"id": string,"notes": string | null,"number": number,"kind": Database["public"]["Enums"]["match_kind"],"kind_label": string | null,"has_referees": boolean,"published_at": string | null,"score_entered_at": string | null,"has_commissioner": boolean,"has_scorer": boolean,"has_assistant_scorer": boolean,"has_timer": boolean,"has_shot_clock": boolean,"stats_count": number,"digital_scoresheet": boolean,"referee_count": number,"round": number | null,"starts_at": string,"status": Database["public"]['Enums']["match_status"]
+                    "away_score": number | null,"table_count": number,"away_team_id": string,"clubs_notified_at": string | null,"competition_id": string,"created_at": string,"hall_id": string | null,"home_score": number | null,"home_team_id": string,"id": string,"notes": string | null,"number": number,"kind": Database["public"]["Enums"]["match_kind"],"kind_label": string | null,"has_referees": boolean,"published_at": string | null,"score_entered_at": string | null,"has_commissioner": boolean,"has_scorer": boolean,"has_assistant_scorer": boolean,"has_assistant_timer": boolean,"has_timer": boolean,"has_shot_clock": boolean,"has_timer_shot_clock": boolean,"stats_count": number,"digital_scoresheet": boolean,"referee_count": number,"round": number | null,"starts_at": string,"status": Database["public"]['Enums']["match_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "away_score"?: number | null,"table_count"?: number,"away_team_id": string,"competition_id": string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id": string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"referee_count"?: number,"round"?: number | null,"starts_at": string,"status"?: Database["public"]['Enums']["match_status"]
+                    "away_score"?: number | null,"table_count"?: number,"away_team_id": string,"clubs_notified_at"?: string | null,"competition_id": string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id": string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_assistant_timer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"has_timer_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"referee_count"?: number,"round"?: number | null,"starts_at": string,"status"?: Database["public"]['Enums']["match_status"]
                   }
                   Update: {
-                    "away_score"?: number | null,"table_count"?: number,"away_team_id"?: string,"competition_id"?: string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id"?: string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"referee_count"?: number,"round"?: number | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["match_status"]
+                    "away_score"?: number | null,"table_count"?: number,"away_team_id"?: string,"clubs_notified_at"?: string | null,"competition_id"?: string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id"?: string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_assistant_timer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"has_timer_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"referee_count"?: number,"round"?: number | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["match_status"]
                   }
                   Relationships: [
                     {
@@ -464,7 +490,7 @@ isOneToOne: false
       } }
           }
           Enums: {
-            "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"assistant_scorer"|"timer"|"shot_clock"|"statistician_1"|"statistician_2"|"statistician_3"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_kind": "league"|"friendly"|"tournament"|"custom","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"
+            "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"assistant_scorer"|"timer"|"assistant_timer"|"shot_clock"|"timer_shot_clock"|"statistician_1"|"statistician_2"|"statistician_3"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_kind": "league"|"friendly"|"tournament"|"custom","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -580,7 +606,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "assignment_position": ["referee_1", "referee_2", "referee_3", "scorer", "assistant_scorer", "timer", "shot_clock", "statistician_1", "statistician_2", "statistician_3", "commissioner"],"assignment_status": ["pending", "accepted", "declined", "cancelled"],"match_kind": ["league", "friendly", "tournament", "custom"],"match_status": ["scheduled", "live", "finished", "postponed", "cancelled"],"user_role": ["admin", "official", "commissioner"]
+            "assignment_position": ["referee_1", "referee_2", "referee_3", "scorer", "assistant_scorer", "timer", "assistant_timer", "shot_clock", "timer_shot_clock", "statistician_1", "statistician_2", "statistician_3", "commissioner"],"assignment_status": ["pending", "accepted", "declined", "cancelled"],"match_kind": ["league", "friendly", "tournament", "custom"],"match_status": ["scheduled", "live", "finished", "postponed", "cancelled"],"user_role": ["admin", "official", "commissioner"]
           }
         }
 } as const

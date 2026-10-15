@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Users } from "lucide-react";
 import { getCompetitions, getDelegation, getHalls, type Candidate } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
-import { crewOf, crewPositions, crewSummary, NOMINATION_GROUP_LABEL, nominationGroupOf, skillFor, type NominationGroup } from "@/lib/crew";
+import { crewOf, crewPositions, crewSummary, NOMINATION_GROUP_LABEL, nominationGroupOf, skillsFor, type NominationGroup } from "@/lib/crew";
 import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile, KindTag } from "@/components/match-line";
@@ -48,7 +48,7 @@ export default function DelegationPage({ params }: { params: Promise<{ id: strin
 
 function eligibleFor(position: Position, c: Candidate) {
   if (position === "commissioner") return c.isCommissioner;
-  if (nominationGroupOf(position) === "table") return c.canTable && c.tableSkills.includes(skillFor(position)!);
+  if (nominationGroupOf(position) === "table") return c.canTable && skillsFor(position).every((s) => c.tableSkills.includes(s));
   return c.canReferee;
 }
 

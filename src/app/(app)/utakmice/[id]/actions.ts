@@ -97,9 +97,7 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const spectators = intOrNull(formData.get("spectators"), 100_000);
-  const homeFouls = intOrNull(formData.get("home_fouls"), 99);
-  const awayFouls = intOrNull(formData.get("away_fouls"), 99);
-  if ([spectators, homeFouls, awayFouls].some((n) => Number.isNaN(n))) return { error: "Gledaoci i greške moraju biti cijeli brojevi." };
+  if (Number.isNaN(spectators)) return { error: "Broj gledalaca mora biti cijeli broj." };
   const startedAt = get("started_at");
   const endedAt = get("ended_at");
   if ((startedAt && !TIME.test(startedAt)) || (endedAt && !TIME.test(endedAt))) return { error: "Vrijeme upiši kao SS:MM." };
@@ -112,7 +110,9 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
       .map((t) => ({
         team: t.team === "away" ? "away" : "home",
         player: t.player.trim().slice(0, 80),
-        minute: t.minute && Number.isInteger(t.minute) && t.minute >= 1 && t.minute <= 60 ? t.minute : null,
+        // Četvrtina 1–4 ili produžetak (5+); minuta unutar nje (10 u četvrtini, 5 u produžetku)
+        period: t.period && Number.isInteger(t.period) && t.period >= 1 && t.period <= 10 ? t.period : null,
+        minute: t.minute && Number.isInteger(t.minute) && t.minute >= 1 && t.minute <= (t.period && t.period > 4 ? 5 : 10) ? t.minute : null,
         type: t.type === "U" || t.type === "D" ? t.type : "T",
       }));
   } catch {
@@ -130,8 +130,6 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
     spectators,
     started_at: startedAt || null,
     ended_at: endedAt || null,
-    home_fouls: homeFouls,
-    away_fouls: awayFouls,
     technicals,
     incidents: get("incidents") || null,
     remarks: get("remarks") || null,
@@ -216,7 +214,7 @@ const SCORESHEET_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png
 /** Link za upload jedne slike zapisnika direktno u Storage (zaobilazi ograničenje veličine Server Action zahtjeva) */
 export async function createScoresheetUpload(matchId: string, contentType: string): Promise<{ error?: string; path?: string; token?: string }> {
   const user = await getCurrentUser();
-  if (!(await matchRoleOf(user, matchId))) return { error: "Slike dodaje komesar, pomoćni sudija ili savez." };
+  if (!(await matchRoleOf(user, matchId))) return { error: "Slike dodaju sudije, komesar, pomoćne sudije ili savez." };
   const ext = SCORESHEET_EXT[contentType];
   if (!ext) return { error: "Dozvoljene su slike (JPG, PNG, WEBP)." };
 
@@ -233,5 +231,25 @@ export async function deleteScoresheet(matchId: string, path: string): Promise<{
   if (!new RegExp(`^${matchId}/[\\w.-]+$`).test(path) || path.includes("..")) return { error: "Nepoznata slika." };
   const { error } = await createAdminClient().storage.from(SCORESHEET_BUCKET).remove([path]);
   if (error) return { error: "Slika nije obrisana." };
+  return {};
+}
+
+/**
+ * Plaćanje utakmice: komesar utakmice (ili savez) označi da su službena lica isplaćena.
+ * Isto što i isplata u Naknadama: paid_at na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije plaćeno.
+ */
+export async function setMatchPaid(matchId: string, paid: boolean): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  const role = await matchRoleOf(user, matchId);
+  if (role !== "commissioner" && role !== "admin") return { error: "Plaćanje označava komesar utakmice ili savez." };
+
+  const { error } = await createAdminClient()
+    .from("assignments")
+    .update(paid ? { paid_at: new Date().toISOString(), paid_by: user.id } : { paid_at: null, paid_by: null })
+    .eq("match_id", matchId)
+    .eq("status", "accepted");
+  if (error) return { error: "Plaćanje nije sačuvano. Pokušaj ponovo." };
+
+  invalidate({ table: "assignments", match: matchId });
   return {};
 }

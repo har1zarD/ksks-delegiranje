@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList } from "lucide-react";
 import { getAdminMatches } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
-import { POSITION_LABEL } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
+import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { PageIntro } from "@/components/page-intro";
 import { StaffingBadge } from "@/components/staffing-badge";
@@ -101,15 +101,7 @@ async function Overview() {
                 <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
                   <MatchLine
                     match={m}
-                    meta={
-                      <div className="flex flex-wrap gap-x-3 gap-y-1">
-                        {m.staffing.missing.map((p) => (
-                          <Status key={p} tone="orange">
-                            {POSITION_LABEL[p]}
-                          </Status>
-                        ))}
-                      </div>
-                    }
+                    meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />}
                   />
                   <ChevronRight className="size-5 shrink-0 text-fg-faint" />
                 </Link>
@@ -126,7 +118,7 @@ async function Overview() {
             {upcoming.slice(0, 5).map((m) => (
               <li key={m.id}>
                 <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                  <MatchLine match={m} aside={<StaffingBadge staffing={m.staffing} />} />
+                  <MatchLine match={m} meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />} aside={<StaffingBadge staffing={m.staffing} />} />
                 </Link>
               </li>
             ))}

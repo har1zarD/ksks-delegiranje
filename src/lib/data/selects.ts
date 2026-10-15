@@ -2,14 +2,14 @@
 import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS } from "@/lib/crew";
 
 export const MATCH_SELECT = `
-  id, number, kind, kind_label, starts_at, round, status, published_at, ${CREW_COLUMNS}, home_score, away_score,
-  competition:competitions!matches_competition_id_fkey ( id, name, short_name ),
+  id, number, kind, kind_label, starts_at, round, status, published_at, clubs_notified_at, ${CREW_COLUMNS}, home_score, away_score,
+  competition:competitions!matches_competition_id_fkey ( id, name, short_name, category ),
   home:teams!matches_home_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
   away:teams!matches_away_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
   hall:halls!matches_hall_id_fkey ( id, name )
 ` as const;
 
-export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match:matches!assignments_match_id_fkey ( ${MATCH_SELECT} )` as const;
+export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match:matches!assignments_match_id_fkey ( ${MATCH_SELECT}, periods:match_periods ( period, home_points, away_points ) )` as const;
 
 export const CREW_SELECT = "match_id, position, status, profile:profiles!assignments_profile_id_fkey ( full_name, phone )" as const;
 
@@ -23,7 +23,7 @@ const MATCH_FEE_RULES =
 /** Rezultat po četvrtinama (box score na listi i detalju) */
 const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points )" as const;
 
-export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( position, status, notified_at, profile:profiles!assignments_profile_id_fkey ( full_name ) )` as const;
+export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( position, status, notified_at, paid_at, profile:profiles!assignments_profile_id_fkey ( full_name ) )` as const;
 
 export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
 

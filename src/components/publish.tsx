@@ -9,16 +9,20 @@ import { publish, type PublishState } from "@/app/(app)/admin/utakmice/actions";
 
 /** Poruka nakon objave: šta je vidljivo i šta je otišlo emailom */
 function resultText(r: NonNullable<PublishState["result"]>) {
-  const docs = r.documents.map((d) => (d.kind === "youth" ? "nominacija" : "nominacija – pomoćne sudije")).join(" i ");
   const mail = r.emailed
-    ? `Poslana ${docs} na ${r.recipients} adresa.`
+    ? `Poslana nominacija na ${r.recipients} adresa.`
     : "Email nije poslan (nije podešen ili je uključen test način za druge adrese); nominacije se vide u aplikaciji.";
-  return `Aktivirano utakmica: ${r.matches}. ${mail}`;
+  const clubs = r.clubs
+    ? r.clubs.sent
+      ? ` Klubovima poslan raspored (${r.clubs.matches} ${r.clubs.matches === 1 ? "utakmica" : "utakmice"}, ${r.clubs.recipients} adresa).`
+      : " Raspored klubovima nije poslan (nijedan klub nema email)."
+    : "";
+  return `Aktivirano utakmica: ${r.matches}. ${mail}${clubs}`;
 }
 
 const CONFIRM = (n: number) => ({
   title: `Aktivirati ${n === 1 ? "utakmicu" : `${n} utakmica`}?`,
-  message: "Delegirani će vidjeti nominaciju, a svim sudijama i pomoćnim sudijama ide nominacija emailom.",
+  message: "Delegirani će vidjeti nominaciju, svim sudijama i pomoćnim sudijama ide nominacija emailom, a klubovima raspored omladinske lige bez službenih lica.",
   confirmLabel: "Aktiviraj",
 });
 
@@ -120,21 +124,22 @@ function PublishBar({ incomplete }: { incomplete: Incomplete }) {
               <button type="button" onClick={() => ctx.setMany(ids, false)} className="-my-2.5 h-10 text-[13px] font-medium text-fg-muted hover:text-fg">
                 Poništi
               </button>
-              <Button
-                className="ml-auto"
-                disabled={pending}
-                onClick={async () => {
-                  if (!(await confirm(CONFIRM(ids.length)))) return;
-                  start(async () => {
-                    const r = await publish(ids);
-                    if (r.result) ctx.setMany(ids, false);
-                    setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });
-                  });
-                }}
-              >
-                <Send className="size-4" />
-                {pending ? "Aktiviram…" : "Aktiviraj i pošalji nominaciju"}
-              </Button>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <Button
+                  disabled={pending}
+                  onClick={async () => {
+                    if (!(await confirm(CONFIRM(ids.length)))) return;
+                    start(async () => {
+                      const r = await publish(ids);
+                      if (r.result) ctx.setMany(ids, false);
+                      setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });
+                    });
+                  }}
+                >
+                  <Send className="size-4" />
+                  {pending ? "Šaljem…" : "Aktiviraj i pošalji nominaciju"}
+                </Button>
+              </div>
             </>
           ) : (
             <>

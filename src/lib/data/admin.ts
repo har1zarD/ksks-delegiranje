@@ -67,6 +67,16 @@ export async function getNextMatchNumbers(): Promise<Record<string, number>> {
   return Object.fromEntries(Object.entries(max).map(([k, v]) => [k, v + 1]));
 }
 
+/** Plaćanje utakmice: isplata svim prihvaćenim delegiranjima (paid_at), kako je vodi obračun naknada */
+export type MatchPayment = { state: "paid" | "partial" | "unpaid" | "none"; paid: number; total: number };
+
+function paymentOf(assignments: { status: AssignmentStatus; paid_at: string | null }[]): MatchPayment {
+  const accepted = assignments.filter((a) => a.status === "accepted");
+  const paid = accepted.filter((a) => a.paid_at).length;
+  const state = accepted.length === 0 ? "none" : paid === accepted.length ? "paid" : paid === 0 ? "unpaid" : "partial";
+  return { state, paid, total: accepted.length };
+}
+
 /** `people` = delegirani (prihvatili ili čekaju), redom pozicija; `unnotified` = delegirani koji još nisu obaviješteni (izmjene nakon aktiviranja) */
 export type StaffingSummary = { missing: Position[]; pending: number; unnotified: number; people: { position: Position; name: string; accepted: boolean }[] };
 
@@ -85,6 +95,27 @@ function staffing(
   };
 }
 
+/** Pozicija utakmice s delegiranom osobom (ili bez nje): linija ekipe u listi */
+export type CrewSlot = { position: Position; name: string | null; status: AssignmentStatus | null };
+
+type SlotAssignment = { position: Position; status: AssignmentStatus; profile: { full_name: string } | null };
+
+/**
+ * Svaka pozicija koju utakmica traži (i dodatne na kojima neko aktivno jeste): aktivno delegiranje (čeka/prihvaćeno),
+ * inače odbijeno da admin vidi ko je otpao, inače prazno = nedostaje. Otkazana se ne prikazuju (mjesto je slobodno).
+ */
+function crewSlots(crew: Crew, assignments: SlotAssignment[]): CrewSlot[] {
+  const active = (a: SlotAssignment) => a.status === "pending" || a.status === "accepted";
+  const positions = [...new Set([...crewPositions(crew), ...assignments.filter(active).map((a) => a.position)])].sort(
+    (a, b) => POSITION_ORDER.indexOf(a) - POSITION_ORDER.indexOf(b),
+  );
+  return positions.map((position) => {
+    const here = assignments.filter((a) => a.position === position && a.profile);
+    const a = here.find(active) ?? here.find((x) => x.status === "declined");
+    return { position, name: a?.profile?.full_name ?? null, status: a?.status ?? null };
+  });
+}
+
 /** Najviše utakmica koje čitač vraća (+ rezerva za one koje vanjski filter po vremenu izbaci) */
 const MATCH_LIMIT = 300;
 const POOL_LIMIT = 400;
@@ -96,11 +127,13 @@ const POOL_LIMIT = 400;
 async function matchPool(when: "upcoming" | "past", competitionId: string | null, day: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
+  // i profili: imena delegiranih u liniji ekipe
   cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods, TAG.profiles);
   let q = createAdminClient().from("matches").select(ADMIN_MATCH_SELECT);
   if (competitionId) q = q.eq("competition_id", competitionId);
-  if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.eq.live`);
-  else q = q.lt("starts_at", sarajevoToISO(addDays(day, 1), "00:00")).neq("status", "live");
+  // Završena utakmica je odigrana čim je neko označi završenom, i kad je datum u budućnosti
+  if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.eq.live`).neq("status", "finished");
+  else q = q.or(`starts_at.lt.${sarajevoToISO(addDays(day, 1), "00:00")},status.eq.finished`).neq("status", "live");
   return rows(await q.order("starts_at", { ascending: when === "upcoming" }).limit(POOL_LIMIT));
 }
 
@@ -112,14 +145,16 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
   const pool = await matchPool(opts.when, opts.competitionId ?? null, todayISO());
   const windowEnd = opts.days ? new Date(now + opts.days * 86_400_000).toISOString() : null;
   return pool
-    // Utakmica uživo je "predstoji" i kad je prošlo vrijeme početka
-    .filter((m) => (opts.when === "upcoming" ? m.starts_at >= nowIso || m.status === "live" : m.starts_at < nowIso))
+    // Utakmica uživo je "predstoji" i kad je prošlo vrijeme početka; završena je odigrana i kad je datum u budućnosti
+    .filter((m) => (opts.when === "upcoming" ? (m.starts_at >= nowIso || m.status === "live") && m.status !== "finished" : m.starts_at < nowIso || m.status === "finished"))
     .filter((m) => !windowEnd || m.starts_at < windowEnd)
     .slice(0, MATCH_LIMIT)
     .map(({ assignments, ...m }) => ({
       ...m,
       crew: crewOf(m),
       staffing: staffing(crewOf(m), assignments),
+      slots: crewSlots(crewOf(m), assignments),
+      payment: paymentOf(assignments),
     }));
 }
 

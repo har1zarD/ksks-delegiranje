@@ -7,12 +7,12 @@ import { Empty, PageHeader, Rows, ROWS, SectionTitle } from "@/components/ui";
 import { AddPerson } from "./add-person";
 import { PersonRow } from "./person-row";
 
-export const metadata = { title: "Ljudi — KSKS" };
+export const metadata = { title: "Službena lica — KSKS" };
 
 export default function PeoplePage() {
   return (
     <>
-      <PageHeader icon={<Users />} title="Ljudi" subtitle="Sudije, zapisnički sto, komesari i savez. Dodirni osobu za izmjenu." />
+      <PageHeader icon={<Users />} title="Službena lica" subtitle="Sudije, zapisnički sto, komesari i savez. Dodirni osobu za izmjenu." />
       <Suspense fallback={<PeopleSkeleton />}>
         <People />
       </Suspense>

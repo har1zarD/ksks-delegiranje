@@ -48,6 +48,8 @@ async function MyMatches() {
                 <Link href={`/utakmice/${a.match.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 sm:py-5">
                   <MatchLine
                     match={a.match}
+                    periods={a.match.status === "live" ? a.match.periods : undefined}
+                    badge={a.match.status === "live" ? <Status tone="crest" pulse>Uživo</Status> : undefined}
                     meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>}
                     aside={<ChevronRight className="size-5 text-fg-faint" />}
                   />
@@ -68,7 +70,7 @@ async function MyMatches() {
                   <MatchLine
                     match={a.match}
                     showScore
-                    meta={<span className="text-[13px] text-fg-muted">{positionName(a.position, a.match.digital_scoresheet)}</span>}
+                    periods={a.match.periods.length > 0 ? a.match.periods : undefined}
                   />
                 </Link>
                 <CrewList match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />

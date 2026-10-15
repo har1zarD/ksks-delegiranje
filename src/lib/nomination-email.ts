@@ -108,7 +108,8 @@ type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind"
 };
 
 /** Kartica utakmice. Osoba iz `highlight` je crvena (zamjena), iz `removed` precrtana (otkazano). */
-function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed }: { showNumber: boolean; highlight?: string; removed?: string }) {
+/** crewless = raspored klubovima: bez službenih lica */
+function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed, crewless }: { showNumber: boolean; highlight?: string; removed?: string; crewless?: boolean }) {
   const left = `
     ${showNumber ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
     <div style="font-size:22px;font-weight:700;color:${C.ink};line-height:1.1;margin-bottom:10px">${pad(m.number)}</div>` : ""}
@@ -141,7 +142,7 @@ function matchCard(m: CardMatch, rows: Row[], { showNumber, highlight, removed }
         <tr>
           <td colspan="2" style="padding:4px 12px 12px;border-bottom:1px solid ${C.line};font-size:15px;font-weight:700;color:${C.ink};text-transform:uppercase">${esc(m.home?.name ?? "?")} – ${esc(m.away?.name ?? "?")}</td>
         </tr>
-        <tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}</table></td></tr>
+        ${crewless ? "" : `<tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}</table></td></tr>`}
       </table>
     </td>
   </tr>
@@ -167,11 +168,11 @@ function documentHtml(o: { subject: string; title: string; subtitle: string; int
   </td></tr>
   ${o.body}
   <tr><td style="padding:12px 0 8px">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+    ${o.button ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
       <td align="center" bgcolor="${C.brand}" style="border-radius:8px">
         <a href="${esc(o.link)}" style="display:block;padding:16px 20px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">${esc(o.button)}</a>
       </td>
-    </tr></table>
+    </tr></table>` : ""}
     <p style="margin:12px 4px 0;font-size:13px;color:${C.muted};text-align:center">${esc(o.note)}</p>
   </td></tr>
   <tr><td style="padding:20px 4px 0;font-size:13px;color:${C.faint};text-align:center">Takmičarska komisija KSKS</td></tr>
@@ -185,26 +186,33 @@ const textLine = (m: CardMatch, showNumber: boolean) =>
 const textTeams = (m: CardMatch) => `${(m.home?.name ?? "?").toUpperCase()} – ${(m.away?.name ?? "?").toUpperCase()}`;
 
 /**
- * Nominacija (omladinska liga) ili Nominacija – pomoćne sudije (seniori).
+ * Nominacija kola u JEDNOM dokumentu: omladinska liga (sudije, komesar, sto) pa seniori (samo pomoćne sudije).
+ * Kad ima samo seniorskih utakmica naslov je "Nominacija – pomoćne sudije".
  * highlight: zamjena; ime te osobe je crveno, a dokument ide samo njoj.
  */
-export function nominationEmail(matches: NominationMatch[], kind: NominationKind, link: string, logo: string, highlight?: string) {
-  const title = kind === "youth" ? "Nominacija" : "Nominacija – pomoćne sudije";
+export function nominationEmail(matches: NominationMatch[], link: string, logo: string, highlight?: string) {
+  const parts = (["youth", "seniors"] as const)
+    .map((kind) => ({ kind, list: matches.filter((m) => nominationKindOf(m) === kind) }))
+    .filter((p) => p.list.length > 0);
+  const title = parts.length === 1 && parts[0].kind === "seniors" ? "Nominacija – pomoćne sudije" : "Nominacija";
   const subject = `${title}${highlight ? " (zamjena)" : ""} ${dateRange(matches)}`;
-  const showNumber = kind === "youth";
+  const sectionTitle = (kind: NominationKind) => (kind === "youth" ? "NOMINACIJA" : "NOMINACIJA – POMOĆNE SUDIJE");
 
   const text = [
     `${title.toUpperCase()} ${dateRange(matches)}`,
     "Košarkaški savez Kantona Sarajevo",
     "",
     ...(highlight ? ["Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti.", ""] : []),
-    ...groups(matches).flatMap(([group, list]) => [
-      ...(group ? [group, ""] : []),
-      ...list.flatMap((m) => [
-        textLine(m, showNumber),
-        textTeams(m),
-        ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`),
-        "",
+    ...parts.flatMap(({ kind, list }) => [
+      ...(parts.length > 1 ? [sectionTitle(kind), ""] : []),
+      ...groups(list).flatMap(([group, day]) => [
+        ...(group ? [group, ""] : []),
+        ...day.flatMap((m) => [
+          textLine(m, kind === "youth"),
+          textTeams(m),
+          ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`),
+          "",
+        ]),
       ]),
     ]),
     `Prihvati nominaciju: ${link}`,
@@ -212,12 +220,20 @@ export function nominationEmail(matches: NominationMatch[], kind: NominationKind
     "Takmičarska komisija KSKS",
   ].join("\n");
 
-  const body = groups(matches)
+  const body = parts
     .map(
-      ([group, list]) => `<tr><td style="padding:0 0 4px">
+      ({ kind, list }) =>
+        (parts.length > 1
+          ? `<tr><td style="padding:18px 4px 2px;font-size:15px;font-weight:700;letter-spacing:.04em;color:${C.ink};border-top:1px solid ${C.line}">${esc(sectionTitle(kind))}</td></tr>`
+          : "") +
+        groups(list)
+          .map(
+            ([group, day]) => `<tr><td style="padding:0 0 4px">
     ${group ? `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>` : ""}
-    ${list.map((m) => matchCard(m, crewRows(m, kind), { showNumber, highlight })).join("")}
+    ${day.map((m) => matchCard(m, crewRows(m, kind), { showNumber: kind === "youth", highlight })).join("")}
   </td></tr>`,
+          )
+          .join(""),
     )
     .join("");
 
@@ -282,6 +298,82 @@ export function withdrawnEmail(
     note: "Ostale nominacije ostaju kakve jesu.",
     logo,
   });
+
+  return { subject, text, html };
+}
+
+/**
+ * Raspored klubovima: datum, vrijeme, dvorana i ekipe, BEZ sudija, komesara i pomoćnih sudija.
+ * Poseban, pregledan dokument: grb u zaglavlju, po danima tabela s vremenom, utakmicom i dvoranom.
+ * Ide svim klubovima (adrese klubova i trenera) kao skrivenim primaocima.
+ */
+export function scheduleEmail(matches: NominationMatch[], logo: string) {
+  const title = "Raspored utakmica";
+  const range = dateRange(matches);
+  const subject = `${title} ${range}`;
+  const count = `${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`;
+  const label = (m: NominationMatch) =>
+    [nominationKindOf(m) === "youth" ? `Utakmica ${pad(m.number)}` : null, m.competition?.name, m.round ? `${m.round}. kolo` : null, matchKindLabel(m.kind, m.kind_label) || null]
+      .filter(Boolean)
+      .join(" · ");
+
+  const text = [
+    `${title.toUpperCase()} ${range}`,
+    "Košarkaški savez Kantona Sarajevo",
+    "",
+    ...groups(matches).flatMap(([group, list]) => [
+      group,
+      "",
+      ...list.flatMap((m) => [`${formatTime(m.starts_at)}  ${m.home?.name ?? "?"} – ${m.away?.name ?? "?"}`, `       ${label(m)}`, `       ${m.hall?.name ?? "dvorana nije određena"}`, ""]),
+    ]),
+    "Molimo klubove da budu u dvorani najmanje 30 minuta prije početka utakmice.",
+    "",
+    "Takmičarska komisija KSKS",
+  ].join("\n");
+
+  const days = groups(matches)
+    .map(
+      ([group, list], gi) => `
+      <tr><td colspan="2" style="padding:${gi ? 18 : 14}px 16px 6px;font-size:12px;font-weight:700;letter-spacing:.07em;color:${C.muted};background:${C.head};border-top:${gi ? `1px solid ${C.line}` : "0"};border-bottom:1px solid ${C.line}">${esc(group)}</td></tr>
+      ${list
+        .map(
+          (m, i) => `
+      <tr>
+        <td valign="top" width="64" style="padding:13px 0 13px 16px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:17px;font-weight:700;color:${C.ink};white-space:nowrap;line-height:1.2">${esc(formatTime(m.starts_at))}</td>
+        <td valign="top" style="padding:13px 16px 13px 12px;border-top:${i ? `1px solid ${C.line}` : "0"}">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:${C.faint};text-transform:uppercase">${esc(label(m))}</div>
+          <div style="font-size:17px;font-weight:700;color:${C.ink};margin-top:3px;line-height:1.25">${esc(m.home?.name ?? "?")} <span style="color:${C.faint};font-weight:500">–</span> ${esc(m.away?.name ?? "?")}</div>
+          <div style="font-size:13px;color:${C.muted};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>
+        </td>
+      </tr>`,
+        )
+        .join("")}`,
+    )
+    .join("");
+
+  const html = `<!doctype html><html lang="bs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};color:${C.ink}">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${C.bg}"><tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px">
+  <tr><td style="padding:0 4px 20px">
+    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+      <td valign="middle" style="padding-right:16px"><img src="${esc(logo)}" width="64" height="64" alt="KSKS" style="display:block;border:0;width:64px;height:64px"></td>
+      <td valign="middle">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:${C.muted};text-transform:uppercase">Košarkaški savez Kantona Sarajevo</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;color:${C.ink};line-height:1.15;margin-top:2px">${esc(title)}</div>
+        <div style="font-size:14px;color:${C.muted};margin-top:4px">${esc(range)}, ${esc(count)}</div>
+      </td>
+    </tr></table>
+  </td></tr>
+  <tr><td>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid ${C.line};border-radius:10px;border-collapse:separate;overflow:hidden;background:${C.panel}">${days}
+    </table>
+  </td></tr>
+  <tr><td style="padding:18px 8px 0;font-size:13px;line-height:1.5;color:${C.muted};text-align:center">Molimo klubove da budu u dvorani najmanje 30 minuta prije početka utakmice.</td></tr>
+  <tr><td style="padding:22px 4px 0;font-size:12px;color:${C.faint};text-align:center">Takmičarska komisija KSKS · app.ksksarajevo.ba</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
 
   return { subject, text, html };
 }

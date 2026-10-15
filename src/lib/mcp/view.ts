@@ -13,7 +13,9 @@ type MatchRow = {
   has_scorer: boolean;
   has_assistant_scorer: boolean;
   has_timer: boolean;
+  has_assistant_timer: boolean;
   has_shot_clock: boolean;
+  has_timer_shot_clock: boolean;
   stats_count: number;
   digital_scoresheet: boolean;
   home_score: number | null;

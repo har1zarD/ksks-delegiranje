@@ -147,8 +147,8 @@ export function resolvePeriod(value: unknown): PayrollPeriod {
   return value === "sve" ? "sve" : resolveMonth(value);
 }
 
-/** Prihvaćena delegiranja na završenim utakmicama u periodu (profileId = samo jedna osoba, inače sve) */
-async function payrollRows(period: PayrollPeriod, profileId: string | null) {
+/** Prihvaćena delegiranja na završenim utakmicama u periodu (profileId = samo jedna osoba, inače sve); koristi i statistika */
+export async function payrollRows(period: PayrollPeriod, profileId: string | null) {
   "use cache: remote";
   cacheLife(LIFE.live);
   cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.profiles);

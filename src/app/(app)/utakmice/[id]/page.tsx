@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage } from "lucide-react";
+import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage, Wallet } from "lucide-react";
 import { getMatchPage } from "@/lib/data/report";
 import { listScoresheets } from "@/lib/scoresheets";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
@@ -12,6 +12,7 @@ import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
 import { FinishButton } from "./finish-button";
+import { MatchPaidToggle } from "./match-paid-toggle";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 
@@ -47,7 +48,7 @@ async function Match({ params }: { params: Params }) {
   const { id } = await params;
   const page = await getMatchPage(id);
   if (!page) notFound();
-  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable } = page;
+  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable, isReferee } = page;
 
   const canScore = isCommissioner || isAdmin;
   const open = match.status !== "cancelled" && match.status !== "postponed";
@@ -57,8 +58,12 @@ async function Match({ params }: { params: Params }) {
   const tableScores = isTable && !isAdmin && !match.has_commissioner;
   const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
   const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.status !== "finished" || undoUntil !== null));
-  const scoresheetAccess = isAdmin || isCommissioner || isTable;
+  // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
+  const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
+  // Plaćanje: komesar (ili savez) označava; utakmica je plaćena kad su sva prihvaćena delegiranja isplaćena
+  const accepted = crew.filter((c) => c.status === "accepted");
+  const allPaid = accepted.length > 0 && accepted.every((c) => c.paid_at);
   const homeName = match.home?.name ?? "Domaćin";
   const awayName = match.away?.name ?? "Gost";
 
@@ -145,6 +150,7 @@ async function Match({ params }: { params: Params }) {
                   home={match.home_score}
                   away={match.away_score}
                   byTable={tableScores}
+                  hint={match.competition?.category === "minibasket" || match.competition?.category === "unobasket" ? "Upisuje se broj dobijenih četvrtina, npr. 3:1 (svaka dobijena četvrtina je bod)." : undefined}
                   undoUntil={undoUntil}
                 />
               </div>
@@ -158,6 +164,15 @@ async function Match({ params }: { params: Params }) {
               </h3>
               <Scoresheets matchId={match.id} sheets={sheets} canEdit={open} />
             </div>
+          </div>
+        </section>
+      )}
+
+      {(isCommissioner || isAdmin) && accepted.length > 0 && (
+        <section>
+          <SectionTitle icon={<Wallet />}>Plaćanje</SectionTitle>
+          <div className="rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
+            <MatchPaidToggle matchId={match.id} paid={allPaid} count={accepted.length} />
           </div>
         </section>
       )}
