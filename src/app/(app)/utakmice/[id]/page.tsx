@@ -150,6 +150,7 @@ async function Match({ params }: { params: Params }) {
                   home={match.home_score}
                   away={match.away_score}
                   byTable={tableScores}
+                  hint={match.competition?.category === "minibasket" || match.competition?.category === "unobasket" ? "Upisuje se broj dobijenih četvrtina, npr. 3:1 (svaka dobijena četvrtina je bod)." : undefined}
                   undoUntil={undoUntil}
                 />
               </div>

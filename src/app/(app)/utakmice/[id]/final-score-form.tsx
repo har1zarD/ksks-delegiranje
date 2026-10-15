@@ -22,6 +22,7 @@ export function FinalScoreForm({
   away,
   byTable,
   undoUntil,
+  hint,
 }: {
   matchId: string;
   homeName: string;
@@ -33,11 +34,14 @@ export function FinalScoreForm({
   /** Upisuje pomoćni sudija (ima rok za ispravku), ne savez */
   byTable: boolean;
   undoUntil: string | null;
+  /** Uputa iznad polja, npr. minibasket: upisuju se dobijene četvrtine */
+  hint?: string;
 }) {
   const [state, action, pending] = useActionState<FinalScoreState, FormData>(saveFinalScore, {});
 
   return (
     <div className="flex flex-col gap-4">
+    {hint && <p className="text-[14px] text-fg-muted">{hint}</p>}
     <form
       action={action}
       onSubmit={confirmSubmit((form) => {
