@@ -86,8 +86,8 @@ function PaidBar() {
   return (
     <>
       {/* Prostor ispod liste da traka ne prekrije zadnje utakmice */}
-      <div aria-hidden className="h-20 md:h-6 print:hidden" />
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+68px)] z-40 px-4 md:bottom-6 print:hidden">
+      <div aria-hidden className="h-20 lg:h-6 print:hidden" />
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+68px)] z-40 px-4 lg:bottom-6 lg:left-64 print:hidden">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-4 py-3 shadow-pop">
           {ids.length > 0 ? (
             <>

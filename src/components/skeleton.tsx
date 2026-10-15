@@ -67,10 +67,10 @@ export function SectionTitleSkeleton({ w = "w-36", count, action, icon }: { w?: 
 }
 
 /** Segmenti (filteri): staza s pilulama */
-export function SegmentsSkeleton({ widths, className }: { widths: string[]; className?: string }) {
+export function SegmentsSkeleton({ widths, className, full }: { widths: string[]; className?: string; full?: boolean }) {
   return (
     <div className={cx("-mx-4 overflow-hidden px-4 sm:mx-0 sm:px-0", className)}>
-      <div className="inline-flex gap-0.5 rounded-lg bg-track p-[3px]">
+      <div className={cx("gap-0.5 rounded-lg bg-track p-[3px]", full ? "flex w-full *:flex-1 *:text-center sm:inline-flex sm:w-auto sm:*:flex-none" : "inline-flex")}>
         {widths.map((w, i) => (
           <span key={i} className={cx("rounded-md px-3.5 py-2.5 sm:py-1.5", i === 0 && "bg-panel-3 shadow-segment")}>
             <Text className="text-[14px]" w={w} />

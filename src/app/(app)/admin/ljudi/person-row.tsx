@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { Phone } from "lucide-react";
-import { buttonClass, cx } from "@/components/ui";
+import { cx } from "@/components/ui";
 import { TABLE_SKILLS } from "@/lib/crew";
 import { setActive } from "./actions";
 import { PersonForm, type PersonValues } from "./person-form";
+
+/** Mala dugmad u redu (buttonClass je prevelik: h-11/px-4 se ne mogu pregaziti manjim klasama) */
+const SMALL = "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md text-[13px] font-semibold transition-colors active:scale-[0.98]";
+const SECONDARY = "border border-line-strong bg-panel text-fg shadow-panel hover:border-line-hover hover:bg-panel-2";
 
 export function PersonRow({ person, active, isMe }: { person: PersonValues; active: boolean; isMe: boolean }) {
   const [editing, setEditing] = useState(false);
@@ -19,7 +23,6 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
     person.role === "admin" && "Admin",
     person.license && `Licenca ${person.license}`,
   ].filter(Boolean) as string[];
-  const details = [person.email, ...roles].join(", ");
 
   if (editing) {
     return (
@@ -31,34 +34,38 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
   }
 
   return (
-    <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
+    <li className="flex items-center gap-3 py-2.5">
       <button
         type="button"
         onClick={() => setEditing(true)}
         className="group/name flex min-w-0 flex-1 items-center gap-3 text-left"
         aria-label={`Uredi: ${person.full_name}`}
       >
-        <span aria-hidden="true" className={cx("grid size-10 shrink-0 place-items-center rounded-lg border border-line bg-panel-2 text-[12px] font-semibold text-fg-muted", !active && "opacity-50")}>{person.full_name.trim().split(/\s+/).filter(Boolean).map((part) => Array.from(part)[0]).slice(0, 2).join("")}</span>
+        <span aria-hidden="true" className={cx("grid size-8 shrink-0 place-items-center rounded-md border border-line bg-panel-2 text-[11px] font-semibold text-fg-muted", !active && "opacity-50")}>{person.full_name.trim().split(/\s+/).filter(Boolean).map((part) => Array.from(part)[0]).slice(0, 2).join("")}</span>
         <span className="min-w-0 flex-1">
-          <span className={cx("block truncate text-[16px] font-semibold leading-tight underline-offset-4 group-hover/name:underline", !active && "text-fg-faint")}>
+          <span className={cx("block truncate text-[15px] font-semibold leading-tight underline-offset-4 group-hover/name:underline", !active && "text-fg-faint")}>
             {person.full_name}
-            {!active && <span className="ml-2 text-[13px] font-semibold text-fg-faint">neaktivan</span>}
+            {!active && <span className="ml-2 text-[12px] font-semibold text-fg-faint">neaktivan</span>}
           </span>
-          <span className="block truncate text-[13px] text-fg-muted">{details}</span>
+          {roles.length > 0 && <span className="block truncate text-[12px] text-fg-muted">{roles.join(", ")}</span>}
         </span>
       </button>
-      <div className="flex flex-wrap items-center gap-2 pl-13 sm:pl-0">
+      <div className="flex shrink-0 items-center gap-1.5">
         {person.phone && (
-          <a href={`tel:${person.phone}`} className={buttonClass("secondary", "h-10 px-3")} aria-label={`Pozovi ${person.full_name}`}>
-            <Phone className="size-4" />
-            <span className="tabular">{person.phone}</span>
+          <a
+            href={`tel:${person.phone}`}
+            className={cx(SMALL, "w-8", SECONDARY)}
+            aria-label={`Pozovi ${person.full_name}, ${person.phone}`}
+            title={person.phone}
+          >
+            <Phone className="size-3.5" />
           </a>
         )}
         {!isMe && (
           <form action={setActive}>
             <input type="hidden" name="id" value={person.id} />
             <input type="hidden" name="active" value={active ? "0" : "1"} />
-            <button type="submit" className={buttonClass(active ? "secondary" : "primary", "h-10 px-3")}>
+            <button type="submit" className={cx(SMALL, "px-2.5", active ? SECONDARY : "bg-brand text-brand-ink shadow-panel hover:bg-brand-hover")}>
               {active ? "Deaktiviraj" : "Aktiviraj"}
             </button>
           </form>

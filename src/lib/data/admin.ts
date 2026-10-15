@@ -297,3 +297,22 @@ export async function getPeople() {
   await requireRole("admin");
   return peopleRows();
 }
+
+/** `today` je dio ključa: keš se sam smjenjuje po danu */
+async function absenceRows() {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.unavailability, TAG.profiles);
+  return rows(
+    await createAdminClient()
+      .from("unavailability")
+      .select("id, starts_at, ends_at, reason, profile:profiles!unavailability_profile_id_fkey ( id, full_name )")
+      .order("starts_at"),
+  );
+}
+
+/** Sva odsustva svih osoba (prošla, tekuća i buduća) */
+export async function getAllAbsences() {
+  await requireRole("admin");
+  return (await absenceRows()).filter((a) => a.profile);
+}

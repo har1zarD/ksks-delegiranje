@@ -145,7 +145,7 @@ export function InstallApp({ dismissible = false, floating = false, className }:
           role="region"
           aria-label="Instalacija aplikacije"
           className={cx(
-            "pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-20 px-4 transition-[opacity,translate] duration-300 ease-out md:bottom-6 md:left-auto md:right-6 md:w-[400px] md:px-0 print:hidden",
+            "pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-20 px-4 transition-[opacity,translate] duration-300 ease-out lg:bottom-6 lg:left-auto lg:right-6 lg:w-[400px] lg:px-0 print:hidden",
             shown ? "translate-y-0 opacity-100" : "invisible translate-y-3 opacity-0",
             className,
           )}

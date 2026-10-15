@@ -205,10 +205,11 @@ export function Stat({ label, value, unit, tone, icon }: { label: string; value:
 
 // ───────── Filteri (segmenti) ─────────
 
-export function Segments({ children, className }: { children: ReactNode; className?: string }) {
+/** `full`: na mobitelu preko cijele širine, segmenti dijele prostor jednako */
+export function Segments({ children, className, full }: { children: ReactNode; className?: string; full?: boolean }) {
   return (
     <div className={cx("-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0", className)}>
-      <div className="inline-flex gap-0.5 rounded-lg bg-track p-[3px]">{children}</div>
+      <div className={cx("gap-0.5 rounded-lg bg-track p-[3px]", full ? "flex w-full *:flex-1 *:text-center sm:inline-flex sm:w-auto sm:*:flex-none" : "inline-flex")}>{children}</div>
     </div>
   );
 }

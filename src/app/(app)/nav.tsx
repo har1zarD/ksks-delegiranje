@@ -56,7 +56,7 @@ function useActive(items: NavItem[]) {
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
-/** Gornja traka (grb, naziv, korisnik) + stavke na većem ekranu; donja traka na mobitelu */
+/** Bočna traka (grb, naziv, stavke, korisnik) na većem ekranu; gornja traka + donja navigacija na mobitelu i tabletu */
 export function AppNav({
   items,
   user,
@@ -72,47 +72,68 @@ export function AppNav({
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 print:hidden">
+      <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 lg:hidden print:hidden">
         <div className={cx("mx-auto flex h-16 max-w-6xl items-center gap-3 sm:h-[72px]", GUTTER)}>
-          <Link href="/" className="flex h-11 min-w-0 items-center gap-2.5 transition-opacity hover:opacity-75" aria-label="KSKS — početna">
-            <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
-            <span className="flex min-w-0 flex-col leading-none">
-              <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
-              <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Delegiranje</span>
-            </span>
-          </Link>
-
+          <Brand />
           <div className="ml-auto shrink-0">
             <UserMenu user={user} roleLabel={roleLabel} logout={logout} />
           </div>
         </div>
-          <nav className={cx("mx-auto hidden max-w-6xl pb-3 md:block", GUTTER)} aria-label="Glavni meni">
-            <ul className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]">
-              {items.map((item) => {
-                const isActive = item.href === active;
-                const Icon = ICONS[item.icon];
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={isActive ? "page" : undefined}
-                      className={cx(
-                        "flex h-10 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors",
-                        isActive ? "bg-brand-soft text-brand" : "text-fg-muted hover:bg-panel-2 hover:text-fg",
-                      )}
-                    >
-                      <Icon className="hidden size-4 shrink-0 lg:block" strokeWidth={isActive ? 2 : 1.7} aria-hidden="true" />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-
       </header>
 
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-panel lg:flex print:hidden">
+        <div className="flex h-[72px] shrink-0 items-center px-4">
+          <Brand />
+        </div>
+        <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Glavni meni">
+          <ul className="flex flex-col gap-0.5">
+            {items.map((item) => {
+              const isActive = item.href === active;
+              const Icon = ICONS[item.icon];
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cx(
+                      "flex h-10 items-center gap-3 rounded-lg px-3 text-[14px] font-medium transition-colors",
+                      isActive ? "bg-brand-soft text-brand" : "text-fg-muted hover:bg-panel-2 hover:text-fg",
+                    )}
+                  >
+                    <Icon className="size-[18px] shrink-0" strokeWidth={isActive ? 2 : 1.7} aria-hidden="true" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        <div className="shrink-0 border-t border-line p-3">
+          <UserMenu user={user} roleLabel={roleLabel} logout={logout} sidebar />
+        </div>
+      </aside>
+
       <BottomNav items={items} active={active} logout={logout} />
+    </>
+  );
+}
+
+function Brand() {
+  return (
+    <Link href="/" className="flex h-11 min-w-0 items-center gap-2.5 transition-opacity hover:opacity-75" aria-label="KSKS — početna">
+      <BrandMark />
+    </Link>
+  );
+}
+
+function BrandMark() {
+  return (
+    <>
+      <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
+      <span className="flex min-w-0 flex-col leading-none">
+        <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
+        <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Delegiranje</span>
+      </span>
     </>
   );
 }
@@ -139,7 +160,7 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
     <>
       <nav
         aria-label="Glavni meni"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-panel/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 md:hidden print:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-panel/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden print:hidden"
       >
         <ul className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${primary.length + (overflow ? 1 : 0)}, minmax(0, 1fr))` }}>
           {primary.map((item) => (
@@ -164,7 +185,7 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
       </nav>
 
       {sheetOpen && (
-        <div className="fixed inset-0 z-30 md:hidden print:hidden" role="dialog" aria-modal="true" aria-label="Više">
+        <div className="fixed inset-0 z-30 lg:hidden print:hidden" role="dialog" aria-modal="true" aria-label="Više">
           <button type="button" aria-label="Zatvori" className="absolute inset-0 bg-overlay backdrop-blur-[2px]" onClick={() => setSheetAt(null)} />
           <div className="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-16px)] overflow-y-auto overscroll-contain rounded-t-lg border-t border-line bg-panel pb-[calc(env(safe-area-inset-bottom)+68px)] pt-2 shadow-pop">
             <div className="mx-auto mb-1 h-1 w-9 rounded-full bg-line-strong" aria-hidden />
@@ -222,7 +243,8 @@ function TabLink({ href, label, Icon, active }: { href: string; label: string; I
   );
 }
 
-function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string; logout: () => Promise<void> }) {
+/** `sidebar`: dugme preko cijele širine, meni se otvara iznad */
+function UserMenu({ user, roleLabel, logout, sidebar }: { user: string; roleLabel: string; logout: () => Promise<void>; sidebar?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   // Meni je otvoren samo za stranicu na kojoj je otvoren; navigacija ga sama zatvara
@@ -253,17 +275,17 @@ function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={`${user}, meni`}
-        className="flex h-11 items-center gap-2.5 rounded-lg px-2 text-[14px] font-medium transition-colors hover:bg-panel-2"
+        className={cx("flex h-11 items-center gap-2.5 rounded-lg px-2 text-[14px] font-medium transition-colors hover:bg-panel-2", sidebar && "h-12 w-full")}
       >
         <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-lg border border-line-strong bg-panel-2 text-[11px] font-semibold text-fg-muted">{user.trim().split(/\s+/).filter(Boolean).map((part) => Array.from(part)[0]).slice(0, 2).join("")}</span>
-        <span className="flex min-w-0 flex-col items-start">
-          <span className="max-w-[7rem] truncate sm:max-w-[12rem]">{user}</span>
+        <span className={cx("flex min-w-0 flex-col items-start", sidebar && "flex-1")}>
+          <span className={cx("truncate", sidebar ? "max-w-full" : "max-w-[7rem] sm:max-w-[12rem]")}>{user}</span>
           <span className="text-[11px] font-normal text-fg-muted">{roleLabel}</span>
         </span>
-        <ChevronDown className="hidden size-3.5 text-fg-muted sm:block" aria-hidden="true" />
+        <ChevronDown className={cx("hidden size-3.5 text-fg-muted sm:block", sidebar && "rotate-180")} aria-hidden="true" />
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-64 rounded-lg border border-line bg-panel p-1 shadow-pop">
+        <div className={cx("absolute z-50 rounded-lg border border-line bg-panel p-1 shadow-pop", sidebar ? "inset-x-0 bottom-full mb-2" : "right-0 top-12 w-64")}>
           <div className="px-3 py-2.5">
             <div className="truncate text-[14px] font-semibold">{user}</div>
             <div className="text-[13px] text-fg-muted">{roleLabel}</div>
@@ -290,42 +312,52 @@ function UserMenu({ user, roleLabel, logout }: { user: string; roleLabel: string
   );
 }
 
-/** Navigacija dok se čita korisnik: isti grb i naziv, stavke i ime kao kosti, donja traka na mobitelu */
+/** Navigacija dok se čita korisnik: isti grb i naziv, stavke i ime kao kosti; bočna traka na većem ekranu, donja na mobitelu */
 export function AppNavSkeleton() {
+  const userBones = (
+    <>
+      <Bone className="size-8 rounded-lg" />
+      <span>
+        <Text className="text-[14px]" w="w-24" />
+        <Text className="text-[11px]" w="w-16" />
+      </span>
+    </>
+  );
+
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 print:hidden">
+      <header className="sticky top-0 z-30 border-b border-line bg-panel/85 backdrop-blur-xl backdrop-saturate-150 lg:hidden print:hidden">
         <div className={cx("mx-auto flex h-16 max-w-6xl items-center gap-3 sm:h-[72px]", GUTTER)}>
           <span className="flex h-11 min-w-0 items-center gap-2.5">
-            <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
-            <span className="flex min-w-0 flex-col leading-none">
-              <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
-              <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Delegiranje</span>
-            </span>
+            <BrandMark />
           </span>
           <div className="ml-auto flex h-11 shrink-0 items-center gap-2.5 px-2">
-            <Bone className="size-8 rounded-lg" />
-            <span>
-              <Text className="text-[14px]" w="w-24" />
-              <Text className="text-[11px]" w="w-16" />
-            </span>
+            {userBones}
             <Bone className="hidden size-3.5 sm:block" />
           </div>
         </div>
-        <div className={cx("mx-auto hidden max-w-6xl pb-3 md:block", GUTTER)} aria-hidden>
-          <ul className="flex items-center gap-1 overflow-hidden">
-            {["w-14", "w-16", "w-16", "w-10", "w-20", "w-16", "w-16"].map((w, i) => (
-              <li key={i} className="flex h-10 shrink-0 items-center gap-2 px-3">
-                <Bone className="hidden size-4 lg:block" />
-                <Text className="text-[13px]" w={w} />
-              </li>
-            ))}
-          </ul>
-        </div>
       </header>
+      <aside aria-hidden className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-panel lg:flex print:hidden">
+        <div className="flex h-[72px] shrink-0 items-center px-4">
+          <span className="flex h-11 min-w-0 items-center gap-2.5">
+            <BrandMark />
+          </span>
+        </div>
+        <ul className="flex flex-1 flex-col gap-0.5 overflow-hidden px-3 py-2">
+          {["w-14", "w-16", "w-16", "w-20", "w-20", "w-16", "w-16", "w-20", "w-20"].map((w, i) => (
+            <li key={i} className="flex h-10 shrink-0 items-center gap-3 px-3">
+              <Bone className="size-[18px]" />
+              <Text className="text-[14px]" w={w} />
+            </li>
+          ))}
+        </ul>
+        <div className="shrink-0 border-t border-line p-3">
+          <div className="flex h-12 items-center gap-2.5 px-2">{userBones}</div>
+        </div>
+      </aside>
       <nav
         aria-hidden
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-panel/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 md:hidden print:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-panel/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden print:hidden"
       >
         <ul className="mx-auto grid max-w-md grid-cols-5">
           {[0, 1, 2, 3, 4].map((i) => (
