@@ -19,20 +19,33 @@ export type MatchSummary = {
   hall: { name: string } | null;
 };
 
-/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice. */
-export function DateTile({ iso, size = "md", className }: { iso: string; size?: "md" | "lg"; className?: string }) {
+/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice, `selected` = označen (puna boja). */
+export function DateTile({ iso, size = "md", selected, className }: { iso: string; size?: "md" | "lg"; selected?: boolean; className?: string }) {
   const { date } = isoToSarajevo(iso);
   const d = new Date(`${date}T12:00:00Z`);
   const lg = size === "lg";
-  const label = cx("font-semibold uppercase leading-none tracking-[0.1em] text-fg-faint", lg ? "text-[11px]" : "text-[10px]");
+  const label = cx("font-semibold uppercase leading-none tracking-[0.1em]", selected ? "text-brand-ink/65" : "text-fg-faint", lg ? "text-[11px]" : "text-[10px]");
   return (
-    <div className={cx("flex shrink-0 flex-col overflow-hidden rounded-lg border border-line text-center", lg ? "w-[76px] sm:w-[92px]" : "w-14", className)}>
-      <div className={cx("flex flex-col items-center bg-panel-2", lg ? "gap-1.5 py-2.5 sm:gap-2 sm:py-3" : "gap-1 py-2")}>
+    <div
+      className={cx(
+        "flex shrink-0 flex-col overflow-hidden rounded-lg border text-center transition-colors",
+        selected ? "border-brand bg-brand text-brand-ink" : "border-line",
+        lg ? "w-[76px] sm:w-[92px]" : "w-14",
+        className,
+      )}
+    >
+      <div className={cx("flex flex-col items-center", !selected && "bg-panel-2", lg ? "gap-1.5 py-2.5 sm:gap-2 sm:py-3" : "gap-1 py-2")}>
         <span className={label}>{WEEKDAYS[d.getUTCDay()]}</span>
         <span className={cx("scoreboard font-semibold leading-none tracking-[-0.03em]", lg ? "text-[32px] sm:text-[42px]" : "text-[24px]")}>{d.getUTCDate()}</span>
         <span className={label}>{MONTHS_SHORT[d.getUTCMonth()]}</span>
       </div>
-      <span className={cx("scoreboard whitespace-nowrap border-t border-line bg-panel font-semibold", lg ? "py-1.5 text-[15px] sm:text-[16px]" : "py-1 text-[13px]")}>
+      <span
+        className={cx(
+          "scoreboard whitespace-nowrap border-t font-semibold",
+          selected ? "border-brand-ink/20" : "border-line bg-panel",
+          lg ? "py-1.5 text-[15px] sm:text-[16px]" : "py-1 text-[13px]",
+        )}
+      >
         {formatTime(iso)}
       </span>
     </div>
@@ -56,8 +69,11 @@ export function MatchLine({
   showScore,
   periods,
   aside,
+  hideDate,
 }: {
   match: MatchSummary;
+  /** Datum se crta izvan reda (npr. kao dugme za označavanje) */
+  hideDate?: boolean;
   meta?: React.ReactNode;
   /** Stanje uz naziv takmičenja (npr. Uživo) */
   badge?: React.ReactNode;
@@ -85,13 +101,13 @@ export function MatchLine({
   if (periods) {
     return (
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-        <DateTile iso={match.starts_at} />
+        {!hideDate && <DateTile iso={match.starts_at} />}
         <div className="min-w-0 flex-1 basis-40">
           <BoxScore match={match} periods={periods} label={competition} badge={badge} />
           {hall}
           {meta && <div className="mt-2 text-[14px]">{meta}</div>}
         </div>
-        {aside && <div className="ml-auto shrink-0 self-center">{aside}</div>}
+        {aside && <div className="min-w-0 self-center sm:ml-auto sm:shrink-0">{aside}</div>}
       </div>
     );
   }
@@ -102,7 +118,7 @@ export function MatchLine({
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-      <DateTile iso={match.starts_at} />
+      {!hideDate && <DateTile iso={match.starts_at} />}
       <div className="min-w-0 flex-1 basis-40">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint">
           <span className="min-w-0 max-w-full truncate">{competition}</span>
@@ -121,7 +137,7 @@ export function MatchLine({
         {hall}
         {meta && <div className="mt-2 text-[14px]">{meta}</div>}
       </div>
-      {aside && <div className="ml-auto shrink-0 self-center">{aside}</div>}
+      {aside && <div className="min-w-0 self-center sm:ml-auto sm:shrink-0">{aside}</div>}
     </div>
   );
 }

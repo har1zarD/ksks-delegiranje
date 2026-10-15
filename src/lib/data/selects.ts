@@ -23,7 +23,7 @@ const MATCH_FEE_RULES =
 /** Rezultat po četvrtinama (box score na listi i detalju) */
 const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points )" as const;
 
-export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( position, status )` as const;
+export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( position, status, notified_at, profile:profiles!assignments_profile_id_fkey ( full_name ) )` as const;
 
 export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
 

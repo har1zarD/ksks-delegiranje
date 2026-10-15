@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { crewOf, crewPositions, type Crew } from "@/lib/crew";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
+import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
   ADMIN_MATCH_SELECT,
@@ -67,13 +67,21 @@ export async function getNextMatchNumbers(): Promise<Record<string, number>> {
   return Object.fromEntries(Object.entries(max).map(([k, v]) => [k, v + 1]));
 }
 
-export type StaffingSummary = { missing: Position[]; pending: number };
+/** `people` = delegirani (prihvatili ili čekaju), redom pozicija; `unnotified` = delegirani koji još nisu obaviješteni (izmjene nakon aktiviranja) */
+export type StaffingSummary = { missing: Position[]; pending: number; unnotified: number; people: { position: Position; name: string; accepted: boolean }[] };
 
-function staffing(crew: Crew, assignments: { position: Position; status: AssignmentStatus }[]): StaffingSummary {
+function staffing(
+  crew: Crew,
+  assignments: { position: Position; status: AssignmentStatus; notified_at: string | null; profile: { full_name: string } | null }[],
+): StaffingSummary {
   const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
   return {
     missing: crewPositions(crew).filter((p) => !active.some((a) => a.position === p)),
     pending: active.filter((a) => a.status === "pending").length,
+    unnotified: active.filter((a) => !a.notified_at).length,
+    people: active
+      .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position))
+      .map((a) => ({ position: a.position, name: a.profile?.full_name ?? "—", accepted: a.status === "accepted" })),
   };
 }
 
@@ -88,7 +96,7 @@ const POOL_LIMIT = 400;
 async function matchPool(when: "upcoming" | "past", competitionId: string | null, day: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods);
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods, TAG.profiles);
   let q = createAdminClient().from("matches").select(ADMIN_MATCH_SELECT);
   if (competitionId) q = q.eq("competition_id", competitionId);
   if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.eq.live`);

@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useTransition } from "react";
-import { Check, Send } from "lucide-react";
+import { Check, Send, TriangleAlert } from "lucide-react";
 import { confirm } from "@/components/confirm";
+import { DateTile } from "@/components/match-line";
 import { Button, cx } from "@/components/ui";
 import { publish, type PublishState } from "@/app/(app)/admin/utakmice/actions";
 
@@ -26,7 +27,10 @@ const CONFIRM = (n: number) => ({
 type Selection = { selected: Set<string>; toggle: (id: string) => void; setMany: (ids: string[], on: boolean) => void };
 const SelectionContext = createContext<Selection | null>(null);
 
-export function PublishSelection({ children }: { children: React.ReactNode }) {
+/** Utakmice kojima nedostaju službena lica: id → naziv i broj nedelegiranih pozicija */
+export type Incomplete = Record<string, { label: string; missing: number }>;
+
+export function PublishSelection({ children, incomplete = {} }: { children: React.ReactNode; incomplete?: Incomplete }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -47,24 +51,39 @@ export function PublishSelection({ children }: { children: React.ReactNode }) {
   return (
     <SelectionContext.Provider value={{ selected, toggle, setMany }}>
       {children}
-      <PublishBar />
+      <PublishBar incomplete={incomplete} />
     </SelectionContext.Provider>
   );
 }
 
-/** Kvačica uz utakmicu */
-export function SelectMatch({ id, label }: { id: string; label: string }) {
+/** Datum utakmice kao dugme za označavanje: klik oboji list, kružić u uglu pokazuje da se može označiti */
+export function SelectMatch({ id, iso, label }: { id: string; iso: string; label: string }) {
   const ctx = useContext(SelectionContext)!;
+  const on = ctx.selected.has(id);
   return (
-    <label className="flex size-11 shrink-0 cursor-pointer items-center justify-center" title="Označi za aktiviranje">
-      <input
-        type="checkbox"
-        checked={ctx.selected.has(id)}
-        onChange={() => ctx.toggle(id)}
-        aria-label={`Označi: ${label}`}
-        className="size-[18px] accent-[var(--brand)]"
+    <button
+      type="button"
+      onClick={() => ctx.toggle(id)}
+      aria-pressed={on}
+      aria-label={`Označi za aktiviranje: ${label}`}
+      title={on ? "Poništi oznaku" : "Označi za aktiviranje"}
+      className="group relative shrink-0 cursor-pointer rounded-lg outline-none transition-transform active:scale-95 focus-visible:ring-4 focus-visible:ring-fg/15"
+    >
+      <DateTile
+        iso={iso}
+        selected={on}
+        className={cx(!on && "shadow-panel group-hover:border-line-hover")}
       />
-    </label>
+      <span
+        aria-hidden
+        className={cx(
+          "absolute -right-1.5 -top-1.5 grid size-[18px] place-items-center rounded-full border-2 border-panel transition-colors",
+          on ? "bg-brand text-brand-ink" : "bg-line-strong text-transparent group-hover:bg-fg-muted group-hover:text-panel",
+        )}
+      >
+        <Check className="size-2.5" strokeWidth={4} />
+      </span>
+    </button>
   );
 }
 
@@ -80,11 +99,12 @@ export function SelectAll({ ids, label = "Označi neobjavljene" }: { ids: string
   );
 }
 
-function PublishBar() {
+function PublishBar({ incomplete }: { incomplete: Incomplete }) {
   const ctx = useContext(SelectionContext)!;
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const ids = [...ctx.selected];
+  const warn = ids.filter((id) => incomplete[id]).map((id) => incomplete[id]);
   if (ids.length === 0 && !message) return null;
 
   return (
@@ -95,6 +115,7 @@ function PublishBar() {
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-4 py-3 shadow-pop">
           {ids.length > 0 ? (
             <>
+              {warn.length > 0 && <IncompleteNote matches={warn} />}
               <span className="text-[14px] font-semibold">Označeno: {ids.length}</span>
               <button type="button" onClick={() => ctx.setMany(ids, false)} className="-my-2.5 h-10 text-[13px] font-medium text-fg-muted hover:text-fg">
                 Poništi
@@ -129,6 +150,30 @@ function PublishBar() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Upozorenje u traci: označene utakmice na kojima nisu delegirana sva službena lica (aktiviranje je i dalje dozvoljeno) */
+function IncompleteNote({ matches }: { matches: Incomplete[string][] }) {
+  const shown = matches.slice(0, 3);
+  return (
+    <div role="status" className="flex w-full gap-2.5 rounded-md border border-orange/30 bg-orange/10 px-3 py-2.5 text-[13px]">
+      <TriangleAlert className="mt-px size-4 shrink-0 text-orange" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="font-semibold text-fg">
+          {matches.length === 1 ? "Nisu izdelegirana sva službena lica" : `Na ${matches.length} utakmice nisu izdelegirana sva službena lica`}
+        </p>
+        <ul className="mt-0.5 text-fg-muted">
+          {shown.map((m, i) => (
+            <li key={i} className="truncate">
+              {m.label}: nedostaje {m.missing}
+            </li>
+          ))}
+          {matches.length > shown.length && <li>i još {matches.length - shown.length}</li>}
+        </ul>
+        <p className="mt-1 text-fg-muted">Možeš aktivirati i ovako, ali nominacija ide samo delegiranima.</p>
+      </div>
+    </div>
   );
 }
 
