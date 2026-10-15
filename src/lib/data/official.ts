@@ -14,7 +14,7 @@ import { CREW_SELECT, MY_ASSIGNMENT_SELECT } from "./selects";
 async function myAssignmentRows(profileId: string) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls);
+  cacheTag(TAG.assignments, TAG.matches, TAG.periods, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls);
   return rows(
     await createAdminClient()
       .from("assignments")
@@ -35,9 +35,11 @@ export async function getMyAssignments() {
     .filter((a) => a.match)
     .map((a) => ({ ...a, match: a.match! }))
     .sort((a, b) => a.match.starts_at.localeCompare(b.match.starts_at));
+  // Završena utakmica je odigrana čim je neko označi završenom, i kad je datum u budućnosti; uživo ostaje među predstojećim
+  const done = (a: (typeof all)[number]) => a.match.status === "finished" || (a.match.starts_at < now && a.match.status !== "live");
   return {
-    upcoming: all.filter((a) => a.match.starts_at >= now),
-    past: all.filter((a) => a.match.starts_at < now).reverse(),
+    upcoming: all.filter((a) => !done(a)),
+    past: all.filter(done).reverse(),
   };
 }
 

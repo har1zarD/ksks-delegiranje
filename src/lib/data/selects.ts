@@ -9,7 +9,7 @@ export const MATCH_SELECT = `
   hall:halls!matches_hall_id_fkey ( id, name )
 ` as const;
 
-export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match:matches!assignments_match_id_fkey ( ${MATCH_SELECT} )` as const;
+export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match:matches!assignments_match_id_fkey ( ${MATCH_SELECT}, periods:match_periods ( period, home_points, away_points ) )` as const;
 
 export const CREW_SELECT = "match_id, position, status, profile:profiles!assignments_profile_id_fkey ( full_name, phone )" as const;
 
