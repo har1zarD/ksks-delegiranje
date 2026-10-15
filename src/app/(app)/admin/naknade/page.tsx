@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { Download, Wallet } from "lucide-react";
 import { getFeeRules, getPayroll, resolvePeriod } from "@/lib/data/finance";
-import { formatMonth, matchesLabel, parsePayrollFilter } from "@/lib/finance";
+import { formatMonth, matchesLabel, parsePayrollFilter, payrollByMatch } from "@/lib/finance";
 import {
   Bone,
   PayrollFiltersSkeleton,
@@ -14,7 +14,7 @@ import {
 } from "@/components/skeleton";
 import { buttonClass, Empty, PageHeader, ROWS, SectionTitle } from "@/components/ui";
 import { MarkAllPaid } from "./_components/paid-toggle";
-import { describeFilter, PayrollFilters, PayrollSummary, PayrollTable, PeriodPicker } from "./_components/payroll-view";
+import { describeFilter, PayrollFilters, PayrollMatches, PayrollSummary, PayrollTable, PeriodPicker } from "./_components/payroll-view";
 import { RulesForm } from "./rules-form";
 
 export const metadata = { title: "Naknade — KSKS" };
@@ -54,6 +54,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
   const period = resolvePeriod(sp.mjesec);
   const filter = parsePayrollFilter(sp);
   const { people, totals } = await getPayroll(period, filter);
+  const byMatch = sp.prikaz !== "osobe";
 
   // Trenutni parametri za linkove filtera (mjesec se ne upisuje kad je tekući)
   const params = {
@@ -63,13 +64,14 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
     q: filter.q,
   };
   const csv = `/admin/naknade/csv?${new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => Boolean(e[1])))}`;
+  const viewParams = { ...params, prikaz: byMatch ? undefined : "osobe" };
   const filtered = Boolean(filter.group || filter.paid || filter.q);
   const unpaidIds = people.flatMap((p) => p.items.filter((i) => !i.paidAt).map((i) => i.assignmentId));
 
   return (
     <div className="flex flex-col gap-5">
-      <PeriodPicker period={period} basePath="/admin/naknade" params={params} />
-      <PayrollFilters basePath="/admin/naknade" params={params} />
+      <PeriodPicker period={period} basePath="/admin/naknade" params={viewParams} />
+      <PayrollFilters basePath="/admin/naknade" params={viewParams} views />
       <PayrollSummary
         total={totals.total}
         paid={totals.paid}
@@ -90,6 +92,8 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
         <Empty icon={<Wallet />}>
           Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
         </Empty>
+      ) : byMatch ? (
+        <PayrollMatches matches={payrollByMatch(people)} />
       ) : (
         <PayrollTable
           people={people}

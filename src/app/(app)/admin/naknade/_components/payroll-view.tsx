@@ -7,11 +7,13 @@ import {
   matchesLabel,
   shiftMonth,
   type PayrollFilter,
+  type PayrollMatch,
   type PayrollPerson,
 } from "@/lib/finance";
 import { formatDayMonth, matchNo, POSITION_LABEL } from "@/lib/format";
 import { cx, inputClass, Segment, Segments } from "@/components/ui";
 import { MarkAllPaid, PaidBadge, PaidToggle } from "./paid-toggle";
+import { PayrollMatchCard } from "./match-card";
 
 type Params = Record<string, string | undefined>;
 
@@ -69,10 +71,23 @@ const PAID = [
   { value: "isplaceno", label: "Isplaćeno" },
 ] as const;
 
-/** Grupa, isplata i pretraga (ekipa, osoba, takmičenje, broj utakmice). Bez JS-a: linkovi i GET forma. */
-export function PayrollFilters({ basePath, params, groups = true }: { basePath: string; params: Params; groups?: boolean }) {
+/**
+ * Grupa, isplata i pretraga (ekipa, osoba, takmičenje, broj utakmice). Bez JS-a: linkovi i GET forma.
+ * `views` = prikaz po utakmicama (podrazumijevano) ili po osobama; prelaz na utakmice otvara neisplaćene.
+ */
+export function PayrollFilters({ basePath, params, groups = true, views = false }: { basePath: string; params: Params; groups?: boolean; views?: boolean }) {
   return (
     <div className="flex flex-col gap-3">
+      {views && (
+        <Segments>
+          <Segment href={withParams(basePath, params, { prikaz: "osobe" })} active={params.prikaz === "osobe"}>
+            Po osobama
+          </Segment>
+          <Segment href={withParams(basePath, params, { prikaz: undefined, isplata: "neisplaceno" })} active={params.prikaz !== "osobe"}>
+            Po utakmicama
+          </Segment>
+        </Segments>
+      )}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         {groups && (
           <Segments>
@@ -194,8 +209,9 @@ export function PayrollTable({ people, personHref, open }: { people: PayrollPers
               </span>
               <span className="flex flex-col items-end gap-0.5">
                 <span className="scoreboard whitespace-nowrap text-[20px] font-semibold">{formatKM(p.total)}</span>
-                <span className={cx("whitespace-nowrap text-[12px] font-semibold", p.unpaid > 0 ? "text-crest" : "text-mint")}>
-                  {p.unpaid > 0 ? `Duguje se ${formatKM(p.unpaid)}` : "Sve isplaćeno"}
+                {/* Stavka bez cijene je 0 KM, pa se "sve isplaćeno" gleda po broju neisplaćenih, ne po iznosu */}
+                <span className={cx("whitespace-nowrap text-[12px] font-semibold", p.unpaidCount > 0 ? "text-crest" : "text-mint")}>
+                  {p.unpaid > 0 ? `Duguje se ${formatKM(p.unpaid)}` : p.unpaidCount > 0 ? "Nije isplaćeno" : "Sve isplaćeno"}
                 </span>
               </span>
               <ChevronDown className="size-5 shrink-0 text-fg-faint transition-transform group-open:rotate-180" />
@@ -214,6 +230,17 @@ export function PayrollTable({ people, personHref, open }: { people: PayrollPers
             </div>
           </details>
         </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Male kartice utakmica: ekipe, ko je radio, iznos i isplata po osobi; isplata cijele utakmice odjednom; klik na utakmicu = ručne cijene */
+export function PayrollMatches({ matches }: { matches: PayrollMatch[] }) {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {matches.map((m) => (
+        <PayrollMatchCard key={m.matchId} match={m} />
       ))}
     </ul>
   );

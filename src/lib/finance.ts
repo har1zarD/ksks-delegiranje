@@ -138,6 +138,8 @@ export type PayrollAssignment = {
   id: string;
   position: Position;
   paid_at: string | null;
+  /** Ručna naknada za ovo delegiranje (null = po pravilu takmičenja) */
+  fee_km: number | null;
   profile: { id: string; full_name: string };
   match: {
     id: string;
@@ -167,6 +169,10 @@ export type PayrollItem = {
   refereeCount: number;
   /** null = naknada za takmičenje i poziciju nije određena */
   amount: number | null;
+  /** Cijena po pravilu takmičenja (bez ručne izmjene) */
+  ruleAmount: number | null;
+  /** Cijena je ručno određena za ovu utakmicu */
+  custom: boolean;
   paidAt: string | null;
 };
 
@@ -257,7 +263,9 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       unpaidCount: 0,
       missing: 0,
     };
-    const amount = feeFor(a.position, a.match.referee_count, a.match.competition);
+    const ruleAmount = feeFor(a.position, a.match.referee_count, a.match.competition);
+    const custom = a.fee_km != null;
+    const amount = custom ? Number(a.fee_km) : ruleAmount;
     person.items.push({
       assignmentId: a.id,
       matchId: a.match.id,
@@ -271,6 +279,8 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       position: a.position,
       refereeCount: a.match.referee_count,
       amount,
+      ruleAmount,
+      custom,
       paidAt: a.paid_at,
     });
     if (!a.paid_at) person.unpaidCount++;
@@ -287,6 +297,55 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
     p.items.sort((x, y) => x.startsAt.localeCompare(y.startsAt) || POSITION_ORDER.indexOf(x.position) - POSITION_ORDER.indexOf(y.position));
   }
   return [...people.values()].sort((a, b) => a.name.localeCompare(b.name, "bs"));
+}
+
+export type PayrollMatch = {
+  matchId: string;
+  number: number;
+  startsAt: string;
+  competition: string;
+  kind: string;
+  home: TeamIdentity | null;
+  away: TeamIdentity | null;
+  /** Stavke svih osoba na utakmici, po poziciji */
+  items: (PayrollItem & { name: string })[];
+  total: number;
+  paid: number;
+  unpaid: number;
+  unpaidCount: number;
+};
+
+/** Isti obračun grupisan po utakmici (za isplatu cijele utakmice odjednom) */
+export function payrollByMatch(people: PayrollPerson[]): PayrollMatch[] {
+  const matches = new Map<string, PayrollMatch>();
+  for (const p of people) {
+    for (const i of p.items) {
+      const m = matches.get(i.matchId) ?? {
+        matchId: i.matchId,
+        number: i.number,
+        startsAt: i.startsAt,
+        competition: i.competition,
+        kind: i.kind,
+        home: i.home,
+        away: i.away,
+        items: [],
+        total: 0,
+        paid: 0,
+        unpaid: 0,
+        unpaidCount: 0,
+      };
+      m.items.push({ ...i, name: p.name });
+      if (!i.paidAt) m.unpaidCount++;
+      if (i.amount != null) {
+        m.total = round2(m.total + i.amount);
+        if (i.paidAt) m.paid = round2(m.paid + i.amount);
+        else m.unpaid = round2(m.unpaid + i.amount);
+      }
+      matches.set(i.matchId, m);
+    }
+  }
+  for (const m of matches.values()) m.items.sort((x, y) => POSITION_ORDER.indexOf(x.position) - POSITION_ORDER.indexOf(y.position));
+  return [...matches.values()].sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.number - b.number);
 }
 
 /** Zbir preko svih osoba */

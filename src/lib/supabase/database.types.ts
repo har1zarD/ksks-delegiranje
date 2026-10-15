@@ -33,14 +33,14 @@ isOneToOne: false
                   ]
                 },"assignments": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"decline_reason": string | null,"id": string,"match_id": string,"notified_at": string | null,"paid_at": string | null,"paid_by": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]
+                    "created_at": string,"created_by": string | null,"decline_reason": string | null,"fee_km": number | null,"id": string,"match_id": string,"notified_at": string | null,"paid_at": string | null,"paid_by": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"id"?: string,"match_id": string,"notified_at"?: string | null,"paid_at"?: string | null,"paid_by"?: string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
+                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"fee_km"?: number | null,"id"?: string,"match_id": string,"notified_at"?: string | null,"paid_at"?: string | null,"paid_by"?: string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"id"?: string,"match_id"?: string,"notified_at"?: string | null,"paid_at"?: string | null,"paid_by"?: string | null,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
+                    "created_at"?: string,"created_by"?: string | null,"decline_reason"?: string | null,"fee_km"?: number | null,"id"?: string,"match_id"?: string,"notified_at"?: string | null,"paid_at"?: string | null,"paid_by"?: string | null,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["assignment_status"]
                   }
                   Relationships: [
                     {

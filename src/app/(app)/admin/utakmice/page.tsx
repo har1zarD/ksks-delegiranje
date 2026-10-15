@@ -8,7 +8,6 @@ import { dayKey, MATCH_STATUS_LABEL } from "@/lib/format";
 import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } from "@/components/filter-nav";
 import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch, type Incomplete } from "@/components/publish";
-import { MatchPaidBadge, PaidSelection, SelectAllPaid, SelectPaid } from "@/components/paid-selection";
 import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { EmailStatus, StaffingBadge, StaffingCrew } from "@/components/staffing-badge";
@@ -48,26 +47,20 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const competitionId = typeof sp.takmicenje === "string" ? sp.takmicenje : undefined;
   const past = sp.prikaz === "odigrane";
-  // Odigrane: filter po plaćanju (plaćena = sva prihvaćena delegiranja isplaćena)
-  const placeno = past && (sp.placeno === "da" || sp.placeno === "ne") ? sp.placeno : undefined;
 
-  const [competitions, all, withSheets] = await Promise.all([
+  const [competitions, matches, withSheets] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
     matchesWithScoresheets(),
   ]);
-  const payable = (m: (typeof all)[number]) => m.status === "finished" && m.payment.total > 0;
-  const matches = !placeno ? all : all.filter((m) => (placeno === "da" ? m.payment.state === "paid" : payable(m) && m.payment.state !== "paid"));
 
   // Novi filter vraća na prvu stranicu
-  const href = (p: { takmicenje?: string; prikaz?: string; placeno?: string; strana?: number }) => {
+  const href = (p: { takmicenje?: string; prikaz?: string; strana?: number }) => {
     const q = new URLSearchParams();
     const t = "takmicenje" in p ? p.takmicenje : competitionId;
     const v = "prikaz" in p ? p.prikaz : past ? "odigrane" : undefined;
-    const pl = "placeno" in p ? p.placeno : placeno;
     if (t) q.set("takmicenje", t);
     if (v) q.set("prikaz", v);
-    if (v === "odigrane" && pl) q.set("placeno", pl);
     if (p.strana && p.strana > 1) q.set("strana", String(p.strana));
     const s = q.toString();
     return `/admin/utakmice${s ? `?${s}` : ""}`;
@@ -88,8 +81,6 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
   const live = matches.filter((m) => m.status === "live").map((m) => m.id);
   // Aktiviranje (objava nominacije) ima smisla samo za utakmice koje tek dolaze
   const unpublished = (list: typeof matches) => list.filter((m) => m.status === "scheduled" && !m.published_at).map((m) => m.id);
-  // Plaćanje ima smisla samo za završene utakmice s prihvaćenim službenim licima
-  const unpaid = (list: typeof matches) => list.filter((m) => payable(m) && m.payment.state !== "paid").map((m) => m.id);
   // Za napomenu u traci kad je označena utakmica bez svih službenih lica
   const incomplete: Incomplete = Object.fromEntries(
     matches
@@ -120,19 +111,6 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
               </FilterSegment>
             ))}
           </Segments>
-          {past && (
-            <Segments>
-              <FilterSegment href={href({ placeno: undefined })} param="placeno" active={!placeno}>
-                Sve
-              </FilterSegment>
-              <FilterSegment href={href({ placeno: "da" })} param="placeno" value="da" active={placeno === "da"}>
-                Plaćene
-              </FilterSegment>
-              <FilterSegment href={href({ placeno: "ne" })} param="placeno" value="ne" active={placeno === "ne"}>
-                Neplaćene
-              </FilterSegment>
-            </Segments>
-          )}
         </div>
 
         <FilterContent fallback={<DaysSkeleton />}>
@@ -146,7 +124,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                 <h2 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
                   <span className="font-display text-[20px] font-semibold tracking-[-0.02em] sm:text-[22px]">{formatDay(day)}</span>
                   <span className="flex items-baseline gap-4">
-                    {past ? <SelectAllPaid ids={unpaid(list)} /> : <SelectAll ids={unpublished(list)} />}
+                    {!past && <SelectAll ids={unpublished(list)} />}
                     <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(list.length)}</span>
                   </span>
                 </h2>
@@ -155,8 +133,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                     <li
                       key={m.id}
                       className={cx(
-                        "relative flex items-center transition-colors hover:bg-panel-2",
-                        past ? "gap-1" : "gap-3 sm:gap-4",
+                        "relative flex items-center gap-3 transition-colors hover:bg-panel-2 sm:gap-4",
                         m.status === "scheduled" && "pt-5 sm:pt-0",
                       )}
                     >
@@ -169,7 +146,6 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                       )}
                       {/* Datum je dugme za označavanje (aktiviranje), ostatak reda otvara utakmicu */}
                       {!past && m.status === "scheduled" && <SelectMatch id={m.id} iso={m.starts_at} label={`${m.home?.name} – ${m.away?.name}`} />}
-                      {past && payable(m) && <SelectPaid id={m.id} label={`${m.home?.name} – ${m.away?.name}`} />}
                       <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4">
                         <MatchLine
                           match={m}
@@ -208,8 +184,6 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                           }
                         />
                       </Link>
-                      {/* Plaćanje: sitno u donjem desnom uglu kartice, van rasporeda */}
-                      {past && payable(m) && <MatchPaidBadge {...m.payment} corner />}
                     </li>
                   ))}
                 </Rows>
@@ -242,8 +216,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
     </FilterNavProvider>
   );
 
-  // Odigrane: označavanje plaćenih; predstojeće: aktiviranje (objava nominacije)
-  return past ? <PaidSelection>{content}</PaidSelection> : <PublishSelection incomplete={incomplete}>{content}</PublishSelection>;
+  // Predstojeće: aktiviranje (objava nominacije)
+  return past ? content : <PublishSelection incomplete={incomplete}>{content}</PublishSelection>;
 }
 
 /** Utakmica ima sliku zapisnika */

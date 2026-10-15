@@ -64,3 +64,28 @@ export async function setPaid(ids: string[], paid: boolean): Promise<{ error?: s
   invalidate(...[...new Set(data.map((a) => a.match_id))].map((match) => ({ table: "assignments" as const, match })));
   return {};
 }
+
+/** Ručne cijene delegiranja jedne utakmice (null = vrati na cijenu iz pravila takmičenja) */
+export async function setFees(fees: { id: string; amount: number | null }[]): Promise<{ error?: string }> {
+  await requireRole("admin");
+  const valid = (a: number | null) => a === null || (typeof a === "number" && Number.isFinite(a) && a >= 0 && a <= 10000);
+  if (!Array.isArray(fees) || fees.length === 0 || fees.length > 50 || !fees.every((f) => UUID.test(f.id) && valid(f.amount))) {
+    return { error: "Iznosi moraju biti brojevi od 0 do 10.000 KM." };
+  }
+
+  const supabase = await createClient();
+  const results = await Promise.all(
+    fees.map((f) =>
+      supabase
+        .from("assignments")
+        .update({ fee_km: f.amount === null ? null : Math.round(f.amount * 100) / 100 })
+        .eq("id", f.id)
+        .eq("status", "accepted")
+        .select("match_id"),
+    ),
+  );
+  const matches = [...new Set(results.flatMap((r) => r.data ?? []).map((a) => a.match_id))];
+  invalidate(...matches.map((match) => ({ table: "assignments" as const, match })));
+  if (results.some((r) => r.error)) return { error: "Cijene nisu sačuvane. Pokušaj ponovo." };
+  return {};
+}

@@ -21,7 +21,7 @@ const RULES_COMPETITION_SELECT =
   `id, name, short_name, ${CREW_DEFAULT_COLUMNS}, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
 
 const PAYROLL_SELECT = `
-  id, position, paid_at,
+  id, position, paid_at, fee_km,
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
   match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, status, referee_count,
     competition:competitions!matches_competition_id_fkey ( name, short_name, ${FEE_RULES} ),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { buttonClass, cx } from "@/components/ui";
 import { formatKM } from "@/lib/finance";
 import { setPaid } from "../actions";
@@ -48,8 +48,18 @@ export function PaidToggle({ id, paid }: { id: string; paid: boolean }) {
   );
 }
 
-/** Admin: označi sve neisplaćene stavke osobe (ili trenutnog filtera) kao isplaćene */
-export function MarkAllPaid({ ids, amount, label = "Označi sve isplaćeno" }: { ids: string[]; amount: number; label?: string }) {
+/** Admin: označi sve neisplaćene stavke osobe (ili trenutnog filtera) kao isplaćene; `paid={false}` vraća isplaćene na neisplaćeno */
+export function MarkAllPaid({
+  ids,
+  amount,
+  label = "Označi sve isplaćeno",
+  paid = true,
+}: {
+  ids: string[];
+  amount: number;
+  label?: string;
+  paid?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   if (ids.length === 0) return null;
@@ -61,13 +71,13 @@ export function MarkAllPaid({ ids, amount, label = "Označi sve isplaćeno" }: {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const r = await setPaid(ids, true);
+            const r = await setPaid(ids, paid);
             setError(r.error);
           })
         }
         className={buttonClass("secondary")}
       >
-        <Check className="size-4" />
+        {paid ? <Check className="size-4" /> : <RotateCcw className="size-4" />}
         {pending ? "Čuvam…" : `${label} (${formatKM(amount)})`}
       </button>
       {error && (
