@@ -5,7 +5,8 @@
 //     (skriveni primaoci); omladinska liga i seniori (pomoćne sudije) su odvojeni dokumenti
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
-import { nominationEmail, nominationKindOf, scheduleEmail, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
+import { matchChangedEmail, nominationEmail, nominationKindOf, scheduleEmail, type MatchChange, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
+import type { MatchStatus } from "@/lib/format";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Db = ReturnType<typeof createAdminClient>;
@@ -107,15 +108,7 @@ export async function sendScheduleToClubs(db: Db, matchIds: string[]): Promise<S
   const rows = await loadRows(db, ids);
   if (!rows?.length) return { matches: 0, recipients: 0, sent: false };
 
-  const { data: clubs } = await db.from("clubs").select("email").eq("active", true).not("email", "is", null);
-  const recipients = [
-    ...new Set(
-      (clubs ?? [])
-        .flatMap((c) => (c.email ?? "").split(/[,;\s]+/))
-        .map((e) => e.trim().toLowerCase())
-        .filter((e) => e.includes("@")),
-    ),
-  ];
+  const recipients = await clubRecipients(db);
   const sent = recipients.length
     ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "schedule_clubs", ...scheduleEmail(rows.map(toNomination), siteUrl("/brand/ksks-logo-512.png")) })
     : false;
@@ -124,4 +117,46 @@ export async function sendScheduleToClubs(db: Db, matchIds: string[]): Promise<S
     if (error) throw new Error(error.message);
   }
   return { matches: rows.length, recipients: recipients.length, sent };
+}
+
+/** Mailing lista klubova: sve adrese iz polja email aktivnih klubova (više adresa po klubu razdvojenih zarezom) */
+async function clubRecipients(db: Db) {
+  const { data: clubs } = await db.from("clubs").select("email").eq("active", true).not("email", "is", null);
+  return [
+    ...new Set(
+      (clubs ?? [])
+        .flatMap((c) => (c.email ?? "").split(/[,;\s]+/))
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => e.includes("@")),
+    ),
+  ];
+}
+
+/**
+ * Izmjena aktivirane utakmice (termin, dvorana, status otkazana/odgođena): mail svim delegiranim na utakmici (poslane nominacije)
+ * i klubovima ako je omladinska liga. `before` = stanje prije izmjene. Vraća broj primalaca.
+ */
+export async function notifyMatchChanged(db: Db, matchId: string, before: { starts_at: string; hall_id: string | null; status: MatchStatus }) {
+  const [rows, { data: cur }] = await Promise.all([loadRows(db, [matchId]), db.from("matches").select("starts_at, hall_id, status").eq("id", matchId).single()]);
+  const m = rows?.[0];
+  if (!m || !cur) return { recipients: 0, sent: false };
+
+  const change: MatchChange = {};
+  if (new Date(before.starts_at).getTime() !== new Date(cur.starts_at).getTime()) change.starts_at = { from: before.starts_at, to: cur.starts_at };
+  if (before.hall_id !== cur.hall_id) {
+    const old = before.hall_id ? (await db.from("halls").select("name").eq("id", before.hall_id).maybeSingle()).data?.name ?? null : null;
+    change.hall = { from: old, to: m.hall?.name ?? null };
+  }
+  if (before.status !== cur.status) change.status = { from: before.status, to: cur.status };
+  if (Object.keys(change).length === 0) return { recipients: 0, sent: false };
+
+  const crew = m.assignments
+    .filter((a) => (a.status === "pending" || a.status === "accepted") && a.notified_at && a.profile?.active)
+    .map((a) => a.profile!.email.toLowerCase());
+  const clubs = m.kind === "league" && CLUB_CATEGORIES.has(m.competition?.category ?? "") ? await clubRecipients(db) : [];
+  const recipients = [...new Set([...crew, ...clubs])];
+  const sent = recipients.length
+    ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "match_changed", ...matchChangedEmail(toNomination(m), change, siteUrl("/brand/ksks-logo-512.png")) })
+    : false;
+  return { recipients: recipients.length, sent };
 }

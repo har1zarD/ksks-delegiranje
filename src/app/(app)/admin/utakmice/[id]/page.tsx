@@ -321,6 +321,7 @@ async function EditMatch({
         crew: crewOf(match),
         status: match.status,
         notes: match.notes,
+        published_at: match.published_at,
       }}
     />
   );
