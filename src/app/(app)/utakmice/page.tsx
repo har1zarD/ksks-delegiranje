@@ -71,7 +71,6 @@ async function MyMatches() {
                     match={a.match}
                     showScore
                     periods={a.match.periods.length > 0 ? a.match.periods : undefined}
-                    meta={<span className="text-[13px] text-fg-muted">{positionName(a.position, a.match.digital_scoresheet)}</span>}
                   />
                 </Link>
                 <CrewList match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
