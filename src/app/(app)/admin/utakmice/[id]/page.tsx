@@ -74,7 +74,8 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
     assignments.filter((a) => a.status === "pending" && !a.notified_at && (!g || nominationGroupOf(a.position) === g)).length;
   const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
   const onMatch = new Set(active.map((a) => a.profile!.id));
-  const filled = positions.filter((p) => active.some((a) => a.position === p)).length;
+  // Brojač: popunjena je samo pozicija čija je nominacija prihvaćena (čeka odgovor se ne broji)
+  const filled = positions.filter((p) => active.some((a) => a.position === p && a.status === "accepted")).length;
   const cost = matchCost(match.rules, crew);
   // Prazna pozicija se može ukloniti sa utakmice ako su prazne i sve pozicije koje bi s njom nestale (zadnja sudija, zadnja statistika)
   const removable = (position: Position) => {
