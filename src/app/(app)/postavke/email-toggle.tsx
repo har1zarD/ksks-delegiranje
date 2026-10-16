@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useState } from "react";
 import { setOnlyAssignedEmails } from "./actions";
 
 const OPTIONS = [
@@ -8,11 +8,21 @@ const OPTIONS = [
   { value: true, label: "Samo nominacije na kojima sam delegiran", hint: "Nominaciju kola dobijaš samo kad si delegiran na nekoj od utakmica u njoj." },
 ];
 
-/** Koje nominacije kola osoba dobija emailom: izbor se odmah vidi na ekranu, čuva se u pozadini */
+/** Koje nominacije kola osoba dobija emailom: izbor se odmah vidi i ostaje, čuva se u pozadini; vraća se samo ako čuvanje ne uspije */
 export function EmailToggle({ value }: { value: boolean }) {
-  const [optimistic, setOptimistic] = useOptimistic(value);
-  const [pending, start] = useTransition();
+  const [current, setCurrent] = useState(value);
   const [error, setError] = useState<string>();
+
+  async function choose(next: boolean) {
+    const prev = current;
+    setCurrent(next);
+    setError(undefined);
+    const r = await setOnlyAssignedEmails(next);
+    if (r.error) {
+      setCurrent(prev);
+      setError(r.error);
+    }
+  }
 
   return (
     <fieldset>
@@ -23,15 +33,8 @@ export function EmailToggle({ value }: { value: boolean }) {
             <input
               type="radio"
               name="only_assigned_emails"
-              checked={optimistic === o.value}
-              disabled={pending}
-              onChange={() =>
-                start(async () => {
-                  setOptimistic(o.value);
-                  const r = await setOnlyAssignedEmails(o.value);
-                  setError(r.error);
-                })
-              }
+              checked={current === o.value}
+              onChange={() => choose(o.value)}
               className="mt-0.5 size-5 shrink-0 accent-[var(--brand)]"
             />
             <span>
