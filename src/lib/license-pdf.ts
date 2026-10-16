@@ -4,7 +4,6 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { clip, endPath, PDFDocument, popGraphicsState, pushGraphicsState, rectangle, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
-import { logoOf } from "@/components/competition-logo";
 import type { ClubLicenses, License } from "@/lib/data/licenses";
 import { formatDate } from "@/lib/format";
 
@@ -25,11 +24,13 @@ const C = {
   faint: rgb(0.42, 0.447, 0.502),
   line: rgb(0.886, 0.898, 0.914),
   panel2: rgb(0.945, 0.953, 0.961),
-  white: rgb(1, 1, 1),
 };
 
 type Fonts = { regular: PDFFont; bold: PDFFont };
-type Images = { competition: PDFImage | null; club: PDFImage | null; photos: Map<string, PDFImage> };
+type Images = { ksks: PDFImage; club: PDFImage | null; photos: Map<string, PDFImage> };
+
+/** Prozirnost KSKS grba iza kartica (isti grb je i u zaglavlju strane i kartice) */
+const WATERMARK_OPACITY = 0.06;
 
 const asset = (p: string) => readFile(path.join(process.cwd(), p));
 
@@ -56,18 +57,17 @@ export async function licensesPdf({ competition, club, players, officials }: Clu
   doc.setTitle(`Licence — ${club.name} — ${competition.name}`);
   doc.setAuthor("Košarkaški savez Kantona Sarajevo");
 
-  const competitionLogo = logoOf(competition.name, competition.category);
   const all = [...players, ...officials];
-  const [regular, bold, competitionImg, clubImg, ...photos] = await Promise.all([
+  const [regular, bold, ksks, clubImg, ...photos] = await Promise.all([
     asset("src/app/_og/Geist-500.woff").then((b) => doc.embedFont(b, { subset: true })),
     asset("src/app/_og/Geist-700.woff").then((b) => doc.embedFont(b, { subset: true })),
-    competitionLogo ? asset(`public/competitions/${competitionLogo}.png`).then((b) => doc.embedPng(b)) : null,
+    asset("public/brand/ksks-logo-1024.png").then((b) => doc.embedPng(b)),
     club.logoUrl ? fetchBytes(club.logoUrl).then((b) => embedImage(doc, b)) : null,
     ...all.map((l) => (l.photoUrl ? fetchBytes(l.photoUrl).then((b) => embedImage(doc, b)) : null)),
   ]);
   const fonts = { regular, bold };
   const images: Images = {
-    competition: competitionImg,
+    ksks,
     club: clubImg,
     photos: new Map(all.flatMap((l, i) => (photos[i] ? [[l.id, photos[i]] as const] : []))),
   };
@@ -81,6 +81,8 @@ export async function licensesPdf({ competition, club, players, officials }: Clu
   for (const section of sections) {
     for (let i = 0; i < section.list.length; i += COLS * ROWS) {
       const page = doc.addPage([A4.w, A4.h]);
+      // Grb saveza preko cijele strane, prvi da bude iza svega
+      drawContained(page, ksks, M, M, A4.w - 2 * M, A4.h - 2 * M, WATERMARK_OPACITY);
       const top = drawPageHeader(page, fonts, images, { competition, club }, `${section.title} (${section.list.length})`);
       section.list.slice(i, i + COLS * ROWS).forEach((l, j) => {
         const x = M + (j % COLS) * (CARD_W + GAP);
@@ -100,7 +102,7 @@ export async function licensesPdf({ competition, club, players, officials }: Clu
   return doc.save();
 }
 
-/** Zaglavlje strane: grb i naziv kluba, takmičenje i sezona, logo takmičenja; vraća vrh prve kartice */
+/** Zaglavlje strane: grb i naziv kluba, takmičenje i sezona, grb saveza; vraća vrh prve kartice */
 function drawPageHeader(page: PDFPage, f: Fonts, img: Images, { competition, club }: Pick<ClubLicenses, "competition" | "club">, section: string) {
   const top = A4.h - M;
   let x = M;
@@ -111,7 +113,7 @@ function drawPageHeader(page: PDFPage, f: Fonts, img: Images, { competition, clu
   page.drawText(club.name, { x, y: top - 17, size: 17, font: f.bold, color: C.fg });
   const sub = ["Lista licenciranih igrača i službenih lica", competition.name, competition.season && `sezona ${competition.season}`].filter(Boolean).join("  ·  ");
   page.drawText(sub, { x, y: top - 32, size: 8.5, font: f.regular, color: C.muted });
-  if (img.competition) drawContained(page, img.competition, A4.w - M - 54, top - 36, 54, 36);
+  drawContained(page, img.ksks, A4.w - M - 54, top - 36, 54, 36);
 
   page.drawLine({ start: { x: M, y: top - 48 }, end: { x: A4.w - M, y: top - 48 }, thickness: 0.75, color: C.line });
   page.drawText(section, { x: M, y: top - 68, size: 11, font: f.bold, color: C.fg });
@@ -121,16 +123,14 @@ function drawPageHeader(page: PDFPage, f: Fonts, img: Images, { competition, clu
 /** Kartica licence; (x, y) = gornji lijevi ugao */
 function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: Pick<ClubLicenses, "competition" | "club">, l: License, x: number, y: number) {
   const bottom = y - CARD_H;
-  page.drawRectangle({ x, y: bottom, width: CARD_W, height: CARD_H, color: C.white, borderColor: C.line, borderWidth: 0.75 });
+  // Bez bijele podloge (strana je bijela), da se grb iza vidi
+  page.drawRectangle({ x, y: bottom, width: CARD_W, height: CARD_H, borderColor: C.line, borderWidth: 0.75 });
 
-  // Zaglavlje: takmičenje i sezona
-  page.drawRectangle({ x: x + 0.375, y: y - HEAD_H, width: CARD_W - 0.75, height: HEAD_H - 0.375, color: C.panel2 });
+  // Zaglavlje: grb saveza, takmičenje i sezona
+  page.drawRectangle({ x: x + 0.375, y: y - HEAD_H, width: CARD_W - 0.75, height: HEAD_H - 0.375, color: C.panel2, opacity: 0.7 });
   page.drawLine({ start: { x, y: y - HEAD_H }, end: { x: x + CARD_W, y: y - HEAD_H }, thickness: 0.75, color: C.line });
-  let hx = x + 8;
-  if (img.competition) {
-    drawContained(page, img.competition, hx, y - HEAD_H + 3, 24, 16);
-    hx += 30;
-  }
+  drawContained(page, img.ksks, x + 8, y - HEAD_H + 3, 24, 16);
+  const hx = x + 38;
   const season = competition.season ?? "";
   const seasonW = f.regular.widthOfTextAtSize(season, 7.5);
   page.drawText(fit(competition.name.toLocaleUpperCase("bs"), f.bold, 7, CARD_W - (hx - x) - seasonW - 18), { x: hx, y: y - 14, size: 7, font: f.bold, color: C.fg });
@@ -188,11 +188,11 @@ function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: P
 }
 
 /** Slika unutar okvira, cijela vidljiva, centrirana */
-function drawContained(page: PDFPage, image: PDFImage, x: number, y: number, w: number, h: number) {
+function drawContained(page: PDFPage, image: PDFImage, x: number, y: number, w: number, h: number, opacity = 1) {
   const s = Math.min(w / image.width, h / image.height);
   const dw = image.width * s;
   const dh = image.height * s;
-  page.drawImage(image, { x: x + (w - dw) / 2, y: y + (h - dh) / 2, width: dw, height: dh });
+  page.drawImage(image, { x: x + (w - dw) / 2, y: y + (h - dh) / 2, width: dw, height: dh, opacity });
 }
 
 /** Slika popunjava okvir (višak se odsijeca); vertikalno je fokus na 30% od vrha, kao object-[50%_30%] */

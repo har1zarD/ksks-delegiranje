@@ -1,5 +1,5 @@
+import Image from "next/image";
 import { UserRound } from "lucide-react";
-import { CompetitionLogo } from "@/components/competition-logo";
 import { Bone, Text, times } from "@/components/skeleton";
 import { ClubLogo } from "@/components/team-name";
 import { CARD, cx } from "@/components/ui";
@@ -10,13 +10,13 @@ const HEAD = "flex items-center gap-2 border-b border-line bg-panel-2 py-1.5 pl-
 const PHOTO = "aspect-[3/4] w-[88px] shrink-0 overflow-hidden rounded-md border border-line bg-panel-2 sm:w-24";
 const FOOT = "flex min-h-12 items-center gap-2 border-t border-line py-2 pl-2 pr-4";
 
-/** Licenca kao kartica: takmičenje i sezona gore, fotografija i podaci, klub i broj licence dole */
+/** Licenca kao kartica: grb saveza, takmičenje i sezona gore, fotografija i podaci, klub i broj licence dole */
 export function LicenseCard({ license: l, competition, club }: { license: License } & Pick<ClubLicenses, "competition" | "club">) {
   const player = l.kind === "player";
   return (
     <article className={cx(CARD, "overflow-hidden")}>
       <header className={HEAD}>
-        <CompetitionLogo name={competition.name} category={competition.category} />
+        <Image src="/brand/ksks-logo.svg" alt="" width={32} height={32} className="size-8 shrink-0" />
         <span className="min-w-0 flex-1 truncate text-[12px] font-semibold uppercase tracking-[0.06em]">{competition.name}</span>
         {competition.season && <span className="tabular shrink-0 text-[12px] font-medium text-fg-muted">{competition.season}</span>}
       </header>
@@ -77,7 +77,7 @@ export function LicenseGridSkeleton({ count = 6 }: { count?: number }) {
       {times(count, (i) => (
         <li key={i} className={cx(CARD, "overflow-hidden")}>
           <div className={HEAD}>
-            <Bone className="h-8 w-12 shrink-0" />
+            <Bone className="size-8 shrink-0" />
             <Text className="text-[12px]" w="w-28" />
           </div>
           <div className="flex gap-4 p-4">
