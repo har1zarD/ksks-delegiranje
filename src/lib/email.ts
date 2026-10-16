@@ -1,10 +1,9 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Slanje emaila preko Gmaila: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords).
-// Ili preko bilo kojeg SMTP servisa (Brevo, Mailgun, SES…): SMTP_HOST, SMTP_PORT (587 ili 465), SMTP_USER, SMTP_PASSWORD;
-// ako je SMTP_HOST postavljen, Gmail se ne koristi. Gmail (naročito nov nalog) ograničava i tiho zadržava masovna slanja.
-// EMAIL_FROM = adresa pošiljaoca ako nije isti Gmail nalog.
+// Slanje emaila preko SMTP servisa (Brevo): SMTP_HOST, SMTP_PORT (587 ili 465), SMTP_USER, SMTP_PASS; EMAIL_FROM = verifikovani pošiljalac.
+// Gmail put (GMAIL_USER + GMAIL_APP_PASSWORD) je isključen (2026-10-16): nov Gmail nalog uz masovni bcc tiho ne isporučuje
+// i ima dnevni limit od 500 adresa. Kod je ostavljen zakomentarisan ispod ako ikad zatreba.
 // Kancelarija saveza (OFFICE_COPY) dobija skrivenu kopiju svakog emaila osim linka za novu šifru i odbijanja.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 /**
@@ -16,15 +15,16 @@ const EMAILS_OFF = false;
 let transport: Transporter | null = null;
 
 function getTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, GMAIL_USER, GMAIL_APP_PASSWORD } = process.env;
-  if (SMTP_HOST && SMTP_USER && SMTP_PASSWORD) {
-    const port = Number(SMTP_PORT) || 587;
-    transport ??= nodemailer.createTransport({ host: SMTP_HOST, port, secure: port === 465, auth: { user: SMTP_USER, pass: SMTP_PASSWORD } });
-    return transport;
-  }
-  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
-  transport ??= nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } });
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  const port = Number(SMTP_PORT) || 587;
+  transport ??= nodemailer.createTransport({ host: SMTP_HOST, port, secure: port === 465, auth: { user: SMTP_USER, pass: SMTP_PASS } });
   return transport;
+  // Gmail (isključeno, vidi zaglavlje):
+  // const { GMAIL_USER, GMAIL_APP_PASSWORD } = process.env;
+  // if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
+  // transport ??= nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } });
+  // return transport;
 }
 
 /** Adresa pošiljaoca */
@@ -90,7 +90,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
   email = withOfficeCopy(email, allow);
 
   if (!t) {
-    error = "Email nije podešen (SMTP_HOST + SMTP_USER + SMTP_PASSWORD ili GMAIL_USER + GMAIL_APP_PASSWORD)";
+    error = "Email nije podešen (SMTP_HOST + SMTP_USER + SMTP_PASS)";
   } else {
     try {
       const info = await t.sendMail({

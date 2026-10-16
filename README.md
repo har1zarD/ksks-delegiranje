@@ -30,8 +30,7 @@ Kopiraj `.env.example` u `.env.local` i popuni:
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase projekat |
 | `SUPABASE_SECRET_KEY` | samo server: kreiranje korisnika, MCP, email log |
-| `GMAIL_USER`, `GMAIL_APP_PASSWORD` | slanje nominacija i obavijesti preko Gmaila |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | slanje preko SMTP servisa (Brevo i sl.) umjesto Gmaila; ima prednost ako je `SMTP_HOST` postavljen |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | slanje nominacija i obavijesti preko SMTP servisa (Brevo); Gmail put je isključen u kodu |
 | `NEXT_PUBLIC_SITE_URL` | javna adresa (linkovi u emailovima i MCP) |
 | `INITIAL_PASSWORD` | zajednička početna šifra novih naloga |
 
