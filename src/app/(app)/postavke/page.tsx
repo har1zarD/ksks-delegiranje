@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ChevronDown, KeyRound, Settings, Link2, ShieldCheck } from "lucide-react";
+import { Bell, ChevronDown, KeyRound, Settings, Link2, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, isoToSarajevo } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -7,12 +7,14 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { Bone, Skeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
 import { cx, PageHeader, Panel, ROWS, SectionTitle, Status } from "@/components/ui";
 import { revokeToken } from "./actions";
+import { EmailToggle } from "./email-toggle";
 import { PasswordForm } from "./password-form";
 import { CopyBlock, TokenForm } from "./token-form";
 
 export const metadata = { title: "Postavke — KSKS" };
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const user = await getCurrentUser();
   return (
     <>
       <PageHeader icon={<Settings />} title="Postavke" subtitle="Pristup nalogu i povezivanje asistenata." />
@@ -24,6 +26,17 @@ export default function SettingsPage() {
             <PasswordForm />
           </Panel>
         </section>
+
+        {user.role !== "admin" && (
+          <section>
+            <SectionTitle icon={<Bell />}>Obavještenja</SectionTitle>
+            <Panel className="py-4 sm:py-6">
+              <Suspense fallback={<Text className="text-[15px] font-semibold" w="w-80" />}>
+                <EmailSetting userId={user.id} />
+              </Suspense>
+            </Panel>
+          </section>
+        )}
 
         <section>
           <SectionTitle icon={<Link2 />}>Poveži Claude</SectionTitle>
@@ -43,6 +56,13 @@ export default function SettingsPage() {
       </div>
     </>
   );
+}
+
+/** Lična postavka nije keširana (čita je samo vlasnik) */
+async function EmailSetting({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("only_assigned_emails").eq("id", userId).single();
+  return <EmailToggle value={data?.only_assigned_emails ?? false} />;
 }
 
 const date = (iso: string) => formatDate(isoToSarajevo(iso).date);

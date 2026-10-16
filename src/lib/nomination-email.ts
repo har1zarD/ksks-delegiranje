@@ -195,7 +195,8 @@ const textTeams = (m: CardMatch) => `${(m.home?.name ?? "?").toUpperCase()} – 
  * Kad ima samo seniorskih utakmica naslov je "Nominacija – pomoćne sudije".
  * Objava izmjena već aktivirane utakmice: osobe s `changed` su crvene, naslov "(izmjena)"; skinuti se ne ispisuju.
  */
-export function nominationEmail(matches: NominationMatch[], link: string, logo: string) {
+/** delegated = false: verzija za listu (primalac nije delegiran ni na jednu od ovih utakmica), bez dugmeta za prihvatanje */
+export function nominationEmail(matches: NominationMatch[], link: string, logo: string, delegated = true) {
   const parts = (["youth", "seniors"] as const)
     .map((kind) => ({ kind, list: matches.filter((m) => nominationKindOf(m) === kind) }))
     .filter((p) => p.list.length > 0);
@@ -223,7 +224,7 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
         ]),
       ]),
     ]),
-    `Prihvati nominaciju: ${link}`,
+    delegated ? `Prihvati nominaciju: ${link}` : NOT_DELEGATED,
     "",
     "Takmičarska komisija KSKS",
   ].join("\n");
@@ -251,14 +252,16 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
     subtitle: `${dateRange(matches)}, ${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`,
     intro: intro ? esc(intro) : undefined,
     body,
-    button: "Prihvati nominaciju",
+    button: delegated ? "Prihvati nominaciju" : "",
     link,
-    note: "Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Nominacije.",
+    note: delegated ? "Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Nominacije." : NOT_DELEGATED,
     logo,
   });
 
   return { subject, text, html };
 }
+
+const NOT_DELEGATED = "Nisi delegiran ni na jednu od ovih utakmica. Nominacija ti je poslana informativno.";
 
 /**
  * "Pingaj" (Pregled): osobi koja nije odgovorila na poslanu nominaciju, njene utakmice (njeno ime crveno)

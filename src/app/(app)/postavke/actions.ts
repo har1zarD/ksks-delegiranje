@@ -52,3 +52,11 @@ export async function revokeToken(formData: FormData) {
     .is("revoked_at", null);
   refresh();
 }
+
+/** Postavke → Obavještenja: nominacija kola samo ako je osoba delegirana na nekoj od utakmica (vidi publish.ts) */
+export async function setOnlyAssignedEmails(value: boolean): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  // profiles nema update politiku za korisnike: servisni klijent, strogo na vlastiti red
+  const { error } = await createAdminClient().from("profiles").update({ only_assigned_emails: value }).eq("id", user.id);
+  return error ? { error: "Postavka nije sačuvana. Pokušaj ponovo." } : {};
+}

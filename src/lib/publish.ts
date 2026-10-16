@@ -6,6 +6,8 @@
 //     Objava izmjena već aktivirane utakmice: nova imena su crvena; skinuti od zadnje objave (uklonjeni, zamijenjeni,
 //     odbili) dobijaju mail, ali se u nominaciji ne ispisuju. Primaoci su po izboru svi sa liste ili samo učesnici tih
 //     utakmica (ekipa + skinuti), da lista ne dobija email zbog jedne zamjene. Zamjena osobe ide istim putem (delegation.replaceAssignment).
+//     Ko je u Postavkama uključio "samo utakmice na kojima sam delegiran" (only_assigned_emails) ne dobija nominaciju "svima"
+//     ako nije u ekipi nijedne od tih utakmica.
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
 import { matchChangedEmail, nominationEmail, nominationKindOf, pingEmail, scheduleEmail, type MatchChange, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
@@ -108,17 +110,26 @@ export async function publishMatches(db: Db, matchIds: string[], audience: Publi
   // Već aktivirana utakmica: delegiranja koja se tek sada šalju su nova (zamjena ili naknadno delegiranje) → crveno
   const matches = rows.map((m) => toNomination(m, (a) => Boolean(m.published_at) && a.status === "pending" && !a.notified_at));
 
-  // 3: JEDAN mail (omladinska liga i seniori kao dvije sekcije) svima sa liste, ili samo učesnicima ovih utakmica (ekipa + skinuti)
+  // 3: JEDAN mail (omladinska liga i seniori kao dvije sekcije) svima sa liste, ili samo učesnicima ovih utakmica (ekipa + skinuti).
+  //    Lista bez onih koji su u Postavkama izabrali "samo utakmice na kojima sam delegiran"; oni ga dobijaju samo kao dio ekipe.
   const { data: list } =
-    audience === "all" ? await db.from("profiles").select("email").eq("active", true).in("role", ["official", "commissioner"]) : { data: null };
-  const crew = rows.flatMap((m) => [
-    ...m.assignments.filter((a) => isActive(a) && a.profile!.active).map((a) => ({ email: a.profile!.email })),
-    ...(removed.get(m.id) ?? []).filter((r) => r.active),
-  ]);
-  const recipients = [...new Set((list ?? crew).map((p) => p.email.toLowerCase()))];
+    audience === "all"
+      ? await db.from("profiles").select("email").eq("active", true).eq("only_assigned_emails", false).in("role", ["official", "commissioner"])
+      : { data: null };
+  //    Dva emaila istog sadržaja: delegiranima s dugmetom "Prihvati nominaciju", ostalima (lista, skinuti) bez njega.
+  const lower = (p: { email: string }) => p.email.toLowerCase();
+  const delegated = new Set(rows.flatMap((m) => m.assignments.filter((a) => isActive(a) && a.profile!.active).map((a) => lower(a.profile!))));
+  const removedActive = rows.flatMap((m) => (removed.get(m.id) ?? []).filter((r) => r.active));
+  const others = [...new Set([...(list ?? []), ...removedActive].map(lower))].filter((e) => !delegated.has(e));
+  const recipients = [...delegated, ...others];
   const link = siteUrl("/nominacije");
   const logo = siteUrl("/icons/icon-192.png");
-  const sent = recipients.length && matches.length ? await sendEmail({ to: senderAddress(), bcc: recipients, kind: "nomination_list", ...nominationEmail(matches, link, logo) }) : false;
+  const send = (bcc: string[], isDelegated: boolean) =>
+    sendEmail({ to: senderAddress(), bcc, kind: "nomination_list", ...nominationEmail(matches, link, logo, isDelegated) });
+  const results = matches.length
+    ? await Promise.all([delegated.size ? send([...delegated], true) : null, others.length ? send(others, false) : null])
+    : [];
+  const sent = results.some((r) => r !== null) && results.every((r) => r !== false);
   const documents: PublishResult["documents"] = (["youth", "seniors"] as const)
     .map((kind) => ({ kind, matches: matches.filter((m) => nominationKindOf(m) === kind).length, sent }))
     .filter((d) => d.matches > 0);
