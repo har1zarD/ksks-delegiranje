@@ -1,9 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CORS, isAllowedRedirect, oauthError, randomId } from "@/lib/oauth";
+import { ipOf, rateLimit } from "@/lib/rate-limit";
 
 // Dinamička registracija klijenta (RFC 7591): Claude se sam registruje prije prve prijave.
 // Registracija ne daje pristup ničemu; pristup daje tek osoba koja se prijavi i klikne "Dozvoli".
 export async function POST(request: Request) {
+  if (!(await rateLimit(`oauth-register:ip:${ipOf(request.headers)}`, 10, 3600))) {
+    return oauthError("too_many_requests", "Previše registracija. Pokušaj kasnije.", 429);
+  }
   const body = (await request.json().catch(() => null)) as { client_name?: unknown; redirect_uris?: unknown } | null;
   const uris = Array.isArray(body?.redirect_uris) ? body.redirect_uris.filter((u): u is string => typeof u === "string") : [];
   if (uris.length === 0 || uris.length > 10 || !uris.every(isAllowedRedirect)) {

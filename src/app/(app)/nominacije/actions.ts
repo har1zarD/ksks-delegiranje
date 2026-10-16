@@ -11,7 +11,7 @@ export type RespondState = { error?: string };
 export async function respond(_prev: RespondState, formData: FormData): Promise<RespondState> {
   const user = await getCurrentUser();
   const accept = formData.get("accept") === "1";
-  const reason = String(formData.get("reason") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 500);
   if (!accept && !reason) return { error: "Napiši razlog odbijanja." };
 
   let matchId: string;

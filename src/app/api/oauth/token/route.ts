@@ -1,9 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateToken } from "@/lib/mcp/token";
 import { CORS, oauthError, sha256, verifyPkce } from "@/lib/oauth";
+import { ipOf, rateLimit } from "@/lib/rate-limit";
 
 // Razmjena koda za token (authorization_code + PKCE). Izdaje se lični MCP token osobe koja je dozvolila pristup.
 export async function POST(request: Request) {
+  if (!(await rateLimit(`oauth-token:ip:${ipOf(request.headers)}`, 30, 600))) {
+    return oauthError("too_many_requests", "Previše zahtjeva. Pokušaj kasnije.", 429);
+  }
   const form = await request.formData().catch(() => null);
   const get = (k: string) => (typeof form?.get(k) === "string" ? (form!.get(k) as string) : "");
 

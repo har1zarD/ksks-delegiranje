@@ -2,9 +2,17 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { authenticate } from "@/lib/mcp/auth";
 import { createMcpServer } from "@/lib/mcp/server";
 import { CORS, originOf } from "@/lib/oauth";
+import { ipOf, rateLimit } from "@/lib/rate-limit";
 
 // MCP preko Streamable HTTP, bez sesija. Token: lični iz Postavki ili izdan preko OAuth prijave (custom connector).
 async function handle(request: Request) {
+  if (!(await rateLimit(`mcp:ip:${ipOf(request.headers)}`, 120, 60))) {
+    return Response.json(
+      { jsonrpc: "2.0", error: { code: -32029, message: "Previše zahtjeva. Sačekaj minutu." }, id: null },
+      { status: 429, headers: { ...CORS, "Retry-After": "60" } },
+    );
+  }
+
   const ctx = await authenticate(request);
   if (!ctx) {
     return Response.json(

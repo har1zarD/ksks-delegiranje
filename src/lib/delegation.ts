@@ -179,11 +179,24 @@ export async function respondToNomination(
     .eq("id", assignmentId)
     .eq("profile_id", profileId)
     .not("notified_at", "is", null)
-    .in("status", ["pending", "accepted"])
+    // Prihvatanje samo iz pending: ponovljeno prihvatanje ne šalje savezu novi email
+    .in("status", accept ? ["pending"] : ["pending", "accepted"])
     .select("id, status, position, match_id, profile:profiles!assignments_profile_id_fkey ( full_name )");
   if (error) throw new Error(error.message);
   const row = data?.[0];
-  if (!row) throw new DelegationError("Nominacija nije pronađena ili se na nju više ne može odgovoriti.");
+  if (!row) {
+    if (accept) {
+      const { data: done } = await db
+        .from("assignments")
+        .select("match_id")
+        .eq("id", assignmentId)
+        .eq("profile_id", profileId)
+        .eq("status", "accepted")
+        .maybeSingle();
+      if (done) return { status: "accepted" as const, matchId: done.match_id, notifyAdmins: async () => {} };
+    }
+    throw new DelegationError("Nominacija nije pronađena ili se na nju više ne može odgovoriti.");
+  }
 
   const notifyAdmins = async () => {
     const { data: match } = await db.from("matches").select(MATCH_SELECT).eq("id", row.match_id).single();

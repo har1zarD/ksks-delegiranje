@@ -537,6 +537,9 @@ isOneToOne: false
 "pgp_armor_headers":
 { Args: { "": string }; Returns: Record<string, unknown>[]
                            },
+"rate_limit_hit":
+{ Args: { "p_key": string,"p_max": number,"p_window_seconds": number }; Returns: boolean
+                           },
 "respond_to_assignment":
 { Args: { "a": string,"accept": boolean,"reason"?: string }; Returns: {
               "created_at": string,

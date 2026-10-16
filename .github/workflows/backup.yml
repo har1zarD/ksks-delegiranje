@@ -1,0 +1,51 @@
+# Dnevni backup baze (Supabase Free nema automatske backupe).
+# Dump (uloge, šema, podaci) se šifruje (AES256, gpg) i čuva kao artifact 30 dana: Actions → Backup baze → run → Artifacts.
+# Secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL    Session pooler adresa (Supabase → Connect → Session pooler), sa šifrom baze
+#   BACKUP_PASSPHRASE  šifra za otključavanje backupa (čuvati i van GitHuba, bez nje backup je neupotrebljiv)
+# Vraćanje: gpg -d ksks-backup-<datum>.tar.gz.gpg | tar xz  → backup/roles.sql, schema.sql, data.sql
+# Slike u Storage bucketima (licence, zapisnici, grbovi) NISU dio ovog backupa.
+name: Backup baze
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # svaki dan u 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump baze
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir backup
+          supabase db dump --db-url "$DB_URL" -f backup/roles.sql --role-only
+          supabase db dump --db-url "$DB_URL" -f backup/schema.sql
+          supabase db dump --db-url "$DB_URL" -f backup/data.sql --data-only --use-copy
+          test -s backup/schema.sql && test -s backup/data.sql
+
+      - name: Šifrovanje
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$PASS"
+          tar czf - backup | gpg --batch --yes --pinentry-mode loopback --passphrase-file <(printf %s "$PASS") \
+            --symmetric --cipher-algo AES256 -o "ksks-backup-$(date -u +%F).tar.gz.gpg"
+          rm -rf backup
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ksks-backup-${{ github.run_number }}
+          path: ksks-backup-*.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error
