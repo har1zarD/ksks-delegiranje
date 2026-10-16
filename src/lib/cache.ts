@@ -29,14 +29,19 @@ export const tag = {
   match: (id: string) => `match:${id}`,
 };
 
-/** Trajanja keša. Tag je izvor istine; vrijeme je samo sigurnosna mreža (npr. izmjena direktno u bazi). */
+/**
+ * Trajanje keša: najviše 1 minuta za sve, pa se i izmjena direktno u bazi vidi za minutu.
+ * Izmjena kroz aplikaciju se vidi odmah (tag). expire 60 = poslije minute se uvijek čita baza, bez zastarjelog prikaza.
+ */
+const ONE_MINUTE = { stale: 30, revalidate: 60, expire: 60 } as const;
+
 export const LIFE = {
-  /** Šifarnici (takmičenja, ekipe, klubovi, dvorane): mijenja ih samo admin, rijetko */
-  reference: "days",
-  /** Profili: mijenja ih samo admin */
-  people: "hours",
-  /** Utakmice, delegiranja, rezultati, odsustva, finansije: često se mijenjaju, ali se uvijek invalidiraju tagom */
-  live: { stale: 30, revalidate: 60, expire: 3600 },
+  /** Šifarnici (takmičenja, ekipe, klubovi, dvorane, licence) */
+  reference: ONE_MINUTE,
+  /** Profili */
+  people: ONE_MINUTE,
+  /** Utakmice, delegiranja, rezultati, odsustva, finansije */
+  live: ONE_MINUTE,
 } as const;
 
 /**
