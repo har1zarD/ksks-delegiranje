@@ -2,7 +2,7 @@
 
 Aplikacija Košarkaškog saveza Kantona Sarajevo za delegiranje sudija, zapisničkog stola i komesara na omladinske lige.
 
-Stack: Next.js 16 (App Router, Cache Components) · Supabase (Auth, Postgres, Realtime) · Vercel · Gmail SMTP (nodemailer).
+Stack: Next.js 16 (App Router, Cache Components) · Supabase (Auth, Postgres, Realtime) · Vercel · Brevo SMTP (nodemailer).
 
 ## Uloge
 
