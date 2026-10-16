@@ -7,7 +7,7 @@ import type { Candidate } from "@/lib/data/admin";
 import { replace, type ReplaceState } from "./actions";
 import { CandidateSelect } from "./assign-form";
 
-/** "Zamijeni": prozor za izbor nove osobe. Ako je nominacija već poslana, nova osoba dobija email. */
+/** "Zamijeni": prozor za izbor nove osobe. Ako je nominacija već poslana, izmijenjena nominacija ide ekipi utakmice i staroj osobi. */
 export function ReplaceButton({
   assignmentId,
   current,
@@ -70,7 +70,7 @@ export function ReplaceButton({
 
           <p className="text-[13px] text-fg-muted">
             {notified
-              ? `${current} dobija email da je nominacija otkazana. Nova osoba odmah vidi nominaciju i dobija je emailom, sa svojim imenom označenim crveno.`
+              ? `Izmijenjena nominacija ide emailom svima na utakmici i ${current}: nova osoba crveno, ${current} precrtano. ${current} dobija i obavijest da je nominacija otkazana.`
               : "Utakmica još nije aktivirana, pa se ne šalje email."}
           </p>
 

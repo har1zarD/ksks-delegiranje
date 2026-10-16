@@ -68,7 +68,7 @@ export async function removePosition(formData: FormData) {
 
 export type ReplaceState = { error?: string; done?: string };
 
-/** Zamjena osobe; nova dobija nominaciju utakmice emailom ako je stara već bila poslana */
+/** Zamjena osobe; ako je stara nominacija već bila poslana, izmijenjena nominacija ide ekipi utakmice i staroj osobi */
 export async function replace(_prev: ReplaceState, formData: FormData): Promise<ReplaceState> {
   const admin = await requireRole("admin");
   const assignmentId = String(formData.get("assignment_id") ?? "");
@@ -76,8 +76,8 @@ export async function replace(_prev: ReplaceState, formData: FormData): Promise<
   if (!profileId) return { error: "Izaberi osobu." };
   try {
     const r = await replaceAssignment(createAdminClient(), { assignmentId, profileId, createdBy: admin.id });
-    invalidate({ table: "assignments", match: r.matchId });
-    return { done: r.emailed ? `Zamijenjeno: ${r.name}. Nominacija je poslana emailom.` : `Zamijenjeno: ${r.name}.` };
+    invalidate({ table: "assignments", match: r.matchId }, { table: "matches", match: r.matchId });
+    return { done: r.emailed ? `Zamijenjeno: ${r.name}. Izmijenjena nominacija je poslana emailom.` : `Zamijenjeno: ${r.name}.` };
   } catch (e) {
     return { error: e instanceof DelegationError ? e.message : "Zamjena nije sačuvana. Pokušaj ponovo." };
   }

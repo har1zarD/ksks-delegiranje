@@ -12,7 +12,7 @@ import type { PublishAudience } from "@/lib/publish";
 function resultText(r: NonNullable<PublishState["result"]>) {
   const mail = r.emailed
     ? r.audience === "crew"
-      ? `Poslana nominacija samo delegiranima na utakmici (${r.recipients} ${r.recipients === 1 ? "adresa" : "adrese"}).`
+      ? `Poslana nominacija samo učesnicima utakmice (${r.recipients} ${r.recipients === 1 ? "adresa" : "adrese"}).`
       : `Poslana nominacija na ${r.recipients} adresa.`
     : "Email nije poslan (nije podešen ili je uključen test način za druge adrese); nominacije se vide u aplikaciji.";
   const clubs = r.clubs
@@ -249,7 +249,7 @@ export function PublishMatch({ matchId, publishedAt, unpublished, crew }: { matc
               <div className="min-w-0">
                 <h2 className="font-display text-[20px] font-semibold leading-tight">Objavi izmjene</h2>
                 <p className="mt-1 text-[14px] text-fg-muted">
-                  {unpublished === 1 ? "1 novo delegiranje" : `${unpublished} nova delegiranja`}. Delegirani odmah vide nominaciju, a u emailu su nova imena crvena.
+                  {unpublished === 1 ? "1 novo delegiranje" : `${unpublished} nova delegiranja`}. Delegirani odmah vide nominaciju; u emailu su nova imena crvena, a skinuta od zadnje objave precrtana.
                 </p>
               </div>
               <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2.5 rounded-md p-2.5 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
@@ -262,9 +262,9 @@ export function PublishMatch({ matchId, publishedAt, unpublished, crew }: { matc
               <label className="flex cursor-pointer items-start gap-3 px-4 py-3">
                 <input type="radio" name="audience" value="crew" defaultChecked className="mt-1 size-4 shrink-0 accent-fg" />
                 <span className="min-w-0">
-                  <span className="block text-[15px] font-semibold">Samo delegiranima na ovoj utakmici</span>
+                  <span className="block text-[15px] font-semibold">Samo učesnicima ove utakmice</span>
                   <span className="block text-[13px] text-fg-muted">
-                    {crew} {crew === 1 ? "osoba" : crew < 5 ? "osobe" : "osoba"}. Ostali sa liste ne dobijaju email.
+                    Delegirani ({crew}) i ko je od zadnje objave skinut s nominacije. Ostali sa liste ne dobijaju email.
                   </span>
                 </span>
               </label>

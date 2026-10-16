@@ -3,12 +3,13 @@
 //  2. utakmice dobijaju published_at
 //  3. nominacija (dokument cijelog kola) ide emailom SVIM aktivnim sudijama, pomoćnim sudijama i komesarima
 //     (skriveni primaoci); omladinska liga i seniori (pomoćne sudije) su odvojeni dokumenti.
-//     Objava izmjena već aktivirane utakmice: nova imena su crvena, a primaoci su po izboru svi sa liste
-//     ili samo delegirani na tim utakmicama (da lista ne dobija email zbog jedne zamjene).
+//     Objava izmjena već aktivirane utakmice: nova imena su crvena, skinuti od zadnje objave (uklonjeni, zamijenjeni,
+//     odbili) precrtani; primaoci su po izboru svi sa liste ili samo učesnici tih utakmica (ekipa + skinuti),
+//     da lista ne dobija email zbog jedne zamjene. Zamjena osobe ide istim putem (delegation.replaceAssignment).
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
 import { matchChangedEmail, nominationEmail, nominationKindOf, scheduleEmail, type MatchChange, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
-import type { MatchStatus } from "@/lib/format";
+import type { MatchStatus, Position } from "@/lib/format";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Db = ReturnType<typeof createAdminClient>;
@@ -22,7 +23,7 @@ const PUBLISH_SELECT = `
   assignments ( id, position, status, notified_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email, active ) )
 ` as const;
 
-/** Kome ide nominacija emailom: svima sa liste (sudije, pomoćne sudije, komesari) ili samo delegiranima na objavljenim utakmicama */
+/** Kome ide nominacija emailom: svima sa liste (sudije, pomoćne sudije, komesari) ili samo učesnicima objavljenih utakmica (ekipa + skinuti od zadnje objave) */
 export type PublishAudience = "all" | "crew";
 
 export type PublishResult = {
@@ -50,24 +51,42 @@ const loadRows = async (db: Db, ids: string[]) => (await db.from("matches").sele
 
 const isActive = (a: Assignment) => (a.status === "pending" || a.status === "accepted") && Boolean(a.profile);
 
-/** changed: koje delegiranje je novo u odnosu na prethodnu nominaciju (ime crveno) */
-const toNomination = (m: Row, changed: (a: Assignment) => boolean = () => false): NominationMatch => ({
+type Removed = { position: Position; name: string; profileId: string; email: string; active: boolean };
+
+/** changed: koje delegiranje je novo u odnosu na prethodnu nominaciju (crveno); removed: skinuti od zadnje objave (precrtani, prije novih u istom redu) */
+const toNomination = (m: Row, changed: (a: Assignment) => boolean = () => false, removed: Removed[] = []): NominationMatch => ({
   ...m,
-  crew: m.assignments
-    .filter(isActive)
-    .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email, changed: changed(a) })),
+  crew: [
+    ...removed.map((r) => ({ position: r.position, name: r.name, profileId: r.profileId, email: r.email, removed: true })),
+    ...m.assignments
+      .filter(isActive)
+      .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email, changed: changed(a) })),
+  ],
 });
 
-/** Zamjena: nominacija te utakmice samo novoj osobi, njeno ime istaknuto crveno */
-export async function sendReplacementNomination(
-  db: Db,
-  { matchId, assignmentId, profileId, email }: { matchId: string; assignmentId: string; profileId: string; email: string },
-) {
-  const rows = await loadRows(db, [matchId]);
-  if (!rows?.length) return false;
-  const match = toNomination(rows[0], (a) => a.id === assignmentId);
-  const doc = nominationEmail([match], siteUrl("/nominacije"), siteUrl("/icons/icon-192.png"), true);
-  return sendEmail({ to: email, kind: "nomination", profileId, assignmentId, ...doc });
+const REMOVED_PROFILE = "( id, full_name, email, active )";
+
+/**
+ * Skinuti s poslane nominacije od zadnje objave utakmice: uklonjeni i zamijenjeni (assignment_removals) i oni koji su
+ * odbili (assignment_declines). Red delegiranja se briše, pa su ovo jedini tragovi. Samo za već aktivirane utakmice.
+ */
+async function removedSinceLastPublish(db: Db, rows: Row[]) {
+  const out = new Map<string, Removed[]>();
+  const since = new Map(rows.filter((m) => m.published_at).map((m) => [m.id, new Date(m.published_at!).getTime()]));
+  const ids = [...since.keys()];
+  if (ids.length === 0) return out;
+  const [removals, declines] = await Promise.all([
+    db.from("assignment_removals").select(`match_id, position, at:removed_at, profile:profiles!assignment_removals_profile_id_fkey ${REMOVED_PROFILE}`).in("match_id", ids),
+    db.from("assignment_declines").select(`match_id, position, at:declined_at, profile:profiles!assignment_declines_profile_id_fkey ${REMOVED_PROFILE}`).in("match_id", ids),
+  ]);
+  for (const r of [...(removals.data ?? []), ...(declines.data ?? [])]) {
+    const p = r.profile;
+    if (!p || new Date(r.at).getTime() <= since.get(r.match_id)!) continue;
+    const list = out.get(r.match_id) ?? [];
+    if (!list.some((x) => x.profileId === p.id && x.position === r.position)) list.push({ position: r.position, name: p.full_name, profileId: p.id, email: p.email, active: p.active });
+    out.set(r.match_id, list);
+  }
+  return out;
 }
 
 export async function publishMatches(db: Db, matchIds: string[], audience: PublishAudience = "all"): Promise<PublishResult> {
@@ -76,6 +95,7 @@ export async function publishMatches(db: Db, matchIds: string[], audience: Publi
 
   const { data: rows, error } = await db.from("matches").select(PUBLISH_SELECT).in("id", ids).order("starts_at");
   if (error) throw new Error(error.message);
+  const removed = await removedSinceLastPublish(db, rows);
 
   // 1–2: vidljivost i oznaka objave
   const now = new Date().toISOString();
@@ -87,13 +107,16 @@ export async function publishMatches(db: Db, matchIds: string[], audience: Publi
   const { error: e2 } = await db.from("matches").update({ published_at: now }).in("id", ids);
   if (e2) throw new Error(e2.message);
 
-  // Već aktivirana utakmica: delegiranja koja se tek sada šalju su nova (zamjena ili naknadno delegiranje) → crveno
-  const matches = rows.map((m) => toNomination(m, (a) => Boolean(m.published_at) && a.status === "pending" && !a.notified_at));
+  // Već aktivirana utakmica: delegiranja koja se tek sada šalju su nova (zamjena ili naknadno delegiranje) → crveno; skinuti → precrtano
+  const matches = rows.map((m) => toNomination(m, (a) => Boolean(m.published_at) && a.status === "pending" && !a.notified_at, removed.get(m.id)));
 
-  // 3: JEDAN mail (omladinska liga i seniori kao dvije sekcije) svima sa liste, ili samo delegiranima na ovim utakmicama
+  // 3: JEDAN mail (omladinska liga i seniori kao dvije sekcije) svima sa liste, ili samo učesnicima ovih utakmica (ekipa + skinuti)
   const { data: list } =
     audience === "all" ? await db.from("profiles").select("email").eq("active", true).in("role", ["official", "commissioner"]) : { data: null };
-  const crew = rows.flatMap((m) => m.assignments.filter((a) => isActive(a) && a.profile!.active).map((a) => ({ email: a.profile!.email })));
+  const crew = rows.flatMap((m) => [
+    ...m.assignments.filter((a) => isActive(a) && a.profile!.active).map((a) => ({ email: a.profile!.email })),
+    ...(removed.get(m.id) ?? []).filter((r) => r.active),
+  ]);
   const recipients = [...new Set((list ?? crew).map((p) => p.email.toLowerCase()))];
   const link = siteUrl("/nominacije");
   const logo = siteUrl("/icons/icon-192.png");

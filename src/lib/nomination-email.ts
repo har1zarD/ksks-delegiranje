@@ -17,8 +17,8 @@ export type NominationMatch = {
   home: { name: string } | null;
   away: { name: string } | null;
   hall: { name: string } | null;
-  /** changed = novo u odnosu na prethodnu nominaciju (zamjena ili naknadno delegiranje); ime je crveno */
-  crew: { position: Position; name: string; profileId: string; email: string; changed?: boolean }[];
+  /** changed = novo u odnosu na prethodnu nominaciju (crveno); removed = skinut s nje od zadnje objave (precrtano) */
+  crew: { position: Position; name: string; profileId: string; email: string; changed?: boolean; removed?: boolean }[];
 };
 
 export type NominationKind = "youth" | "seniors";
@@ -47,7 +47,7 @@ function dateRange(matches: NominationMatch[]) {
 
 /** Redovi ekipe: pozicija → osobe (statistika i više osoba u jednom redu, kao u dokumentu) */
 function crewRows(m: Pick<NominationMatch, "crew" | "digital_scoresheet">, kind: NominationKind) {
-  const rows = new Map<string, { name: string; profileId: string; changed: boolean }[]>();
+  const rows = new Map<string, { name: string; profileId: string; changed: boolean; removed: boolean }[]>();
   const sorted = [...m.crew].sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
   for (const c of sorted) {
     // Seniori: samo pomoćne sudije
@@ -61,7 +61,7 @@ function crewRows(m: Pick<NominationMatch, "crew" | "digital_scoresheet">, kind:
         : positionName(c.position, m.digital_scoresheet);
     // Sudije su odvojeni redovi; ostale pozicije istog naziva idu u jedan red
     const key = c.position.startsWith("referee") ? `${label}:${c.position}` : label;
-    rows.set(key, [...(rows.get(key) ?? []), { name: nominationName(c.name), profileId: c.profileId, changed: Boolean(c.changed) }]);
+    rows.set(key, [...(rows.get(key) ?? []), { name: nominationName(c.name), profileId: c.profileId, changed: Boolean(c.changed), removed: Boolean(c.removed) }]);
   }
   return [...rows].map(([key, people]) => ({ label: key.split(":")[0], people }));
 }
@@ -108,12 +108,12 @@ type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind"
   competition: { name: string } | null;
 };
 
-/** Kartica utakmice. Osoba s oznakom `changed` je crvena (nova u odnosu na prethodnu nominaciju), iz `removed` precrtana (otkazano). */
+/** Kartica utakmice. Osoba s oznakom `changed` je crvena (nova u odnosu na prethodnu nominaciju), s `removed` precrtana (skinuta). */
 /** crewless = bez službenih lica (klubovi); changed = promijenjeni termin/dvorana crveno (izmjena utakmice) */
 function matchCard(
   m: CardMatch,
   rows: Row[],
-  { showNumber, removed, crewless, changed }: { showNumber: boolean; removed?: string; crewless?: boolean; changed?: { time?: boolean; hall?: boolean } },
+  { showNumber, crewless, changed }: { showNumber: boolean; crewless?: boolean; changed?: { time?: boolean; hall?: boolean } },
 ) {
   const left = `
     ${showNumber ? `<div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${C.faint};text-transform:uppercase">Utakmica</div>
@@ -122,7 +122,7 @@ function matchCard(
     <div style="font-size:13px;color:${changed?.time ? C.red : C.muted};font-weight:${changed?.time ? 700 : 400};margin-top:2px">${esc(date(m.starts_at))}</div>
     <div style="font-size:13px;color:${changed?.hall ? C.red : C.muted};font-weight:${changed?.hall ? 700 : 400};margin-top:4px">${esc(m.hall?.name ?? "Dvorana nije određena")}</div>`;
   const person = (p: Row["people"][number]) =>
-    p.profileId === removed
+    p.removed
       ? `<span style="color:${C.red};text-decoration:line-through">${esc(p.name)}</span>`
       : p.changed
         ? `<span style="color:${C.red}">${esc(p.name)}</span>`
@@ -193,21 +193,20 @@ const textTeams = (m: CardMatch) => `${(m.home?.name ?? "?").toUpperCase()} – 
 /**
  * Nominacija kola u JEDNOM dokumentu: omladinska liga (sudije, komesar, sto) pa seniori (samo pomoćne sudije).
  * Kad ima samo seniorskih utakmica naslov je "Nominacija – pomoćne sudije".
- * Osobe s oznakom `changed` su crvene: objava izmjena već aktivirane utakmice ("(izmjena)" u naslovu).
- * replacement: zamjena; dokument ide samo novoj osobi (njeno ime je `changed`), naslov "(zamjena)".
+ * Objava izmjena već aktivirane utakmice: osobe s `changed` su crvene, s `removed` precrtane, naslov "(izmjena)".
  */
-export function nominationEmail(matches: NominationMatch[], link: string, logo: string, replacement = false) {
+export function nominationEmail(matches: NominationMatch[], link: string, logo: string) {
   const parts = (["youth", "seniors"] as const)
     .map((kind) => ({ kind, list: matches.filter((m) => nominationKindOf(m) === kind) }))
     .filter((p) => p.list.length > 0);
   const title = parts.length === 1 && parts[0].kind === "seniors" ? "Nominacija – pomoćne sudije" : "Nominacija";
   const changed = matches.some((m) => m.crew.some((c) => c.changed));
-  const tag = replacement ? " (zamjena)" : changed ? " (izmjena)" : "";
+  const removed = matches.some((m) => m.crew.some((c) => c.removed));
+  const tag = changed || removed ? " (izmjena)" : "";
   const subject = `${title}${tag} ${dateRange(matches)}`;
-  const intro = replacement
-    ? "Zamjena: na ovoj utakmici umjesto ranije delegirane osobe si ti (crveno)."
-    : changed
-      ? "Izmjena nominacije: nova imena u odnosu na prethodnu nominaciju su označena crveno."
+  const intro =
+    changed || removed
+      ? `Izmjena nominacije u odnosu na prethodnu: ${[changed && "nova imena su označena crveno", removed && "skinuta su precrtana"].filter(Boolean).join(", ")}.`
       : null;
   const sectionTitle = (kind: NominationKind) => (kind === "youth" ? "NOMINACIJA" : "NOMINACIJA – POMOĆNE SUDIJE");
 
@@ -215,7 +214,7 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
     `${title.toUpperCase()}${tag.toUpperCase()} ${dateRange(matches)}`,
     "Košarkaški savez Kantona Sarajevo",
     "",
-    ...(intro ? [intro.replace(" (crveno)", ""), ""] : []),
+    ...(intro ? [intro, ""] : []),
     ...parts.flatMap(({ kind, list }) => [
       ...(parts.length > 1 ? [sectionTitle(kind), ""] : []),
       ...groups(list).flatMap(([group, day]) => [
@@ -223,7 +222,7 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
         ...day.flatMap((m) => [
           textLine(m, kind === "youth"),
           textTeams(m),
-          ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => (p.changed ? `${p.name} (novo)` : p.name)).join(", ")}`),
+          ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => (p.removed ? `${p.name} (skinuto)` : p.changed ? `${p.name} (novo)` : p.name)).join(", ")}`),
           "",
         ]),
       ]),
@@ -282,7 +281,7 @@ export function withdrawnEmail(
     reason === "replaced"
       ? `Na ovoj utakmici (${role}) te mijenja druga osoba. Utakmica više nije među tvojim nominacijama i ne trebaš dolaziti.`
       : `Tvoja nominacija (${role}) za ovu utakmicu je otkazana. Utakmica više nije među tvojim nominacijama i ne trebaš dolaziti.`;
-  const crew: NominationMatch["crew"] = [{ position: person.position, name: person.name, profileId: "removed", email: "" }];
+  const crew: NominationMatch["crew"] = [{ position: person.position, name: person.name, profileId: "removed", email: "", removed: true }];
   const rows = crewRows({ crew, digital_scoresheet: match.digital_scoresheet }, "youth");
 
   const text = [
@@ -305,7 +304,7 @@ export function withdrawnEmail(
     title: "Otkazana nominacija",
     subtitle: `${dayTitle.format(new Date(match.starts_at))}, ${formatTime(match.starts_at)}`,
     intro: esc(intro),
-    body: `<tr><td style="padding:8px 0 4px">${matchCard(match, rows, { showNumber: true, removed: "removed" })}</td></tr>`,
+    body: `<tr><td style="padding:8px 0 4px">${matchCard(match, rows, { showNumber: true })}</td></tr>`,
     button: "Otvori moje nominacije",
     link,
     note: "Ostale nominacije ostaju kakve jesu.",
