@@ -64,3 +64,5 @@ Svaki korisnik u Postavkama pravi lični token (prikazuje se jednom). Endpoint: 
 pnpm install
 npx tsc --noEmit && npx eslint src
 ```
+
+Push na `main` automatski deploya na produkciju (Vercel).
