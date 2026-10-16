@@ -5,7 +5,7 @@ import path from "node:path";
 // OG slika (1200×630) za dijeljenje linka (Viber, WhatsApp, Facebook): grb saveza, naziv i adresa aplikacije.
 // Crta se iz koda s pravim grbom i Geist fontom, pa je uvijek oštra i usklađena s aplikacijom.
 
-export const alt = "KSKS Delegiranje — Košarkaški savez Kantona Sarajevo";
+export const alt = "KSKS Nominacije — Košarkaški savez Kantona Sarajevo";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -63,7 +63,7 @@ export default async function OpenGraphImage() {
             <div style={{ fontSize: 21, fontWeight: 500, letterSpacing: 4, color: "rgba(255,255,255,0.58)" }}>KOŠARKAŠKI SAVEZ KANTONA SARAJEVO</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 18, marginTop: 14 }}>
               <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: -1, color: "rgba(255,255,255,0.72)" }}>KSKS</div>
-              <div style={{ fontSize: 88, fontWeight: 700, letterSpacing: -3, lineHeight: 1 }}>Delegiranje</div>
+              <div style={{ fontSize: 88, fontWeight: 700, letterSpacing: -3, lineHeight: 1 }}>Nominacije</div>
             </div>
             <div style={{ fontSize: 29, fontWeight: 500, color: "rgba(255,255,255,0.80)", marginTop: 24, lineHeight: 1.35, maxWidth: 640 }}>
               Nominacije sudija, pomoćnih sudija i komesara. Rezultati, bilteni i naknade na jednom mjestu.

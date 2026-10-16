@@ -77,17 +77,20 @@ function paymentOf(assignments: { status: AssignmentStatus; paid_at: string | nu
   return { state, paid, total: accepted.length };
 }
 
-/** `people` = delegirani (prihvatili ili čekaju), redom pozicija; `unnotified` = delegirani koji još nisu obaviješteni (izmjene nakon aktiviranja) */
+/**
+ * `people` = delegirani (prihvatili ili čekaju), redom pozicija; `notified` = nominacija im je poslana;
+ * `unnotified` = delegirani koji još nisu obaviješteni (izmjene nakon aktiviranja)
+ */
 export type StaffingSummary = {
   missing: Position[];
   pending: number;
   unnotified: number;
-  people: { position: Position; profileId: string | null; name: string; accepted: boolean }[];
+  people: { assignmentId: string; position: Position; profileId: string | null; name: string; accepted: boolean; notified: boolean }[];
 };
 
 function staffing(
   crew: Crew,
-  assignments: { position: Position; status: AssignmentStatus; notified_at: string | null; profile: { id: string; full_name: string } | null }[],
+  assignments: { id: string; position: Position; status: AssignmentStatus; notified_at: string | null; profile: { id: string; full_name: string } | null }[],
 ): StaffingSummary {
   const active = assignments.filter((a) => a.status === "pending" || a.status === "accepted");
   return {
@@ -96,7 +99,14 @@ function staffing(
     unnotified: active.filter((a) => !a.notified_at).length,
     people: active
       .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position))
-      .map((a) => ({ position: a.position, profileId: a.profile?.id ?? null, name: a.profile?.full_name ?? "—", accepted: a.status === "accepted" })),
+      .map((a) => ({
+        assignmentId: a.id,
+        position: a.position,
+        profileId: a.profile?.id ?? null,
+        name: a.profile?.full_name ?? "—",
+        accepted: a.status === "accepted",
+        notified: Boolean(a.notified_at),
+      })),
   };
 }
 

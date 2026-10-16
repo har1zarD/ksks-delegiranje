@@ -20,7 +20,7 @@ export function protectedResourceMetadata(origin: string) {
     resource: `${origin}${MCP_PATH}`,
     authorization_servers: [origin],
     bearer_methods_supported: ["header"],
-    resource_name: "KSKS Delegiranje",
+    resource_name: "KSKS Nominacije",
   };
 }
 

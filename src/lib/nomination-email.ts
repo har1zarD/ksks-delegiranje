@@ -253,7 +253,57 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
     body,
     button: "Prihvati nominaciju",
     link,
-    note: "Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Delegiranje.",
+    note: "Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Nominacije.",
+    logo,
+  });
+
+  return { subject, text, html };
+}
+
+/**
+ * "Pingaj" (Pregled): osobi koja nije odgovorila na poslanu nominaciju, njene utakmice (njeno ime crveno)
+ * i upozorenje da bez odgovora slijedi zamjena. Sve pozicije se ispisuju (i kod seniora).
+ */
+export function pingEmail(name: string, matches: NominationMatch[], link: string, logo: string) {
+  const range = dateRange(matches);
+  const subject = `Čeka tvoj odgovor: nominacija ${range}`;
+  const intro = `Zdravo ${name}, nominacija još čeka tvoj odgovor. Prihvati je što prije, inače slijedi zamjena na utakmici.`;
+  const count = `${matches.length} ${matches.length === 1 ? "utakmica" : matches.length < 5 ? "utakmice" : "utakmica"}`;
+
+  const text = [
+    `ČEKA TVOJ ODGOVOR: NOMINACIJA ${range}`,
+    "Košarkaški savez Kantona Sarajevo",
+    "",
+    intro,
+    "",
+    ...groups(matches).flatMap(([group, day]) => [
+      group,
+      "",
+      ...day.flatMap((m) => [textLine(m, nominationKindOf(m) === "youth"), textTeams(m), ...crewRows(m, "youth").map((r) => `  ${r.label}: ${r.people.map((p) => p.name).join(", ")}`), ""]),
+    ]),
+    `Prihvati nominaciju: ${link}`,
+    "",
+    "Takmičarska komisija KSKS",
+  ].join("\n");
+
+  const body = groups(matches)
+    .map(
+      ([group, day]) => `<tr><td style="padding:0 0 4px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${C.muted};padding:14px 4px 8px">${esc(group)}</div>
+    ${day.map((m) => matchCard(m, crewRows(m, "youth"), { showNumber: nominationKindOf(m) === "youth" })).join("")}
+  </td></tr>`,
+    )
+    .join("");
+
+  const html = documentHtml({
+    subject,
+    title: "Čeka tvoj odgovor",
+    subtitle: `${range}, ${count}`,
+    intro: esc(intro),
+    body,
+    button: "Prihvati nominaciju",
+    link,
+    note: "Svoje utakmice prihvataš ili odbijaš u aplikaciji KSKS Nominacije.",
     logo,
   });
 

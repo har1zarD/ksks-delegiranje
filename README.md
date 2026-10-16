@@ -1,4 +1,4 @@
-# KSKS Delegiranje
+# KSKS Nominacije
 
 Aplikacija Košarkaškog saveza Kantona Sarajevo za delegiranje sudija, zapisničkog stola i komesara na omladinske lige.
 

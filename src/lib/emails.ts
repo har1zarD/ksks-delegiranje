@@ -64,7 +64,7 @@ ${siteUrl(`/admin/utakmice/${match.id}`)}`,
 
 export function passwordResetEmail(name: string, link: string) {
   return {
-    subject: "Nova šifra za KSKS Delegiranje",
+    subject: "Nova šifra za KSKS Nominacije",
     text: `Zdravo ${name},
 
 zatražena je nova šifra za tvoj nalog. Otvori link i upiši novu šifru:

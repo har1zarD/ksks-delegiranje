@@ -15,7 +15,7 @@ export default function LoginPage({ searchParams }: { searchParams: SearchParams
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px]">
         <Image src="/brand/ksks-logo.svg" alt="" width={64} height={64} className="mx-auto mb-5" />
-        <h1 className="text-center font-display text-[30px] font-semibold leading-tight tracking-[-0.04em]">Delegiranje</h1>
+        <h1 className="text-center font-display text-[30px] font-semibold leading-tight tracking-[-0.04em]">Nominacije</h1>
         <p className="mb-8 mt-2 text-center text-[14px] text-fg-muted">Košarkaški savez Kantona Sarajevo</p>
         <div className="rounded-lg border border-line bg-panel p-5 shadow-panel sm:p-6">
           <Suspense fallback={<LoginFormSkeleton />}>
