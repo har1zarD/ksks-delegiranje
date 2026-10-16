@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Users } from "lucide-react";
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
-import { crewOf, crewPositions, crewSummary, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
+import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
 import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile, KindTag } from "@/components/match-line";
@@ -24,7 +24,7 @@ import {
 import { buttonClass, cx, Empty, Panel, ROWS, SectionTitle, Status } from "@/components/ui";
 import { deleteMatch } from "../actions";
 import { MatchForm, MatchFormSkeleton } from "../match-form";
-import { unassign } from "./actions";
+import { removePosition, unassign } from "./actions";
 import { AssignForm } from "./assign-form";
 import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
@@ -75,6 +75,11 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   const onMatch = new Set(active.map((a) => a.profile!.id));
   const filled = positions.filter((p) => active.some((a) => a.position === p)).length;
   const cost = matchCost(match.rules, crew);
+  // Prazna pozicija se može ukloniti sa utakmice ako su prazne i sve pozicije koje bi s njom nestale (zadnja sudija, zadnja statistika)
+  const removable = (position: Position) => {
+    const kept = crewPositions(crewWithout(crew, position));
+    return positions.filter((p) => !kept.includes(p)).every((p) => !active.some((a) => a.position === p));
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -187,6 +192,19 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                         position={position}
                         candidates={candidates.filter((c) => candidateFits(position, c) && !onMatch.has(c.id))}
                       />
+                      {removable(position) && (
+                        <form action={removePosition} className="self-start">
+                          <input type="hidden" name="match_id" value={match.id} />
+                          <input type="hidden" name="position" value={position} />
+                          <button
+                            type="submit"
+                            title="Ova utakmica ostaje bez ove pozicije. Vraća se u „Uredi utakmicu”."
+                            className="-my-1 py-1 text-[13px] font-medium text-fg-faint underline-offset-4 transition-colors hover:text-crest hover:underline"
+                          >
+                            Ukloni poziciju sa utakmice
+                          </button>
+                        </form>
+                      )}
                     </div>
                   )}
                 </li>

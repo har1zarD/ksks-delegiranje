@@ -2,6 +2,7 @@
 
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { CREW_COLUMNS, crewOf, crewPositions, crewToRow, crewWithout } from "@/lib/crew";
 import { assignPerson, DelegationError, removeAssignment, replaceAssignment } from "@/lib/delegation";
 import { POSITION_ORDER, type Position } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,6 +37,33 @@ export async function unassign(formData: FormData) {
   } catch (e) {
     if (!(e instanceof DelegationError)) throw e;
   }
+}
+
+/**
+ * Uklanja praznu poziciju sa utakmice (npr. bez stola, samo sudije). Pozicije koje bi nestale (kod sudija i statistike
+ * nestaje zadnja u grupi) moraju biti bez osobe; stranica dugme i prikazuje samo tada. Vraćanje: "Uredi utakmicu" → sastav.
+ */
+export async function removePosition(formData: FormData) {
+  await requireRole("admin");
+  const matchId = String(formData.get("match_id") ?? "");
+  const position = String(formData.get("position") ?? "") as Position;
+  if (!/^[0-9a-f-]{36}$/i.test(matchId) || !POSITION_ORDER.includes(position)) return;
+
+  const db = createAdminClient();
+  const { data: match } = await db.from("matches").select(CREW_COLUMNS).eq("id", matchId).maybeSingle();
+  if (!match) return;
+  const crew = crewOf(match);
+  const next = crewWithout(crew, position);
+  const kept = crewPositions(next);
+  const gone = crewPositions(crew).filter((p) => !kept.includes(p));
+  if (gone.length === 0) return;
+
+  const { count } = await db.from("assignments").select("id", { count: "exact", head: true }).eq("match_id", matchId).in("position", gone).in("status", ["pending", "accepted"]);
+  if (count) return; // pozicija nije prazna
+
+  const { error } = await db.from("matches").update(crewToRow(next)).eq("id", matchId);
+  if (error) throw new Error(error.message);
+  invalidate({ table: "matches", match: matchId });
 }
 
 export type ReplaceState = { error?: string; done?: string };

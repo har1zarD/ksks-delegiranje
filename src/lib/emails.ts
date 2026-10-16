@@ -62,38 +62,6 @@ ${siteUrl(`/admin/utakmice/${match.id}`)}`,
   };
 }
 
-export function reminderEmail(name: string, position: Position, match: MatchInfo) {
-  return {
-    subject: `Podsjetnik: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)} u ${formatTime(match.starts_at)}`,
-    text: `Zdravo ${name},
-
-podsjetnik za utakmicu na kojoj si ${positionName(position, match.digital_scoresheet).toLowerCase()}:
-
-${describe(match)}
-
-Detalji i ekipa:
-${siteUrl("/utakmice")}
-
-Košarkaški savez Kantona Sarajevo`,
-  };
-}
-
-export function pendingReminderEmail(name: string, position: Position, match: MatchInfo) {
-  return {
-    subject: `Čeka tvoj odgovor: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
-    text: `Zdravo ${name},
-
-još nisi odgovorio na nominaciju (${positionName(position, match.digital_scoresheet).toLowerCase()}):
-
-${describe(match)}
-
-Prihvati ili odbij:
-${siteUrl("/nominacije")}
-
-Košarkaški savez Kantona Sarajevo`,
-  };
-}
-
 export function passwordResetEmail(name: string, link: string) {
   return {
     subject: "Nova šifra za KSKS Delegiranje",
