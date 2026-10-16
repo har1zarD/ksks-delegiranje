@@ -7,39 +7,55 @@ import type { Candidate } from "@/lib/data/admin";
 import { formatTime, type Position } from "@/lib/format";
 import { assign, type AssignState } from "./actions";
 
-/** Izbor osobe za poziciju. Slobodni prvi, sortirani po opterećenju u mjesecu. Ko je najavio odsustvo u vrijeme utakmice, nije na listi. */
+/**
+ * Izbor osobe za poziciju. Slobodni prvi, sortirani po opterećenju u mjesecu. Ko je najavio odsustvo u vrijeme utakmice, nije na listi.
+ * `aside` ide desno od "Dodijeli" u istom redu, izvan ove forme (npr. uklanjanje pozicije, koje je svoja forma).
+ */
 export function AssignForm({
   matchId,
   position,
   candidates,
+  aside,
 }: {
   matchId: string;
   position: Position;
   candidates: Candidate[];
+  aside?: React.ReactNode;
 }) {
   const [state, action, pending] = useActionState<AssignState, FormData>(assign, {});
 
   if (candidates.length === 0) {
-    return <p className="text-[14px] text-fg-faint">Nema registrovanih osoba za ovu poziciju.</p>;
+    return (
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <p className="text-[14px] text-fg-faint">Nema registrovanih osoba za ovu poziciju.</p>
+        {aside}
+      </div>
+    );
   }
   const { free, busy, away } = groupCandidates(candidates);
   if (free.length + busy.length === 0) {
     return (
-      <p className="text-[14px] text-fg-faint" title={away.map((c) => `${c.name}: ${c.absence}`).join("\n")}>
-        Svi za ovu poziciju su najavili odsustvo u vrijeme utakmice ({away.length}).
-      </p>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <p className="text-[14px] text-fg-faint" title={away.map((c) => `${c.name}: ${c.absence}`).join("\n")}>
+          Svi za ovu poziciju su najavili odsustvo u vrijeme utakmice ({away.length}).
+        </p>
+        {aside}
+      </div>
     );
   }
 
   return (
-    <form action={action} className="flex min-w-0 flex-col gap-1.5">
-      <input type="hidden" name="match_id" value={matchId} />
-      <input type="hidden" name="position" value={position} />
+    <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex min-w-0 gap-2">
-        <CandidateSelect candidates={candidates} />
-        <Button type="submit" variant="secondary" disabled={pending}>
-          {pending ? "…" : "Dodijeli"}
-        </Button>
+        <form action={action} className="flex min-w-0 flex-1 gap-2">
+          <input type="hidden" name="match_id" value={matchId} />
+          <input type="hidden" name="position" value={position} />
+          <CandidateSelect candidates={candidates} />
+          <Button type="submit" variant="secondary" disabled={pending}>
+            {pending ? "…" : "Dodijeli"}
+          </Button>
+        </form>
+        {aside}
       </div>
       <p className="text-[12px] text-fg-faint">
         {free.length} slobodnih
@@ -55,7 +71,7 @@ export function AssignForm({
           {state.error}
         </p>
       )}
-    </form>
+    </div>
   );
 }
 

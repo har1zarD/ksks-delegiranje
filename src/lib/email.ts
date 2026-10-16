@@ -2,6 +2,8 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Slanje emaila preko Gmaila: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords).
+// Ili preko bilo kojeg SMTP servisa (Brevo, Mailgun, SES…): SMTP_HOST, SMTP_PORT (587 ili 465), SMTP_USER, SMTP_PASSWORD;
+// ako je SMTP_HOST postavljen, Gmail se ne koristi. Gmail (naročito nov nalog) ograničava i tiho zadržava masovna slanja.
 // EMAIL_FROM = adresa pošiljaoca ako nije isti Gmail nalog.
 // Kancelarija saveza (OFFICE_COPY) dobija skrivenu kopiju svakog emaila osim linka za novu šifru i odbijanja.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
@@ -14,11 +16,14 @@ const EMAILS_OFF = false;
 let transport: Transporter | null = null;
 
 function getTransport() {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null;
-  transport ??= nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  });
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, GMAIL_USER, GMAIL_APP_PASSWORD } = process.env;
+  if (SMTP_HOST && SMTP_USER && SMTP_PASSWORD) {
+    const port = Number(SMTP_PORT) || 587;
+    transport ??= nodemailer.createTransport({ host: SMTP_HOST, port, secure: port === 465, auth: { user: SMTP_USER, pass: SMTP_PASSWORD } });
+    return transport;
+  }
+  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
+  transport ??= nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } });
   return transport;
 }
 
@@ -68,6 +73,8 @@ export async function sendEmail(email: Email): Promise<boolean> {
   const t = getTransport();
   let providerId: string | null = null;
   let error: string | null = null;
+  /** Djelimično odbijanje: email je poslan, ali ne svima (upisuje se u log kao napomena) */
+  let note: string | null = null;
 
   // Test način: samo dozvoljene adrese (glavni primalac je pošiljalac kod nominacije kola, pa i njega propuštamo)
   const allow = allowList();
@@ -83,7 +90,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
   email = withOfficeCopy(email, allow);
 
   if (!t) {
-    error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD)";
+    error = "Email nije podešen (SMTP_HOST + SMTP_USER + SMTP_PASSWORD ili GMAIL_USER + GMAIL_APP_PASSWORD)";
   } else {
     try {
       const info = await t.sendMail({
@@ -95,12 +102,15 @@ export async function sendEmail(email: Email): Promise<boolean> {
         html: email.html,
       });
       providerId = info.messageId;
+      // Adrese koje je server odbio već pri slanju (ostalima je poslano); kasnije odbijene stižu kao bounce u sanduče pošiljaoca
+      const rejected = (info.rejected ?? []).map(String);
+      if (rejected.length) note = `Server odbio ${rejected.length} od ${rejected.length + (info.accepted ?? []).length} adresa: ${rejected.join(", ")}`;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
   }
 
-  await logEmail(email, providerId, error);
+  await logEmail(email, providerId, error ?? note);
   return error === null;
 }
 

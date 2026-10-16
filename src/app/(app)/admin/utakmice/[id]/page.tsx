@@ -2,11 +2,11 @@ import { TeamName } from "@/components/team-name";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Users } from "lucide-react";
+import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Trash2, Users } from "lucide-react";
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
 import { formatKM, matchCost } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
-import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
+import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile, KindTag } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -25,6 +25,7 @@ import { buttonClass, cx, Empty, Panel, ROWS, SectionTitle, Status } from "@/com
 import { deleteMatch } from "../actions";
 import { MatchForm, MatchFormSkeleton } from "../match-form";
 import { removePosition, unassign } from "./actions";
+import { AddPosition } from "./add-position";
 import { AssignForm } from "./assign-form";
 import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
@@ -80,6 +81,18 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
     const kept = crewPositions(crewWithout(crew, position));
     return positions.filter((p) => !kept.includes(p)).every((p) => !active.some((a) => a.position === p));
   };
+  // Pozicije koje utakmica još nema, za "Dodaj poziciju"
+  const addable: { position: Position; label: string }[] = [
+    ...(crew.commissioner ? [] : [{ position: "commissioner" as const, label: POSITION_LABEL.commissioner }]),
+    ...(!crew.referees ? [{ position: "referee_1" as const, label: "Sudije (dvojka)" }] : crew.refereeCount === 2 ? [{ position: "referee_3" as const, label: POSITION_LABEL.referee_3 }] : []),
+    ...(crew.scorer ? [] : [{ position: "scorer" as const, label: positionName("scorer", crew.digital) }]),
+    ...(crew.assistantScorer ? [] : [{ position: "assistant_scorer" as const, label: POSITION_LABEL.assistant_scorer }]),
+    ...(crew.timer ? [] : [{ position: "timer" as const, label: POSITION_LABEL.timer }]),
+    ...(crew.assistantTimer ? [] : [{ position: "assistant_timer" as const, label: POSITION_LABEL.assistant_timer }]),
+    ...(crew.shotClock ? [] : [{ position: "shot_clock" as const, label: POSITION_LABEL.shot_clock }]),
+    ...(crew.timerShotClock ? [] : [{ position: "timer_shot_clock" as const, label: POSITION_LABEL.timer_shot_clock }]),
+    ...(crew.stats < 3 ? [{ position: `statistician_${crew.stats + 1}` as Position, label: POSITION_LABEL[`statistician_${crew.stats + 1}` as Position] }] : []),
+  ];
 
   return (
     <div className="flex flex-col gap-8">
@@ -191,20 +204,24 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                         matchId={match.id}
                         position={position}
                         candidates={candidates.filter((c) => candidateFits(position, c) && !onMatch.has(c.id))}
+                        aside={
+                          removable(position) && (
+                            <form action={removePosition} className="shrink-0">
+                              <input type="hidden" name="match_id" value={match.id} />
+                              <input type="hidden" name="position" value={position} />
+                              <ConfirmButton
+                                label="Ukloni poziciju sa utakmice"
+                                title="Ukloniti poziciju sa utakmice?"
+                                message={`${positionName(position, crew.digital)} se uklanja samo s ove utakmice. Vraća se dugmetom „Dodaj poziciju”.`}
+                                confirmLabel="Ukloni"
+                                className="h-10 w-10 px-0"
+                              >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              </ConfirmButton>
+                            </form>
+                          )
+                        }
                       />
-                      {removable(position) && (
-                        <form action={removePosition} className="self-start">
-                          <input type="hidden" name="match_id" value={match.id} />
-                          <input type="hidden" name="position" value={position} />
-                          <button
-                            type="submit"
-                            title="Ova utakmica ostaje bez ove pozicije. Vraća se u „Uredi utakmicu”."
-                            className="-my-1 py-1 text-[13px] font-medium text-fg-faint underline-offset-4 transition-colors hover:text-crest hover:underline"
-                          >
-                            Ukloni poziciju sa utakmice
-                          </button>
-                        </form>
-                      )}
                     </div>
                   )}
                 </li>
@@ -213,7 +230,10 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           </ul>
           </div>
           ))}
-          {positions.length === 0 && <Empty icon={<Users />}>Sastav ove utakmice nema nijednu poziciju. Promijeni ga u „Uredi utakmicu”.</Empty>}
+          {positions.length === 0 && <Empty icon={<Users />}>Sastav ove utakmice nema nijednu poziciju. Dodaj je dugmetom ispod.</Empty>}
+          <div className="flex justify-end">
+            <AddPosition matchId={match.id} options={addable} />
+          </div>
           </div>
         </section>
 

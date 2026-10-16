@@ -213,6 +213,38 @@ export function crewWithout(c: Crew, position: Position): Crew {
   }
 }
 
+/**
+ * Sastav s dodatom pozicijom (dodavanje na utakmici, "Dodaj poziciju"): sudije se uključe (3. sudija = trojka),
+ * statistika do tog broja, ostale pozicije se uključe.
+ */
+export function crewWithPosition(c: Crew, position: Position): Crew {
+  switch (position) {
+    case "referee_1":
+    case "referee_2":
+      return { ...c, referees: true };
+    case "referee_3":
+      return { ...c, referees: true, refereeCount: 3 };
+    case "statistician_1":
+    case "statistician_2":
+    case "statistician_3":
+      return { ...c, stats: stats(Math.max(c.stats, Number(position.slice(-1)))) };
+    case "commissioner":
+      return { ...c, commissioner: true };
+    case "scorer":
+      return { ...c, scorer: true };
+    case "assistant_scorer":
+      return { ...c, assistantScorer: true };
+    case "timer":
+      return { ...c, timer: true };
+    case "assistant_timer":
+      return { ...c, assistantTimer: true };
+    case "shot_clock":
+      return { ...c, shotClock: true };
+    case "timer_shot_clock":
+      return { ...c, timerShotClock: true };
+  }
+}
+
 // ───────── Vještine pomoćnih sudija ─────────
 
 export type TableSkill = "scorer" | "timer" | "shot_clock" | "stats";
