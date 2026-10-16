@@ -25,13 +25,16 @@ export function defineTool<S extends Shape>(def: ToolDef<S>): ToolDef<Shape> {
   return def as unknown as ToolDef<Shape>;
 }
 
+/** Smije li uloga koristiti alat; alat bez navedenih uloga ne smije niko */
+const allowed = (tool: ToolDef<Shape>, role: Role) => tool.roles.length > 0 && tool.roles.includes(role);
+
 /**
- * Registruje alat samo ako ga uloga smije koristiti. Svaki poziv se upisuje u mcp_audit,
- * a rezultat vraća kao JSON tekst.
+ * Registruje alat samo ako ga uloga smije koristiti, a ulogu provjerava i pri svakom pozivu (ako bi alat
+ * greškom bio registrovan, poziv se ipak odbija). Svaki poziv se upisuje u mcp_audit, a rezultat vraća kao JSON tekst.
  */
 export function registerTools(server: McpServer, ctx: McpContext, tools: ToolDef<Shape>[]) {
   for (const tool of tools) {
-    if (!tool.roles.includes(ctx.profile.role)) continue;
+    if (!allowed(tool, ctx.profile.role)) continue;
 
     server.registerTool(
       tool.name,
@@ -45,6 +48,7 @@ export function registerTools(server: McpServer, ctx: McpContext, tools: ToolDef
         let error: string | null = null;
         let result: CallToolResult;
         try {
+          if (!allowed(tool, ctx.profile.role)) throw new ToolError("Nemaš pravo na ovu radnju.");
           const data = await tool.run(args as never, ctx);
           result = { content: [{ type: "text", text: JSON.stringify(data ?? { ok: true }, null, 2) }] };
         } catch (e) {
