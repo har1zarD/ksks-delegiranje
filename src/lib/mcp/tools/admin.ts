@@ -379,7 +379,7 @@ export const unassign = defineTool({
 export const sendNominations = defineTool({
   name: "send_nominations",
   description:
-    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija (dokument cijelog kola) emailom; omladinska liga i seniori odvojeno. Već aktivirana utakmica: objava izmjena, nova imena su u emailu crvena, skinuti od zadnje objave precrtani; primaoci = svi sa liste ili samo učesnici utakmice (ekipa + skinuti).",
+    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija (dokument cijelog kola) emailom; omladinska liga i seniori odvojeno. Već aktivirana utakmica: objava izmjena, nova imena su u emailu crvena; primaoci = svi sa liste ili samo učesnici utakmice (ekipa + skinuti od zadnje objave).",
   roles: [...ADMIN],
   input: {
     utakmice: z.array(uuidSchema).min(1).max(100).describe("id utakmica koje se objavljuju"),

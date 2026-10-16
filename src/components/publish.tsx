@@ -249,7 +249,7 @@ export function PublishMatch({ matchId, publishedAt, unpublished, crew }: { matc
               <div className="min-w-0">
                 <h2 className="font-display text-[20px] font-semibold leading-tight">Objavi izmjene</h2>
                 <p className="mt-1 text-[14px] text-fg-muted">
-                  {unpublished === 1 ? "1 novo delegiranje" : `${unpublished} nova delegiranja`}. Delegirani odmah vide nominaciju; u emailu su nova imena crvena, a skinuta od zadnje objave precrtana.
+                  {unpublished === 1 ? "1 novo delegiranje" : `${unpublished} nova delegiranja`}. Delegirani odmah vide nominaciju, a u emailu su nova imena crvena.
                 </p>
               </div>
               <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2.5 rounded-md p-2.5 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">

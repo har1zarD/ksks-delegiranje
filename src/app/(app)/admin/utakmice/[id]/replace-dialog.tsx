@@ -70,7 +70,7 @@ export function ReplaceButton({
 
           <p className="text-[13px] text-fg-muted">
             {notified
-              ? `Izmijenjena nominacija ide emailom svima na utakmici i ${current}: nova osoba crveno, ${current} precrtano. ${current} dobija i obavijest da je nominacija otkazana.`
+              ? `Izmijenjena nominacija ide emailom svima na utakmici i ${current}, nova osoba je u njoj crveno. ${current} dobija i obavijest da je nominacija otkazana.`
               : "Utakmica još nije aktivirana, pa se ne šalje email."}
           </p>
 

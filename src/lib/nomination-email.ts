@@ -17,7 +17,7 @@ export type NominationMatch = {
   home: { name: string } | null;
   away: { name: string } | null;
   hall: { name: string } | null;
-  /** changed = novo u odnosu na prethodnu nominaciju (crveno); removed = skinut s nje od zadnje objave (precrtano) */
+  /** changed = novo u odnosu na prethodnu nominaciju (crveno); removed = precrtano (samo u obavijesti o otkazanoj nominaciji) */
   crew: { position: Position; name: string; profileId: string; email: string; changed?: boolean; removed?: boolean }[];
 };
 
@@ -108,7 +108,7 @@ type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind"
   competition: { name: string } | null;
 };
 
-/** Kartica utakmice. Osoba s oznakom `changed` je crvena (nova u odnosu na prethodnu nominaciju), s `removed` precrtana (skinuta). */
+/** Kartica utakmice. Osoba s oznakom `changed` je crvena (nova u odnosu na prethodnu nominaciju), s `removed` precrtana (otkazana nominacija). */
 /** crewless = bez službenih lica (klubovi); changed = promijenjeni termin/dvorana crveno (izmjena utakmice) */
 function matchCard(
   m: CardMatch,
@@ -193,7 +193,7 @@ const textTeams = (m: CardMatch) => `${(m.home?.name ?? "?").toUpperCase()} – 
 /**
  * Nominacija kola u JEDNOM dokumentu: omladinska liga (sudije, komesar, sto) pa seniori (samo pomoćne sudije).
  * Kad ima samo seniorskih utakmica naslov je "Nominacija – pomoćne sudije".
- * Objava izmjena već aktivirane utakmice: osobe s `changed` su crvene, s `removed` precrtane, naslov "(izmjena)".
+ * Objava izmjena već aktivirane utakmice: osobe s `changed` su crvene, naslov "(izmjena)"; skinuti se ne ispisuju.
  */
 export function nominationEmail(matches: NominationMatch[], link: string, logo: string) {
   const parts = (["youth", "seniors"] as const)
@@ -201,13 +201,9 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
     .filter((p) => p.list.length > 0);
   const title = parts.length === 1 && parts[0].kind === "seniors" ? "Nominacija – pomoćne sudije" : "Nominacija";
   const changed = matches.some((m) => m.crew.some((c) => c.changed));
-  const removed = matches.some((m) => m.crew.some((c) => c.removed));
-  const tag = changed || removed ? " (izmjena)" : "";
+  const tag = changed ? " (izmjena)" : "";
   const subject = `${title}${tag} ${dateRange(matches)}`;
-  const intro =
-    changed || removed
-      ? `Izmjena nominacije u odnosu na prethodnu: ${[changed && "nova imena su označena crveno", removed && "skinuta su precrtana"].filter(Boolean).join(", ")}.`
-      : null;
+  const intro = changed ? "Izmjena nominacije: nova imena u odnosu na prethodnu nominaciju su označena crveno." : null;
   const sectionTitle = (kind: NominationKind) => (kind === "youth" ? "NOMINACIJA" : "NOMINACIJA – POMOĆNE SUDIJE");
 
   const text = [

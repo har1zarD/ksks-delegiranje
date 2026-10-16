@@ -89,7 +89,7 @@ const WITH_PERSON_AND_MATCH =
 
 /**
  * Trajni trag ko je skinut s poslane nominacije (red delegiranja se briše kad se nađe zamjena):
- * objava izmjena šalje izmijenjenu nominaciju i njemu, s imenom precrtanim (publish.removedSinceLastPublish).
+ * objava izmjena šalje izmijenjenu nominaciju i njemu (publish.removedSinceLastPublish).
  */
 async function logRemoval(db: Db, r: { matchId: string; profileId: string | undefined; position: Position; reason: "removed" | "replaced" }) {
   if (!r.profileId) return;
@@ -127,8 +127,8 @@ export async function removeAssignment(db: Db, assignmentId: string) {
 
 /**
  * Zamjena osobe na poziciji (npr. ne odgovara). Stara nominacija se briše.
- * Ako je stara već bila poslana, odmah se objavi izmjena utakmice: izmijenjena nominacija (nova osoba crveno,
- * stara precrtano) ide ekipi utakmice i staroj osobi, a stara dobija i obavijest o otkazivanju. Neaktivirana se samo zamijeni.
+ * Ako je stara već bila poslana, odmah se objavi izmjena utakmice: izmijenjena nominacija (nova osoba crveno)
+ * ide ekipi utakmice i staroj osobi, a stara dobija i obavijest o otkazivanju. Neaktivirana se samo zamijeni.
  */
 export async function replaceAssignment(
   db: Db,

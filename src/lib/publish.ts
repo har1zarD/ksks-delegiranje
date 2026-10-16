@@ -3,9 +3,9 @@
 //  2. utakmice dobijaju published_at
 //  3. nominacija (dokument cijelog kola) ide emailom SVIM aktivnim sudijama, pomoćnim sudijama i komesarima
 //     (skriveni primaoci); omladinska liga i seniori (pomoćne sudije) su odvojeni dokumenti.
-//     Objava izmjena već aktivirane utakmice: nova imena su crvena, skinuti od zadnje objave (uklonjeni, zamijenjeni,
-//     odbili) precrtani; primaoci su po izboru svi sa liste ili samo učesnici tih utakmica (ekipa + skinuti),
-//     da lista ne dobija email zbog jedne zamjene. Zamjena osobe ide istim putem (delegation.replaceAssignment).
+//     Objava izmjena već aktivirane utakmice: nova imena su crvena; skinuti od zadnje objave (uklonjeni, zamijenjeni,
+//     odbili) dobijaju mail, ali se u nominaciji ne ispisuju. Primaoci su po izboru svi sa liste ili samo učesnici tih
+//     utakmica (ekipa + skinuti), da lista ne dobija email zbog jedne zamjene. Zamjena osobe ide istim putem (delegation.replaceAssignment).
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
 import { matchChangedEmail, nominationEmail, nominationKindOf, scheduleEmail, type MatchChange, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
@@ -53,22 +53,20 @@ const isActive = (a: Assignment) => (a.status === "pending" || a.status === "acc
 
 type Removed = { position: Position; name: string; profileId: string; email: string; active: boolean };
 
-/** changed: koje delegiranje je novo u odnosu na prethodnu nominaciju (crveno); removed: skinuti od zadnje objave (precrtani, prije novih u istom redu) */
-const toNomination = (m: Row, changed: (a: Assignment) => boolean = () => false, removed: Removed[] = []): NominationMatch => ({
+/** changed: koje delegiranje je novo u odnosu na prethodnu nominaciju (crveno). Skinuti se ne ispisuju, samo dobijaju mail. */
+const toNomination = (m: Row, changed: (a: Assignment) => boolean = () => false): NominationMatch => ({
   ...m,
-  crew: [
-    ...removed.map((r) => ({ position: r.position, name: r.name, profileId: r.profileId, email: r.email, removed: true })),
-    ...m.assignments
-      .filter(isActive)
-      .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email, changed: changed(a) })),
-  ],
+  crew: m.assignments
+    .filter(isActive)
+    .map((a) => ({ position: a.position, name: a.profile!.full_name, profileId: a.profile!.id, email: a.profile!.email, changed: changed(a) })),
 });
 
 const REMOVED_PROFILE = "( id, full_name, email, active )";
 
 /**
  * Skinuti s poslane nominacije od zadnje objave utakmice: uklonjeni i zamijenjeni (assignment_removals) i oni koji su
- * odbili (assignment_declines). Red delegiranja se briše, pa su ovo jedini tragovi. Samo za već aktivirane utakmice.
+ * odbili (assignment_declines). Red delegiranja se briše, pa su ovo jedini tragovi. Samo za već aktivirane utakmice;
+ * ulaze među primaoce izmjene ("samo učesnicima"), ne u sadržaj.
  */
 async function removedSinceLastPublish(db: Db, rows: Row[]) {
   const out = new Map<string, Removed[]>();
@@ -107,8 +105,8 @@ export async function publishMatches(db: Db, matchIds: string[], audience: Publi
   const { error: e2 } = await db.from("matches").update({ published_at: now }).in("id", ids);
   if (e2) throw new Error(e2.message);
 
-  // Već aktivirana utakmica: delegiranja koja se tek sada šalju su nova (zamjena ili naknadno delegiranje) → crveno; skinuti → precrtano
-  const matches = rows.map((m) => toNomination(m, (a) => Boolean(m.published_at) && a.status === "pending" && !a.notified_at, removed.get(m.id)));
+  // Već aktivirana utakmica: delegiranja koja se tek sada šalju su nova (zamjena ili naknadno delegiranje) → crveno
+  const matches = rows.map((m) => toNomination(m, (a) => Boolean(m.published_at) && a.status === "pending" && !a.notified_at));
 
   // 3: JEDAN mail (omladinska liga i seniori kao dvije sekcije) svima sa liste, ili samo učesnicima ovih utakmica (ekipa + skinuti)
   const { data: list } =
