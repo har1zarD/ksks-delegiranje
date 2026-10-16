@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Slanje emaila preko Gmaila: GMAIL_USER + GMAIL_APP_PASSWORD (Google nalog → Sigurnost → potvrda u 2 koraka → App passwords).
 // EMAIL_FROM = adresa pošiljaoca ako nije isti Gmail nalog.
+// Kancelarija saveza (OFFICE_COPY) dobija skrivenu kopiju svakog emaila osim linka za novu šifru i odbijanja.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 /**
  * PREKIDAČ: true = nijedan email ne ide nikome (upisuje se u email_log kao preskočen), za testiranje.
@@ -30,6 +31,19 @@ export function senderAddress() {
 function allowList() {
   const v = process.env.EMAIL_ONLY_TO?.trim();
   return v ? new Set(v.split(/[,\s]+/).filter(Boolean).map((e) => e.toLowerCase())) : null;
+}
+
+/** Kancelarija saveza: skrivena kopija SVAKOG emaila, da savez ima evidenciju svega što aplikacija pošalje */
+const OFFICE_COPY = "ksksarajevo@bih.net.ba";
+/** Bez kopije: link za novu šifru (sigurnost) i odbijanje, koje ionako ide svim adminima pa i kancelariji */
+const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined"];
+
+/** Dodaje kancelariju u skrivene primaoce, osim kad je već primalac ili je test način ne propušta */
+function withOfficeCopy(email: Email, allow: Set<string> | null): Email {
+  const office = OFFICE_COPY.toLowerCase();
+  if (NO_OFFICE_COPY.includes(email.kind) || (allow && !allow.has(office))) return email;
+  if (email.to.toLowerCase() === office || email.bcc?.some((e) => e.toLowerCase() === office)) return email;
+  return { ...email, bcc: [...(email.bcc ?? []), OFFICE_COPY] };
 }
 
 export type Email = {
@@ -66,6 +80,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
     }
     email = { ...email, bcc };
   }
+  email = withOfficeCopy(email, allow);
 
   if (!t) {
     error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD)";
