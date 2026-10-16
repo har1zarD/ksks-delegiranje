@@ -14,7 +14,7 @@ export function ConfirmButton({
   label,
 }: Omit<ConfirmOptions, "tone"> & {
   children: React.ReactNode;
-  variant?: "destructive" | "danger";
+  variant?: "destructive" | "danger" | "secondary";
   className?: string;
   label?: string;
 }) {
