@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Phone } from "lucide-react";
+import { Pencil, Phone } from "lucide-react";
 import { cx } from "@/components/ui";
 import { TABLE_SKILLS } from "@/lib/crew";
 import { setActive } from "./actions";
@@ -51,6 +51,11 @@ export function PersonRow({ person, active, isMe }: { person: PersonValues; acti
         </span>
       </button>
       <div className="flex shrink-0 items-center gap-1.5">
+        <button type="button" onClick={() => setEditing(true)} className={cx(SMALL, "px-2.5", SECONDARY)}>
+          <Pencil className="size-3.5" />
+          <span className="hidden sm:inline">Uredi</span>
+          <span className="sr-only sm:hidden">Uredi {person.full_name}</span>
+        </button>
         {person.phone && (
           <a
             href={`tel:${person.phone}`}
