@@ -31,6 +31,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"assignment_removals": {
+                  Row: {
+                    "id": string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string,"removed_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string,"removed_at"?: string
+                  }
+                  Update: {
+                    "id"?: string,"match_id"?: string,"position"?: Database["public"]['Enums']["assignment_position"],"profile_id"?: string,"reason"?: string,"removed_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assignment_removals_match_id_fkey"
+      columns: ["match_id"]
+isOneToOne: false
+      referencedRelation: "matches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assignment_removals_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"assignments": {
                   Row: {
                     "created_at": string,"created_by": string | null,"decline_reason": string | null,"fee_km": number | null,"id": string,"match_id": string,"notified_at": string | null,"paid_at": string | null,"paid_by": string | null,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["assignment_status"]

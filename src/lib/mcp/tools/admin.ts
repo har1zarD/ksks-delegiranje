@@ -379,13 +379,19 @@ export const unassign = defineTool({
 export const sendNominations = defineTool({
   name: "send_nominations",
   description:
-    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija (dokument cijelog kola) emailom; omladinska liga i seniori odvojeno.",
+    "Aktiviraj (objavi) utakmice: delegirani tek tada vide nominaciju; svim sudijama, pomoćnim sudijama i komesarima ide nominacija (dokument cijelog kola) emailom; omladinska liga i seniori odvojeno. Već aktivirana utakmica: objava izmjena, nova imena su u emailu crvena, skinuti od zadnje objave precrtani; primaoci = svi sa liste ili samo učesnici utakmice (ekipa + skinuti).",
   roles: [...ADMIN],
-  input: { utakmice: z.array(uuidSchema).min(1).max(100).describe("id utakmica koje se objavljuju") },
-  async run({ utakmice }, { db }) {
+  input: {
+    utakmice: z.array(uuidSchema).min(1).max(100).describe("id utakmica koje se objavljuju"),
+    primaoci: z
+      .enum(["svi", "utakmica"])
+      .optional()
+      .describe("Kome ide email: svi = svi sa liste (podrazumijevano), utakmica = samo učesnici ovih utakmica, ekipa i skinuti od zadnje objave (objava izmjena bez emaila cijeloj listi)"),
+  },
+  async run({ utakmice, primaoci }, { db }) {
     let r;
     try {
-      r = await publishMatches(db, utakmice);
+      r = await publishMatches(db, utakmice, primaoci === "utakmica" ? "crew" : "all");
     } finally {
       // Vidljivost se upisuje prije slanja emaila, pa i kad slanje pukne
       invalidateFromRoute(...utakmice.map((match) => ({ table: "assignments" as const, match })), ...utakmice.map((match) => ({ table: "matches" as const, match })));
@@ -396,6 +402,7 @@ export const sendNominations = defineTool({
       dokumenti: r.documents.map((d) => ({ vrsta: d.kind === "youth" ? "nominacija" : "nominacija – pomoćne sudije", utakmica: d.matches, poslano: d.sent })),
       klubovi: r.clubs ? { utakmica: r.clubs.matches, adresa: r.clubs.recipients, poslano: r.clubs.sent } : null,
       primalaca: r.recipients,
+      primaoci: r.audience === "crew" ? "utakmica" : "svi",
     };
   },
 });

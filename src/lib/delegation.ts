@@ -6,7 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { senderAddress, sendEmail } from "@/lib/email";
-import { sendReplacementNomination } from "@/lib/publish";
+import { publishMatches } from "@/lib/publish";
 import { acceptedEmail, cancellationEmail, declinedEmail } from "@/lib/emails";
 import { CREW_COLUMNS, crewOf, crewPositions, skillsFor } from "@/lib/crew";
 import { formatAbsence, matchWindow, type MatchStatus, type Position } from "@/lib/format";
@@ -88,6 +88,16 @@ const WITH_PERSON_AND_MATCH =
   `id, match_id, position, status, notified_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email ), match:matches!assignments_match_id_fkey ( ${MATCH_SELECT} )` as const;
 
 /**
+ * Trajni trag ko je skinut s poslane nominacije (red delegiranja se briše kad se nađe zamjena):
+ * objava izmjena šalje izmijenjenu nominaciju i njemu, s imenom precrtanim (publish.removedSinceLastPublish).
+ */
+async function logRemoval(db: Db, r: { matchId: string; profileId: string | undefined; position: Position; reason: "removed" | "replaced" }) {
+  if (!r.profileId) return;
+  const { error } = await db.from("assignment_removals").insert({ match_id: r.matchId, profile_id: r.profileId, position: r.position, reason: r.reason });
+  if (error) console.error("assignment_removals:", error.message);
+}
+
+/**
  * Uklanja delegiranje. Neposlana ili odbijena nominacija se briše;
  * poslana (čeka/prihvaćena) se otkazuje i osoba dobija email.
  */
@@ -101,6 +111,7 @@ export async function removeAssignment(db: Db, assignmentId: string) {
   }
 
   await db.from("assignments").update({ status: "cancelled" }).eq("id", a.id);
+  await logRemoval(db, { matchId: a.match_id, profileId: a.profile?.id, position: a.position, reason: "removed" });
   const emailed =
     a.profile && a.match
       ? await sendEmail({
@@ -116,8 +127,8 @@ export async function removeAssignment(db: Db, assignmentId: string) {
 
 /**
  * Zamjena osobe na poziciji (npr. ne odgovara). Stara nominacija se briše.
- * Ako je stara već bila poslana, nova je odmah vidljiva: nova osoba dobija nominaciju utakmice
- * (svoje ime crveno), a stara obavijest o otkazivanju. Neaktivirana se samo zamijeni.
+ * Ako je stara već bila poslana, odmah se objavi izmjena utakmice: izmijenjena nominacija (nova osoba crveno,
+ * stara precrtano) ide ekipi utakmice i staroj osobi, a stara dobija i obavijest o otkazivanju. Neaktivirana se samo zamijeni.
  */
 export async function replaceAssignment(
   db: Db,
@@ -130,12 +141,12 @@ export async function replaceAssignment(
 
   const { error: delError } = await db.from("assignments").delete().eq("id", old.id);
   if (delError) throw new Error(delError.message);
-  const { id } = await assignPerson(db, { matchId: old.match_id, profileId, position: old.position, createdBy });
+  await assignPerson(db, { matchId: old.match_id, profileId, position: old.position, createdBy });
 
   if (!old.notified_at) return { matchId: old.match_id, name: person.full_name, emailed: false };
-  await db.from("assignments").update({ notified_at: new Date().toISOString() }).eq("id", id);
-  const emailed = await sendReplacementNomination(db, { matchId: old.match_id, assignmentId: id, profileId, email: person.email });
-  // Zamijenjena osoba dobija obavijest da je nominacija otkazana
+  await logRemoval(db, { matchId: old.match_id, profileId: old.profile?.id, position: old.position, reason: "replaced" });
+  const { emailed } = await publishMatches(db, [old.match_id], "crew");
+  // Zamijenjena osoba dobija i obavijest da je nominacija otkazana
   if (old.profile && old.match) {
     await sendEmail({
       to: old.profile.email,

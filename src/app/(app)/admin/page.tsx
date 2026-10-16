@@ -55,13 +55,11 @@ async function Overview() {
     const day = dayKey(m.starts_at);
     activated.set(day, [...(activated.get(day) ?? []), m]);
   }
-  // Ko je potvrdio: osoba je potvrdila kad je prihvatila sve svoje nominacije na aktiviranim utakmicama
-  const answers = new Map<string, boolean>();
-  for (const p of activatedList.flatMap((m) => m.staffing.people)) {
-    const key = p.profileId ?? p.name;
-    answers.set(key, (answers.get(key) ?? true) && p.accepted);
-  }
-  const confirmed = [...answers.values()].filter(Boolean).length;
+  // Potvrđene nominacije: prihvaćene od svih poslanih (prihvaćeno + čeka odgovor) na aktiviranim utakmicama.
+  // Ista osoba na dvije utakmice su dvije nominacije; neposlana delegiranja (izmjene nakon aktiviranja) ne ulaze dok se ne objave.
+  const people = activatedList.flatMap((m) => m.staffing.people);
+  const sent = people.length - activatedList.reduce((n, m) => n + m.staffing.unnotified, 0);
+  const confirmed = people.filter((p) => p.accepted).length;
 
   return (
     <div className="flex flex-col gap-10">
@@ -71,12 +69,12 @@ async function Overview() {
             icon={<Send />}
             count={activatedList.length}
             action={
-              answers.size > 0 && (
-                <span className="self-center whitespace-nowrap text-[12px] text-fg-muted sm:text-[13px]" title="Službena lica na aktiviranim utakmicama koja su potvrdila sve svoje nominacije">
-                  <span className={cx("scoreboard text-[14px] font-semibold sm:text-[16px]", confirmed === answers.size ? "text-mint" : "text-fg")}>
-                    {confirmed}/{answers.size}
+              sent > 0 && (
+                <span className="self-center whitespace-nowrap text-[12px] text-fg-muted sm:text-[13px]" title="Prihvaćene nominacije od svih poslanih na aktiviranim utakmicama">
+                  <span className={cx("scoreboard text-[14px] font-semibold sm:text-[16px]", confirmed === sent ? "text-mint" : "text-fg")}>
+                    {confirmed}/{sent}
                   </span>{" "}
-                  potvrdilo
+                  potvrđeno
                 </span>
               )
             }

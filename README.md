@@ -29,11 +29,11 @@ Kopiraj `.env.example` u `.env.local` i popuni:
 | Varijabla | Opis |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase projekat |
-| `SUPABASE_SECRET_KEY` | samo server: kreiranje korisnika, MCP, email log, cron |
-| `GMAIL_USER`, `GMAIL_APP_PASSWORD` | slanje nominacija i podsjetnika |
+| `SUPABASE_SECRET_KEY` | samo server: kreiranje korisnika, MCP, email log |
+| `GMAIL_USER`, `GMAIL_APP_PASSWORD` | slanje nominacija i obavijesti preko Gmaila |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | slanje preko SMTP servisa (Brevo i sl.) umjesto Gmaila; ima prednost ako je `SMTP_HOST` postavljen |
 | `NEXT_PUBLIC_SITE_URL` | javna adresa (linkovi u emailovima i MCP) |
 | `INITIAL_PASSWORD` | zajednička početna šifra novih naloga |
-| `CRON_SECRET` | zaštita `/api/cron/podsjetnici` |
 
 ### 4. Ljudi
 Popuni CSV po uzoru na `scripts/ljudi-primjer.csv` (uloga: `sudija`, `sto`, `sudija+sto`, `komesar`, `admin`):
@@ -48,15 +48,14 @@ Kasnije se ljudi dodaju u aplikaciji: Admin → Ljudi. Svako mijenja šifru u Po
 ### 5. Vercel
 1. Importuj repozitorij, root direktorij `web`.
 2. Unesi varijable okruženja iz koraka 3 (`NEXT_PUBLIC_SITE_URL` = vercel.app adresa).
-3. `vercel.json` pokreće podsjetnike svaki dan u 07:00 UTC: dan prije utakmice za prihvaćene nominacije i jednom za nominacije bez odgovora duže od 48 h.
 
 ## Emailovi
-- **Nominacija:** admin klikne "Pošalji nominacije" na utakmici; šalje se samo onima kojima još nije poslana.
+- **Nominacija:** admin aktivira utakmicu; nominacija kola ide svima sa liste, objava izmjena po izboru svima ili samo delegiranima na utakmici (nova imena crveno).
 - **Otkazivanje:** uklanjanje već poslane nominacije javlja osobi.
 - **Odbijanje:** kad neko odbije ili otkaže dolazak, email ide svim adminima s linkom za zamjenu.
-- **Podsjetnici:** cron, gore.
+- Podsjetnika nema: ko je prihvatio, računa se da dolazi.
 
-Svaki email (i neuspjeli) upisuje se u `email_log`.
+Svaki email (i neuspjeli) upisuje se u `email_log`, a kancelarija saveza dobija skrivenu kopiju svakog (osim linka za novu šifru).
 
 ## MCP
 Svaki korisnik u Postavkama pravi lični token (prikazuje se jednom). Endpoint: `${NEXT_PUBLIC_SITE_URL}/api/mcp`, zaglavlje `Authorization: Bearer <token>`. Alati zavise od uloge; svaki poziv se bilježi u `mcp_audit`.

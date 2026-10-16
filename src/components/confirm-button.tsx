@@ -3,7 +3,7 @@
 import { confirm, type ConfirmOptions } from "@/components/confirm";
 import { buttonClass } from "@/components/ui";
 
-/** Submit dugme za nepovratne radnje: traži potvrdu u KSKS prozoru prije slanja forme */
+/** Submit dugme za nepovratne radnje: traži potvrdu u KSKS prozoru prije slanja forme. `label` = naziv za ikonu bez teksta. */
 export function ConfirmButton({
   title,
   message,
@@ -11,14 +11,18 @@ export function ConfirmButton({
   children,
   variant = "destructive",
   className,
+  label,
 }: Omit<ConfirmOptions, "tone"> & {
   children: React.ReactNode;
   variant?: "destructive" | "danger";
   className?: string;
+  label?: string;
 }) {
   return (
     <button
       type="submit"
+      aria-label={label}
+      title={label}
       onClick={(e) => {
         e.preventDefault();
         const button = e.currentTarget;
