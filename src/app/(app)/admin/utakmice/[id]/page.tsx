@@ -202,7 +202,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
         {/* Bočno: slanje, trošak, bilten */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-36">
           <Panel className="flex flex-col gap-4 py-4 sm:py-5">
-            <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} />
+            <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} crew={active.length} />
             <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
           </Panel>
 

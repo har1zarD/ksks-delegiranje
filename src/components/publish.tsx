@@ -1,16 +1,19 @@
 "use client";
 
-import { createContext, useContext, useState, useTransition } from "react";
-import { Check, Send, TriangleAlert } from "lucide-react";
+import { createContext, useContext, useRef, useState, useTransition } from "react";
+import { Check, Send, TriangleAlert, X } from "lucide-react";
 import { confirm } from "@/components/confirm";
 import { DateTile } from "@/components/match-line";
 import { Button, cx } from "@/components/ui";
 import { publish, type PublishState } from "@/app/(app)/admin/utakmice/actions";
+import type { PublishAudience } from "@/lib/publish";
 
 /** Poruka nakon objave: šta je vidljivo i šta je otišlo emailom */
 function resultText(r: NonNullable<PublishState["result"]>) {
   const mail = r.emailed
-    ? `Poslana nominacija na ${r.recipients} adresa.`
+    ? r.audience === "crew"
+      ? `Poslana nominacija samo delegiranima na utakmici (${r.recipients} ${r.recipients === 1 ? "adresa" : "adrese"}).`
+      : `Poslana nominacija na ${r.recipients} adresa.`
     : "Email nije poslan (nije podešen ili je uključen test način za druge adrese); nominacije se vide u aplikaciji.";
   const clubs = r.clubs
     ? r.clubs.sent
@@ -184,12 +187,22 @@ function IncompleteNote({ matches }: { matches: Incomplete[string][] }) {
 
 // ───────── Detalj utakmice ─────────
 
-/** Aktiviranje jedne utakmice (ili objava izmjena nakon što je već aktivirana) */
-export function PublishMatch({ matchId, publishedAt, unpublished }: { matchId: string; publishedAt: string | null; unpublished: number }) {
+/**
+ * Aktiviranje jedne utakmice, ili objava izmjena nakon što je već aktivirana: nova imena su u emailu crvena,
+ * a admin bira ide li email svima sa liste ili samo delegiranima na utakmici (crew = koliko ih je).
+ */
+export function PublishMatch({ matchId, publishedAt, unpublished, crew }: { matchId: string; publishedAt: string | null; unpublished: number; crew: number }) {
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
   const label = publishedAt ? `Objavi izmjene (${unpublished})` : "Aktiviraj i pošalji nominaciju";
   const canPublish = !publishedAt || unpublished > 0;
+
+  const run = (audience: PublishAudience) =>
+    start(async () => {
+      const r = await publish([matchId], audience);
+      setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });
+    });
 
   return (
     <div className="flex flex-col gap-2">
@@ -203,18 +216,79 @@ export function PublishMatch({ matchId, publishedAt, unpublished }: { matchId: s
           className="w-full"
           disabled={pending}
           onClick={async () => {
+            if (publishedAt) {
+              dialog.current?.showModal();
+              return;
+            }
             if (!(await confirm(CONFIRM(1)))) return;
-            start(async () => {
-              const r = await publish([matchId]);
-              setMessage(r.error ? { text: r.error, error: true } : { text: resultText(r.result!) });
-            });
+            run("all");
           }}
         >
           <Send className="size-4" />
-          {pending ? "Aktiviram…" : label}
+          {pending ? (publishedAt ? "Objavljujem…" : "Aktiviram…") : label}
         </Button>
       )}
       {message && <p className={cx("text-[13px]", message.error ? "text-crest" : "text-fg-muted")}>{message.text}</p>}
+
+      {publishedAt && (
+        <dialog
+          ref={dialog}
+          onClick={(e) => e.target === dialog.current && dialog.current?.close()}
+          className="m-auto w-[min(480px,calc(100vw-32px))] rounded-lg border border-line bg-panel p-0 text-fg shadow-pop backdrop:bg-overlay backdrop:backdrop-blur-[2px]"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const audience = new FormData(e.currentTarget).get("audience") === "all" ? "all" : "crew";
+              dialog.current?.close();
+              run(audience);
+            }}
+            className="flex flex-col gap-4 p-5 sm:p-6"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="font-display text-[20px] font-semibold leading-tight">Objavi izmjene</h2>
+                <p className="mt-1 text-[14px] text-fg-muted">
+                  {unpublished === 1 ? "1 novo delegiranje" : `${unpublished} nova delegiranja`}. Delegirani odmah vide nominaciju, a u emailu su nova imena crvena.
+                </p>
+              </div>
+              <button type="button" onClick={() => dialog.current?.close()} aria-label="Zatvori" className="-m-2.5 rounded-md p-2.5 text-fg-faint transition-colors hover:bg-panel-2 hover:text-fg">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <fieldset className="flex flex-col divide-y divide-line rounded-lg border border-line">
+              <legend className="sr-only">Kome ide nominacija emailom</legend>
+              <label className="flex cursor-pointer items-start gap-3 px-4 py-3">
+                <input type="radio" name="audience" value="crew" defaultChecked className="mt-1 size-4 shrink-0 accent-fg" />
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-semibold">Samo delegiranima na ovoj utakmici</span>
+                  <span className="block text-[13px] text-fg-muted">
+                    {crew} {crew === 1 ? "osoba" : crew < 5 ? "osobe" : "osoba"}. Ostali sa liste ne dobijaju email.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 px-4 py-3">
+                <input type="radio" name="audience" value="all" className="mt-1 size-4 shrink-0 accent-fg" />
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-semibold">Svima sa liste</span>
+                  <span className="block text-[13px] text-fg-muted">Sudije, pomoćne sudije i komesari, kao pri aktiviranju.</span>
+                </span>
+              </label>
+            </fieldset>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="secondary" onClick={() => dialog.current?.close()}>
+                Odustani
+              </Button>
+              <Button type="submit" disabled={pending}>
+                <Send className="size-4" />
+                Objavi i pošalji
+              </Button>
+            </div>
+          </form>
+        </dialog>
+      )}
     </div>
   );
 }

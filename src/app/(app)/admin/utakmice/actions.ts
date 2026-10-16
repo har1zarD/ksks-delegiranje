@@ -7,7 +7,7 @@ import { invalidate } from "@/lib/cache";
 import { crewFromForm, crewToRow } from "@/lib/crew";
 import { candidateFits, getDelegation, type Candidate } from "@/lib/data/admin";
 import { assignPerson, DelegationError, removeAssignment, replaceAssignment } from "@/lib/delegation";
-import { notifyMatchChanged, publishMatches, type PublishResult } from "@/lib/publish";
+import { notifyMatchChanged, publishMatches, type PublishAudience, type PublishResult } from "@/lib/publish";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { MATCH_KIND_LABEL, POSITION_ORDER, sarajevoToISO, type MatchKind, type MatchStatus, type Position } from "@/lib/format";
@@ -115,13 +115,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type PublishState = { error?: string; result?: PublishResult };
 
 /** Aktiviraj utakmice: nominacija postaje vidljiva i šalje se emailom (vidi lib/publish.ts) */
-export async function publish(ids: string[]): Promise<PublishState> {
+/** audience: "all" = svi sa liste (aktiviranje), "crew" = samo delegirani na tim utakmicama (objava izmjena bez emaila cijeloj listi) */
+export async function publish(ids: string[], audience: PublishAudience = "all"): Promise<PublishState> {
   await requireRole("admin");
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || !ids.every((id) => UUID.test(id))) {
     return { error: "Označi bar jednu utakmicu." };
   }
+  if (audience !== "all" && audience !== "crew") return { error: "Nepoznat izbor primalaca." };
   try {
-    return { result: await publishMatches(createAdminClient(), ids) };
+    return { result: await publishMatches(createAdminClient(), ids, audience) };
   } catch {
     return { error: "Objava nije uspjela. Pokušaj ponovo." };
   } finally {
