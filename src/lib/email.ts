@@ -61,7 +61,7 @@ export type Email = {
   subject: string;
   text: string;
   html?: string;
-  kind: "nomination" | "nomination_list" | "cancellation" | "accepted" | "declined" | "password_reset" | "schedule_clubs" | "match_changed";
+  kind: "nomination" | "nomination_list" | "pending_reminder" | "cancellation" | "accepted" | "declined" | "password_reset" | "schedule_clubs" | "match_changed";
   profileId?: string;
   assignmentId?: string;
 };
@@ -97,7 +97,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
   } else {
     try {
       const info = await t.sendMail({
-        from: { name: "KSKS Delegiranje", address: senderAddress() },
+        from: { name: "KSKS Nominacije", address: senderAddress() },
         to: email.to,
         bcc: email.bcc,
         subject: email.subject,

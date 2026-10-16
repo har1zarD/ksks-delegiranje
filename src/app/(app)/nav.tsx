@@ -132,7 +132,7 @@ function BrandMark() {
       <Image src="/brand/ksks-logo.svg" alt="" width={36} height={36} priority />
       <span className="flex min-w-0 flex-col leading-none">
         <span className="text-[15px] font-semibold tracking-[-0.02em]">KSKS <span className="hidden font-normal text-fg-muted sm:inline">/ Službeni portal</span></span>
-        <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Delegiranje</span>
+        <span className="mt-0.5 truncate text-[12px] font-medium text-fg-muted">Nominacije</span>
       </span>
     </>
   );

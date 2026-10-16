@@ -14,9 +14,9 @@ const ROLE_INFO = {
 /** Novi server po zahtjevu (stateless); alati se filtriraju po ulozi korisnika tokena. */
 export function createMcpServer(ctx: McpContext) {
   const server = new McpServer(
-    { name: "ksks-delegiranje", version: "1.0.0" },
+    { name: "ksks-nominacije", version: "1.0.0" },
     {
-      instructions: `KSKS delegiranje (Košarkaški savez Kantona Sarajevo). Prijavljen: ${ctx.profile.full_name}. ${ROLE_INFO[ctx.profile.role]} Sva vremena su po sarajevskom vremenu (YYYY-MM-DD, HH:MM).`,
+      instructions: `KSKS Nominacije (Košarkaški savez Kantona Sarajevo). Prijavljen: ${ctx.profile.full_name}. ${ROLE_INFO[ctx.profile.role]} Sva vremena su po sarajevskom vremenu (YYYY-MM-DD, HH:MM).`,
     },
   );
   registerTools(server, ctx, [...personalTools, ...matchTools, ...adminTools]);

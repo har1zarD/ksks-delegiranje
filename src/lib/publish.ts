@@ -8,7 +8,7 @@
 //     utakmica (ekipa + skinuti), da lista ne dobija email zbog jedne zamjene. Zamjena osobe ide istim putem (delegation.replaceAssignment).
 // Koriste je web akcije i MCP; poziva se servisnim klijentom NAKON provjere admin uloge.
 import { senderAddress, sendEmail, siteUrl } from "@/lib/email";
-import { matchChangedEmail, nominationEmail, nominationKindOf, scheduleEmail, type MatchChange, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
+import { matchChangedEmail, nominationEmail, nominationKindOf, pingEmail, scheduleEmail, type MatchChange, type NominationKind, type NominationMatch } from "@/lib/nomination-email";
 import type { MatchStatus, Position } from "@/lib/format";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
@@ -129,6 +129,40 @@ export async function publishMatches(db: Db, matchIds: string[], audience: Publi
   const clubs = forClubs.length ? await sendScheduleToClubs(db, forClubs) : null;
 
   return { matches: rows.length, revealed: pending.length, recipients: recipients.length, audience, documents, emailed: documents.length > 0 && documents.every((d) => d.sent), clubs };
+}
+
+/**
+ * "Pingaj" (Pregled): podsjetnik izabranim osobama koje nisu odgovorile na poslanu nominaciju.
+ * Svaka dobija jedan mail sa svojim utakmicama (njeno ime crveno) i upozorenjem da bez odgovora slijedi zamjena.
+ */
+export async function pingPending(db: Db, assignmentIds: string[]): Promise<{ people: number; sent: number }> {
+  const ids = [...new Set(assignmentIds)];
+  if (ids.length === 0) return { people: 0, sent: 0 };
+  const { data: list, error } = await db
+    .from("assignments")
+    .select("id, match_id, profile:profiles!assignments_profile_id_fkey ( id, full_name, email, active )")
+    .in("id", ids)
+    .eq("status", "pending")
+    .not("notified_at", "is", null);
+  if (error) throw new Error(error.message);
+
+  const byPerson = new Map<string, { name: string; email: string; assignmentId: string; matchIds: string[] }>();
+  for (const a of list ?? []) {
+    if (!a.profile?.active) continue;
+    const p = byPerson.get(a.profile.id) ?? { name: a.profile.full_name, email: a.profile.email, assignmentId: a.id, matchIds: [] };
+    p.matchIds.push(a.match_id);
+    byPerson.set(a.profile.id, p);
+  }
+  const rows = (await loadRows(db, [...new Set((list ?? []).map((a) => a.match_id))])) ?? [];
+  const link = siteUrl("/nominacije");
+  const logo = siteUrl("/icons/icon-192.png");
+  let sent = 0;
+  for (const [profileId, p] of byPerson) {
+    const matches = rows.filter((m) => p.matchIds.includes(m.id)).map((m) => toNomination(m, (a) => a.status === "pending" && a.profile?.id === profileId));
+    if (matches.length === 0) continue;
+    if (await sendEmail({ to: p.email, kind: "pending_reminder", profileId, assignmentId: p.assignmentId, ...pingEmail(p.name, matches, link, logo) })) sent++;
+  }
+  return { people: byPerson.size, sent };
 }
 
 export type ScheduleResult = { matches: number; recipients: number; sent: boolean };

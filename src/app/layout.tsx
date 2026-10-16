@@ -11,13 +11,13 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin",
 export const metadata: Metadata = {
   // Apsolutne adrese za OG sliku i linkove u meta podacima
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.ksksarajevo.ba"),
-  title: "KSKS Delegiranje",
-  description: "Košarkaški savez Kantona Sarajevo — delegiranje sudija i komesara",
+  title: "KSKS Nominacije",
+  description: "Košarkaški savez Kantona Sarajevo — nominacije sudija, pomoćnih sudija i komesara",
   openGraph: {
     type: "website",
     locale: "bs_BA",
-    siteName: "KSKS Delegiranje",
-    title: "KSKS Delegiranje",
+    siteName: "KSKS Nominacije",
+    title: "KSKS Nominacije",
     description: "Nominacije sudija, pomoćnih sudija i komesara. Rezultati, bilteni i naknade na jednom mjestu.",
   },
   twitter: { card: "summary_large_image" },

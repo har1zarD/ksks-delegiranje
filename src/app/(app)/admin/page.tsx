@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
 import { getActivatedMatches, getAdminMatches } from "@/lib/data/admin";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
-import { dayKey, formatDayHeading } from "@/lib/format";
+import { dayKey, formatDayHeading, formatDayMonth, formatTime, positionName } from "@/lib/format";
+import { PingPending, type PingItem } from "./ping-pending";
 import { LiveRefresh } from "@/components/live-refresh";
 import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
@@ -60,6 +61,18 @@ async function Overview() {
   const people = activatedList.flatMap((m) => m.staffing.people);
   const sent = people.length - activatedList.reduce((n, m) => n + m.staffing.unnotified, 0);
   const confirmed = people.filter((p) => p.accepted).length;
+  // "Pingaj": poslane nominacije bez odgovora
+  const toPing: PingItem[] = activatedList.flatMap((m) =>
+    m.staffing.people
+      .filter((p) => !p.accepted && p.notified)
+      .map((p) => ({
+        assignmentId: p.assignmentId,
+        name: p.name,
+        position: positionName(p.position, m.crew.digital),
+        match: `${m.home?.name ?? "?"} – ${m.away?.name ?? "?"}`,
+        when: `${formatDayMonth(m.starts_at)} ${formatTime(m.starts_at)}`,
+      })),
+  );
 
   return (
     <div className="flex flex-col gap-10">
@@ -70,12 +83,15 @@ async function Overview() {
             count={activatedList.length}
             action={
               sent > 0 && (
-                <span className="self-center whitespace-nowrap text-[12px] text-fg-muted sm:text-[13px]" title="Prihvaćene nominacije od svih poslanih na aktiviranim utakmicama">
-                  <span className={cx("scoreboard text-[14px] font-semibold sm:text-[16px]", confirmed === sent ? "text-mint" : "text-fg")}>
-                    {confirmed}/{sent}
-                  </span>{" "}
-                  potvrđeno
-                </span>
+                <div className="flex items-center gap-3 self-center">
+                  <span className="whitespace-nowrap text-[12px] text-fg-muted sm:text-[13px]" title="Prihvaćene nominacije od svih poslanih na aktiviranim utakmicama">
+                    <span className={cx("scoreboard text-[14px] font-semibold sm:text-[16px]", confirmed === sent ? "text-mint" : "text-fg")}>
+                      {confirmed}/{sent}
+                    </span>{" "}
+                    potvrđeno
+                  </span>
+                  <PingPending items={toPing} />
+                </div>
               )
             }
           >

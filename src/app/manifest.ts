@@ -3,9 +3,9 @@ import type { MetadataRoute } from "next";
 // "Dodaj na početni ekran": aplikacija se otvara kao samostalna, s grbom kao ikonom
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "KSKS Delegiranje",
+    name: "KSKS Nominacije",
     short_name: "KSKS",
-    description: "Košarkaški savez Kantona Sarajevo — delegiranje sudija, zapisničkog stola i komesara",
+    description: "Košarkaški savez Kantona Sarajevo — nominacije sudija, pomoćnih sudija i komesara",
     lang: "bs",
     start_url: "/",
     scope: "/",
