@@ -214,9 +214,10 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                                 title="Ukloniti poziciju sa utakmice?"
                                 message={`${positionName(position, crew.digital)} se uklanja samo s ove utakmice. Vraća se dugmetom „Dodaj poziciju”.`}
                                 confirmLabel="Ukloni"
-                                className="h-10 w-10 px-0"
+                                variant="secondary"
+                                className="w-11 px-0 sm:w-10"
                               >
-                                <Trash2 className="size-4" aria-hidden="true" />
+                                <Trash2 className="size-[18px] text-crest" aria-hidden="true" />
                               </ConfirmButton>
                             </form>
                           )
