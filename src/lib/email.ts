@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Slanje emaila preko SMTP servisa (Brevo): SMTP_HOST, SMTP_PORT (587 ili 465), SMTP_USER, SMTP_PASS; EMAIL_FROM = verifikovani pošiljalac.
 // Gmail put (GMAIL_USER + GMAIL_APP_PASSWORD) je isključen (2026-10-16): nov Gmail nalog uz masovni bcc tiho ne isporučuje
 // i ima dnevni limit od 500 adresa. Kod je ostavljen zakomentarisan ispod ako ikad zatreba.
-// Kancelarija saveza (OFFICE_COPY) dobija skrivenu kopiju svakog emaila osim linka za novu šifru i odbijanja.
+// Kancelarija saveza i nalog delegiranja (ALWAYS_COPY) dobijaju skrivenu kopiju svakog emaila osim linka za novu šifru i odbijanja.
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 /**
  * PREKIDAČ: true = nijedan email ne ide nikome (upisuje se u email_log kao preskočen), za testiranje.
@@ -38,17 +38,20 @@ function allowList() {
   return v ? new Set(v.split(/[,\s]+/).filter(Boolean).map((e) => e.toLowerCase())) : null;
 }
 
-/** Kancelarija saveza: skrivena kopija SVAKOG emaila, da savez ima evidenciju svega što aplikacija pošalje */
-const OFFICE_COPY = "ksksarajevo@bih.net.ba";
-/** Bez kopije: link za novu šifru (sigurnost) i odbijanje, koje ionako ide svim adminima pa i kancelariji */
+/**
+ * Skrivena kopija SVAKOG emaila: kancelarija saveza i nalog delegiranja, da savez ima evidenciju svega što aplikacija
+ * pošalje (preko SMTP servisa sanduče pošiljaoca inače ne vidi poslano).
+ */
+const ALWAYS_COPY = ["ksksarajevo@bih.net.ba", "ksksdelegiranje@gmail.com"];
+/** Bez kopije: link za novu šifru (sigurnost) i odbijanje, koje ionako ide svim adminima pa i ovim adresama */
 const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined"];
 
-/** Dodaje kancelariju u skrivene primaoce, osim kad je već primalac ili je test način ne propušta */
+/** Dodaje adrese saveza u skrivene primaoce, osim onih koje su već primaoci ili koje test način ne propušta */
 function withOfficeCopy(email: Email, allow: Set<string> | null): Email {
-  const office = OFFICE_COPY.toLowerCase();
-  if (NO_OFFICE_COPY.includes(email.kind) || (allow && !allow.has(office))) return email;
-  if (email.to.toLowerCase() === office || email.bcc?.some((e) => e.toLowerCase() === office)) return email;
-  return { ...email, bcc: [...(email.bcc ?? []), OFFICE_COPY] };
+  if (NO_OFFICE_COPY.includes(email.kind)) return email;
+  const have = new Set([email.to, ...(email.bcc ?? [])].map((e) => e.toLowerCase()));
+  const extra = ALWAYS_COPY.filter((a) => !have.has(a.toLowerCase()) && (!allow || allow.has(a.toLowerCase())));
+  return extra.length ? { ...email, bcc: [...(email.bcc ?? []), ...extra] } : email;
 }
 
 export type Email = {
