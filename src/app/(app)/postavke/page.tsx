@@ -13,8 +13,7 @@ import { CopyBlock, TokenForm } from "./token-form";
 
 export const metadata = { title: "Postavke — KSKS" };
 
-export default async function SettingsPage() {
-  const user = await getCurrentUser();
+export default function SettingsPage() {
   return (
     <>
       <PageHeader icon={<Settings />} title="Postavke" subtitle="Pristup nalogu i povezivanje asistenata." />
@@ -27,16 +26,9 @@ export default async function SettingsPage() {
           </Panel>
         </section>
 
-        {user.role !== "admin" && (
-          <section>
-            <SectionTitle icon={<Bell />}>Obavještenja</SectionTitle>
-            <Panel className="py-4 sm:py-6">
-              <Suspense fallback={<Text className="text-[15px] font-semibold" w="w-80" />}>
-                <EmailSetting userId={user.id} />
-              </Suspense>
-            </Panel>
-          </section>
-        )}
+        <Suspense>
+          <Notifications />
+        </Suspense>
 
         <section>
           <SectionTitle icon={<Link2 />}>Poveži Claude</SectionTitle>
@@ -58,11 +50,20 @@ export default async function SettingsPage() {
   );
 }
 
-/** Lična postavka nije keširana (čita je samo vlasnik) */
-async function EmailSetting({ userId }: { userId: string }) {
+/** Lična postavka nije keširana (čita je samo vlasnik); adminima se ne prikazuje (ne dobijaju nominaciju "svima") */
+async function Notifications() {
+  const user = await getCurrentUser();
+  if (user.role === "admin") return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("only_assigned_emails").eq("id", userId).single();
-  return <EmailToggle value={data?.only_assigned_emails ?? false} />;
+  const { data } = await supabase.from("profiles").select("only_assigned_emails").eq("id", user.id).single();
+  return (
+    <section>
+      <SectionTitle icon={<Bell />}>Obavještenja</SectionTitle>
+      <Panel className="py-4 sm:py-6">
+        <EmailToggle value={data?.only_assigned_emails ?? false} />
+      </Panel>
+    </section>
+  );
 }
 
 const date = (iso: string) => formatDate(isoToSarajevo(iso).date);
