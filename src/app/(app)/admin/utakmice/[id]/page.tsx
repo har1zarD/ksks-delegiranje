@@ -217,7 +217,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                                 variant="secondary"
                                 className="w-11 px-0 sm:w-10"
                               >
-                                <Trash2 className="size-[18px] text-crest" aria-hidden="true" />
+                                <Trash2 className="size-5 shrink-0 text-crest" strokeWidth={2.2} aria-hidden="true" />
                               </ConfirmButton>
                             </form>
                           )
