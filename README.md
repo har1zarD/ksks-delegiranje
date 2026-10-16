@@ -52,7 +52,7 @@ Kasnije se ljudi dodaju u aplikaciji: Admin → Ljudi. Svako mijenja šifru u Po
 - **Nominacija:** admin aktivira utakmicu; nominacija kola ide svima sa liste, objava izmjena po izboru svima ili samo delegiranima na utakmici (nova imena crveno).
 - **Otkazivanje:** uklanjanje već poslane nominacije javlja osobi.
 - **Odbijanje:** kad neko odbije ili otkaže dolazak, email ide svim adminima s linkom za zamjenu.
-- Podsjetnika nema: ko je prihvatio, računa se da dolazi.
+- **Pingaj (Pregled):** admin ručno šalje podsjetnik onima koji nisu odgovorili na nominaciju (prozor s izborom osoba); automatskih podsjetnika nema.
 
 Svaki email (i neuspjeli) upisuje se u `email_log`, a kancelarija saveza dobija skrivenu kopiju svakog (osim linka za novu šifru).
 
