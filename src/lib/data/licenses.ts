@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
 
 // Licence (admin): takmičenje → klub (folder iz license_folders) → igrači i službena lica.
+// Omladinska liga KS (juniori, kadeti, pioniri, minibasket, unobasket) je jedan folder s kategorijama; u kategoriji
+// tekuće sezone je svaki klub koji u njoj ima ekipu, bez ručnog pravljenja foldera. ŽOL, WABA i srednje škole nisu dio lige.
 // Fotografije su u privatnom bucketu "licenses"; link za pregled se pravi po zahtjevu, izvan keša.
 
 export const LICENSE_BUCKET = "licenses";
@@ -12,14 +14,40 @@ export const LICENSE_BUCKET = "licenses";
 /** Koliko dugo važi link za fotografiju */
 const VIEW_SECONDS = 60 * 60;
 
-const COMPETITION = "competition:competitions!license_folders_competition_id_fkey ( id, name, category, season:seasons!competitions_season_id_fkey ( name ) )";
+const COMPETITION = "competition:competitions!license_folders_competition_id_fkey ( id, name, category, sort, season:seasons!competitions_season_id_fkey ( name ) )";
 const CLUB = "club:clubs!license_folders_club_id_fkey ( id, name, short_name, logo_url )";
+const TEAM_COMPETITION = "competition:competitions!teams_competition_id_fkey!inner ( id, name, category, sort, parent_id, season:seasons!competitions_season_id_fkey!inner ( name, is_current ) )";
+const TEAM_CLUB = "club:clubs!teams_club_id_fkey ( id, name, short_name, logo_url )";
 
+/** Kategorije Omladinske lige KS, redom kako stoje u folderu */
+const YOUTH_ORDER = ["juniori", "kadeti", "pioniri", "minibasket", "unobasket"];
+const isYouth = (category: string) => YOUTH_ORDER.includes(category);
+/** Drugi red foldera: grupe 2 i unobasket */
+const youthTier = (name: string, category: string) => (category === "unobasket" || /\b(?:grupa|g)\s*2\b/i.test(name) ? 2 : 1);
+
+/** Folderi: napravljeni (license_folders) + klub sa ekipom u omladinskom takmičenju tekuće sezone */
 async function folderRows() {
   "use cache: remote";
   cacheLife(LIFE.reference);
-  cacheTag(TAG.licenses, TAG.clubs, TAG.competitions);
-  return rows(await createAdminClient().from("license_folders").select(`competition_id, club_id, created_at, ${COMPETITION}, ${CLUB}`).order("created_at"));
+  cacheTag(TAG.licenses, TAG.clubs, TAG.competitions, TAG.teams);
+  const db = createAdminClient();
+  const [saved, teams] = await Promise.all([
+    db.from("license_folders").select(`competition_id, club_id, ${COMPETITION}, ${CLUB}`).order("created_at"),
+    db
+      .from("teams")
+      .select(`competition_id, club_id, ${TEAM_COMPETITION}, ${TEAM_CLUB}`)
+      .eq("competition.season.is_current", true)
+      .is("competition.parent_id", null),
+  ]);
+  const folders = rows(saved);
+  const keys = new Set(folders.map((f) => `${f.competition_id}/${f.club_id}`));
+  for (const t of rows(teams)) {
+    const key = `${t.competition_id}/${t.club_id}`;
+    if (!isYouth(t.competition.category) || keys.has(key)) continue;
+    keys.add(key);
+    folders.push({ competition_id: t.competition_id, club_id: t.club_id, competition: t.competition, club: t.club });
+  }
+  return folders;
 }
 
 async function licenseRows() {
@@ -37,14 +65,15 @@ async function licenseRows() {
 type FolderRow = Awaited<ReturnType<typeof folderRows>>[number];
 
 function competitionOf(r: FolderRow) {
-  return { id: r.competition.id, name: r.competition.name, category: r.competition.category, season: r.competition.season?.name ?? null };
+  const c = r.competition;
+  return { id: c.id, name: c.name, category: c.category, sort: c.sort, season: c.season?.name ?? null, youth: isYouth(c.category), tier: youthTier(c.name, c.category) };
 }
 
 function clubOf(r: FolderRow) {
   return { id: r.club.id, name: r.club.name, shortName: r.club.short_name, logoUrl: r.club.logo_url };
 }
 
-/** Folderi: takmičenja koja imaju bar jedan folder kluba, s brojem klubova i licenci */
+/** Folderi: takmičenja koja imaju bar jedan folder kluba, s brojem klubova i licenci; omladinska odvojeno (jedan folder) */
 export async function getLicenseCompetitions() {
   await requireRole("admin");
   const [folders, licenses] = await Promise.all([folderRows(), licenseRows()]);
@@ -58,7 +87,16 @@ export async function getLicenseCompetitions() {
     const c = byCompetition.get(l.competition_id);
     if (c) c.count++;
   }
-  return [...byCompetition.values()];
+  const all = [...byCompetition.values()].sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "bs"));
+  const youth = all
+    .filter((c) => c.youth)
+    .sort((a, b) => a.tier - b.tier || YOUTH_ORDER.indexOf(a.category) - YOUTH_ORDER.indexOf(b.category) || a.name.localeCompare(b.name, "bs"));
+  return { youth, others: all.filter((c) => !c.youth) };
+}
+
+/** Postoji li folder kluba u takmičenju (napravljen ili omladinski po ekipi) */
+export async function licenseFolderExists(competitionId: string, clubId: string) {
+  return (await folderRows()).some((f) => f.competition_id === competitionId && f.club_id === clubId);
 }
 
 /** Folderi klubova u takmičenju, s brojem igrača i službenih lica */

@@ -1,8 +1,34 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Shield } from "lucide-react";
+import { CompetitionLogo } from "@/components/competition-logo";
 import { Bone, ButtonSkeleton, FieldSkeleton, Text, times } from "@/components/skeleton";
 import { cx } from "@/components/ui";
+import type { getLicenseCompetitions } from "@/lib/data/licenses";
+
+/** Folder svih omladinskih takmičenja (kategorije) */
+export const YOUTH_LEAGUE = "Omladinska liga KS";
+
+/** KSKS logo za folder omladinske lige */
+export function YouthLeagueLogo({ size = 44 }: { size?: number }) {
+  return <Image src="/brand/ksks-logo.png" alt="" width={size} height={size} sizes={`${size}px`} className="object-contain" style={{ width: size, height: size }} />;
+}
+
+type LicenseCompetition = Awaited<ReturnType<typeof getLicenseCompetitions>>["others"][number];
+
+/** Folderi takmičenja (kategorija): logo takmičenja, broj klubova i licenci */
+export function CompetitionFolders({ competitions }: { competitions: LicenseCompetition[] }) {
+  return competitions.map((c) => (
+    <li key={c.id}>
+      <Folder
+        href={`/admin/licence/${c.id}`}
+        logo={<CompetitionLogo name={c.name} category={c.category} size={44} />}
+        title={c.name}
+        meta={[c.season, `${c.clubCount} ${c.clubCount === 1 ? "klub" : "klubova"}`, `${c.count} licenci`].filter(Boolean).join(" · ")}
+      />
+    </li>
+  ));
+}
 
 const TAB = "absolute left-0 top-0 z-10 h-[13px] w-24 rounded-t-lg border border-b-0 border-line bg-panel";
 const BODY = "relative flex items-center gap-4 rounded-lg rounded-tl-none border border-line bg-panel px-4 py-5 shadow-panel sm:px-5";

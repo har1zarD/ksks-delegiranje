@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
-import { LICENSE_BUCKET } from "@/lib/data/licenses";
+import { LICENSE_BUCKET, licenseFolderExists } from "@/lib/data/licenses";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LICENSE_POSITIONS, LICENSE_ROLES } from "./options";
 
@@ -83,8 +83,8 @@ export async function addLicense(prev: LicenseState, f: FormData): Promise<Licen
   if (photoPath && (!new RegExp(`^${clubId}/[\\w.-]+$`).test(photoPath) || photoPath.includes(".."))) return { error: "Nepoznata fotografija." };
 
   const db = createAdminClient();
-  const [{ data: folder }, { data: last }] = await Promise.all([
-    db.from("license_folders").select("club_id").eq("competition_id", competitionId).eq("club_id", clubId).maybeSingle(),
+  const [folder, { data: last }] = await Promise.all([
+    licenseFolderExists(competitionId, clubId),
     db.from("licenses").select("sort").eq("competition_id", competitionId).eq("club_id", clubId).eq("kind", kind).order("sort", { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (!folder) return { error: "Folder nije pronađen." };

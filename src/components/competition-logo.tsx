@@ -1,5 +1,22 @@
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import { Trophy } from "lucide-react";
+import juniori from "../../public/competitions/juniori.png";
+import kadetiG1 from "../../public/competitions/kadeti-g1.png";
+import kadetiG2 from "../../public/competitions/kadeti-g2.png";
+import pioniriG1 from "../../public/competitions/pioniri-g1.png";
+import pioniriG2 from "../../public/competitions/pioniri-g2.png";
+import minibasket from "../../public/competitions/minibasket.png";
+import unobasket from "../../public/competitions/unobasket.png";
+
+const youthLogos: Record<string, StaticImageData> = {
+  juniori,
+  "kadeti-g1": kadetiG1,
+  "kadeti-g2": kadetiG2,
+  "pioniri-g1": pioniriG1,
+  "pioniri-g2": pioniriG2,
+  minibasket,
+  unobasket,
+};
 
 /** Ime fajla u /public/competitions (bez .png) ili null */
 export function logoOf(name: string, category?: string) {
@@ -19,12 +36,14 @@ export function logoOf(name: string, category?: string) {
   return null;
 }
 
-export function CompetitionLogo({ name, category }: { name: string; category?: string }) {
+export function CompetitionLogo({ name, category, size }: { name: string; category?: string; size?: number }) {
   const logo = logoOf(name, category);
+  const width = size ?? 48;
+  const height = size ?? 32;
   return (
-    <span aria-hidden="true" className="inline-flex h-8 w-12 shrink-0 items-center justify-center">
+    <span aria-hidden="true" className="inline-flex shrink-0 items-center justify-center" style={{ width, height }}>
       {logo ? (
-        <Image src={`/competitions/${logo}.png`} alt="" width={48} height={32} sizes="48px" className="size-full object-contain" />
+        <Image src={youthLogos[logo] ?? `/competitions/${logo}.png`} alt="" width={width} height={height} sizes={`${width}px`} className="size-full object-contain" />
       ) : (
         <Trophy className="size-7 text-fg-muted" strokeWidth={1.6} />
       )}

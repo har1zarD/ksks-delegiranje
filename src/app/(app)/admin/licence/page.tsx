@@ -1,9 +1,8 @@
 import { Suspense } from "react";
 import { FolderPlus, IdCard } from "lucide-react";
-import { CompetitionLogo } from "@/components/competition-logo";
 import { Empty, PageHeader, Panel, SectionTitle } from "@/components/ui";
 import { getLicenseCompetitions, getLicenseFolderOptions } from "@/lib/data/licenses";
-import { Folder, FolderFormSkeleton, FolderGrid, FolderGridSkeleton } from "./_components/folder";
+import { CompetitionFolders, Folder, FolderFormSkeleton, FolderGrid, FolderGridSkeleton, YOUTH_LEAGUE, YouthLeagueLogo } from "./_components/folder";
 import { FolderForm } from "./_components/folder-form";
 
 export const metadata = { title: "Licence — KSKS" };
@@ -31,21 +30,24 @@ export default function LicensesPage() {
 }
 
 async function Competitions() {
-  const competitions = await getLicenseCompetitions();
-  if (competitions.length === 0) return <Empty icon={<IdCard />}>Nema foldera. Napravi prvi ispod.</Empty>;
+  const { youth, others } = await getLicenseCompetitions();
+  if (youth.length + others.length === 0) return <Empty icon={<IdCard />}>Nema foldera. Napravi prvi ispod.</Empty>;
 
+  const clubs = youth.reduce((n, c) => n + c.clubCount, 0);
+  const count = youth.reduce((n, c) => n + c.count, 0);
   return (
     <FolderGrid>
-      {competitions.map((c) => (
-        <li key={c.id}>
+      {youth.length > 0 && (
+        <li>
           <Folder
-            href={`/admin/licence/${c.id}`}
-            logo={<CompetitionLogo name={c.name} category={c.category} />}
-            title={c.name}
-            meta={[c.season, `${c.clubCount} ${c.clubCount === 1 ? "klub" : "klubova"}`, `${c.count} licenci`].filter(Boolean).join(" · ")}
+            href="/admin/licence/omladinska"
+            logo={<YouthLeagueLogo />}
+            title={YOUTH_LEAGUE}
+            meta={`${youth.length} ${youth.length % 10 >= 2 && youth.length % 10 <= 4 && (youth.length % 100 < 12 || youth.length % 100 > 14) ? "kategorije" : "kategorija"} · ${clubs} klubova · ${count} licenci`}
           />
         </li>
-      ))}
+      )}
+      <CompetitionFolders competitions={others} />
     </FolderGrid>
   );
 }
