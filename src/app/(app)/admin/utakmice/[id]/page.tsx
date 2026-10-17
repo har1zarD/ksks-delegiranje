@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileImage, FileText, Lock, MapPin, Printer, Trash2, Users } from "lucide-react";
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
-import { feeFor, formatKM, matchCost, round2 } from "@/lib/finance";
+import { feeFor, formatKM, matchCost } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
 import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
@@ -29,8 +29,9 @@ import { AddPosition } from "./add-position";
 import { AssignForm } from "./assign-form";
 import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
-import { MarkAllPaid, PaidToggle } from "@/components/paid-toggle";
+import { PaidToggle } from "@/components/paid-toggle";
 import { LockMatchButton } from "@/components/lock-match-button";
+import { MatchPaidButton } from "@/components/match-paid-button";
 import { listScoresheets } from "@/lib/scoresheets";
 
 export const metadata = { title: "Delegiranje — KSKS" };
@@ -82,7 +83,6 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   // Naknada osobe: ručna cijena delegiranja ili pravilo takmičenja (null = nije određena); isplata po osobi kao u Naknadama
   const accepted = active.filter((a) => a.status === "accepted");
   const amountOf = (a: (typeof assignments)[number]) => (a.fee_km != null ? Number(a.fee_km) : feeFor(a.position, crew.refereeCount, match.rules, crew.digital));
-  const sumOf = (list: typeof accepted) => round2(list.reduce((s, a) => s + (amountOf(a) ?? 0), 0));
   const unpaid = accepted.filter((a) => !a.paid_at);
   const paid = accepted.filter((a) => a.paid_at);
   // Prazna pozicija se može ukloniti sa utakmice ako su prazne i sve pozicije koje bi s njom nestale (zadnja sudija, zadnja statistika)
@@ -306,14 +306,10 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
               <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
                 <div className="flex items-baseline justify-between gap-3 text-[13px]">
                   <span className="font-semibold text-fg-muted">Isplata</span>
-                  <span className={cx("font-semibold", unpaid.length === 0 ? "text-mint" : "text-orange")}>
-                    {unpaid.length === 0 ? "Sve isplaćeno" : `Isplaćeno ${paid.length}/${accepted.length}`}
-                  </span>
+                  {unpaid.length > 0 && <span className="font-semibold text-orange">Isplaćeno {paid.length}/{accepted.length}</span>}
                 </div>
-                <div className="flex gap-2 empty:hidden">
-                  <MarkAllPaid ids={unpaid.map((a) => a.id)} amount={sumOf(unpaid)} label="Isplati" className="flex-1" />
-                  <MarkAllPaid ids={paid.map((a) => a.id)} amount={sumOf(paid)} label="Poništi isplatu" paid={false} className="flex-1" />
-                </div>
+                {/* Cijela utakmica odjednom (prvi sudija ima isto dugme); pojedinačno po osobi gore u redovima */}
+                <MatchPaidButton matchId={match.id} paid={unpaid.length === 0} />
               </div>
             )}
           </Panel>

@@ -66,6 +66,8 @@ export async function getMatchPage(matchId: string) {
     isTable: mine?.status === "accepted" && nominationGroupOf(mine.position) === "table",
     /** Prihvaćeni sudija: slika zapisnika */
     isReferee: mine?.status === "accepted" && mine.position.startsWith("referee"),
+    /** Prihvaćeni prvi sudija: označava isplatu utakmice */
+    isFirstReferee: mine?.status === "accepted" && mine.position === "referee_1",
   };
 }
 

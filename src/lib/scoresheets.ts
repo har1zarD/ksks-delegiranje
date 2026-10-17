@@ -12,8 +12,8 @@ const VIEW_SECONDS = 60 * 60;
 export type MatchRole = "admin" | "commissioner" | "table" | "referee" | null;
 
 /** Uloga korisnika na utakmici: admin, prihvaćeni komesar, prihvaćeni pomoćni sudija (sto, statistika) ili prihvaćeni sudija */
-export async function matchRoleOf(user: CurrentUser, matchId: string): Promise<MatchRole> {
-  if (user.role === "admin") return "admin";
+/** Pozicije korisnika na utakmici: prihvaćena i poslana (notified) delegiranja */
+export async function matchPositionsOf(user: CurrentUser, matchId: string) {
   const { data } = await createAdminClient()
     .from("assignments")
     .select("position")
@@ -21,7 +21,12 @@ export async function matchRoleOf(user: CurrentUser, matchId: string): Promise<M
     .eq("profile_id", user.id)
     .eq("status", "accepted")
     .not("notified_at", "is", null);
-  const positions = (data ?? []).map((a) => a.position);
+  return (data ?? []).map((a) => a.position);
+}
+
+export async function matchRoleOf(user: CurrentUser, matchId: string): Promise<MatchRole> {
+  if (user.role === "admin") return "admin";
+  const positions = await matchPositionsOf(user, matchId);
   if (positions.includes("commissioner")) return "commissioner";
   if (positions.some((p) => nominationGroupOf(p) === "table")) return "table";
   if (positions.some((p) => p.startsWith("referee"))) return "referee";

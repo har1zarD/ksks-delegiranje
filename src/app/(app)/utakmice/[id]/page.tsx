@@ -12,8 +12,8 @@ import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
 import { FinishButton } from "./finish-button";
-import { MatchPaidToggle } from "./match-paid-toggle";
 import { LockMatchButton } from "@/components/lock-match-button";
+import { MatchPaidButton } from "@/components/match-paid-button";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 
@@ -49,7 +49,7 @@ async function Match({ params }: { params: Params }) {
   const { id } = await params;
   const page = await getMatchPage(id);
   if (!page) notFound();
-  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable, isReferee } = page;
+  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable, isReferee, isFirstReferee } = page;
 
   const canScore = isCommissioner || isAdmin;
   const open = match.status !== "cancelled" && match.status !== "postponed";
@@ -65,7 +65,7 @@ async function Match({ params }: { params: Params }) {
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
-  // Plaćanje: komesar (ili savez) označava; utakmica je plaćena kad su sva prihvaćena delegiranja isplaćena
+  // Isplata: prvi sudija (ili savez) označava; utakmica je isplaćena kad su sva prihvaćena delegiranja isplaćena
   const accepted = crew.filter((c) => c.status === "accepted");
   const allPaid = accepted.length > 0 && accepted.every((c) => c.paid_at);
   const homeName = match.home?.name ?? "Domaćin";
@@ -177,11 +177,14 @@ async function Match({ params }: { params: Params }) {
         </section>
       )}
 
-      {(isCommissioner || isAdmin) && accepted.length > 0 && (
+      {(isFirstReferee || isAdmin) && accepted.length > 0 && (
         <section>
-          <SectionTitle icon={<Wallet />}>Plaćanje</SectionTitle>
+          <SectionTitle icon={<Wallet />}>Isplata</SectionTitle>
           <div className="rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
-            <MatchPaidToggle matchId={match.id} paid={allPaid} count={accepted.length} />
+            {!allPaid && (
+              <p className="mb-4 text-[14px] text-fg-muted">Naknade još nisu isplaćene. Kad klub isplati službena lica, označi utakmicu isplaćenom.</p>
+            )}
+            <MatchPaidButton matchId={match.id} paid={allPaid} className="sm:w-auto" />
           </div>
         </section>
       )}

@@ -2,7 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
-import { matchRoleOf, SCORESHEET_BUCKET } from "@/lib/scoresheets";
+import { matchPositionsOf, matchRoleOf, SCORESHEET_BUCKET } from "@/lib/scoresheets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SCORE_UNDO_HOURS, scoreUndoUntil, type MatchStatus } from "@/lib/format";
@@ -236,13 +236,13 @@ export async function deleteScoresheet(matchId: string, path: string): Promise<{
 }
 
 /**
- * Plaćanje utakmice: komesar utakmice (ili savez) označi da su službena lica isplaćena.
- * Isto što i isplata u Naknadama: paid_at na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije plaćeno.
+ * Isplata utakmice: prvi sudija utakmice (ili savez) označi da je klub isplatio službena lica (korisnik, 2026-10-17).
+ * Isto što i isplata u Naknadama: paid_at na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije isplaćeno.
  */
 export async function setMatchPaid(matchId: string, paid: boolean): Promise<{ error?: string }> {
   const user = await getCurrentUser();
-  const role = await matchRoleOf(user, matchId);
-  if (role !== "commissioner" && role !== "admin") return { error: "Plaćanje označava komesar utakmice ili savez." };
+  const allowed = user.role === "admin" || (await matchPositionsOf(user, matchId)).includes("referee_1");
+  if (!allowed) return { error: "Isplatu označava prvi sudija utakmice ili savez." };
 
   const { error } = await createAdminClient()
     .from("assignments")
