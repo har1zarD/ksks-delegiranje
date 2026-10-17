@@ -13,7 +13,7 @@ import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
 import { FinishButton } from "./finish-button";
 import { MatchPaidToggle } from "./match-paid-toggle";
-import { MatchDoneToggle } from "@/components/match-done-toggle";
+import { LockMatchButton } from "@/components/lock-match-button";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 
@@ -60,8 +60,8 @@ async function Match({ params }: { params: Params }) {
   const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
   // Sto upisuje rezultat dok ga nema (i kad je sudija već označio utakmicu završenom) ili dok traje rok za ispravku
   const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.home_score == null || undoUntil !== null));
-  // Završena bez unosa rezultata: sudije i sto na svojoj stranici, savez uvijek; utakmicu u toku završava komesar
-  const canMarkDone = open && (isAdmin || ((isReferee || isTable) && match.status !== "live"));
+  // Zaključavanje bez unosa rezultata: sudije i sto na svojoj stranici, savez uvijek; utakmicu u toku završava komesar
+  const canLock = open && match.status !== "finished" && (isAdmin || ((isReferee || isTable) && match.status !== "live"));
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
@@ -119,9 +119,9 @@ async function Match({ params }: { params: Params }) {
               )}
             </div>
           )}
-          {canMarkDone && (
+          {canLock && (
             <div className="mt-5 border-t border-line pt-5">
-              <MatchDoneToggle key={match.status} matchId={match.id} done={match.status === "finished"} />
+              <LockMatchButton matchId={match.id} className="sm:w-auto" />
             </div>
           )}
         </div>

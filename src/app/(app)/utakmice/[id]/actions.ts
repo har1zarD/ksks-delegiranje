@@ -256,27 +256,23 @@ export async function setMatchPaid(matchId: string, paid: boolean): Promise<{ er
 }
 
 /**
- * Završena utakmica bez unosa rezultata: sudija, pomoćni sudija, komesar ili savez označi da je odigrana (ulazi u obračun naknada).
- * Delegirani je vraćaju na zakazanu samo dok nema rezultata; utakmicu u toku završava komesar. Savez može sve.
+ * Zaključi utakmicu: sudija, pomoćni sudija, komesar ili savez označi da je odigrana (status završena, ulazi u obračun naknada), bez unosa rezultata.
+ * Utakmicu u toku završava komesar po četvrtinama; savez može sve. Natrag na zakazanu vraća savez kroz "Uredi utakmicu".
  */
-export async function setMatchDone(matchId: string, done: boolean): Promise<{ error?: string }> {
+export async function lockMatch(matchId: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   const role = await matchRoleOf(user, matchId);
-  if (!role) return { error: "Utakmicu označavaju delegirani na njoj ili savez." };
+  if (!role) return { error: "Utakmicu zaključuju delegirani na njoj ili savez." };
 
   const db = createAdminClient();
-  const { data: match } = await db.from("matches").select("status, home_score").eq("id", matchId).maybeSingle();
+  const { data: match } = await db.from("matches").select("status").eq("id", matchId).maybeSingle();
   if (!match) return { error: "Utakmica nije pronađena." };
+  if (match.status === "finished") return {};
   if (match.status === "cancelled" || match.status === "postponed") return { error: "Utakmica je otkazana ili odgođena." };
-  if (role !== "admin") {
-    if (done && match.status === "live") return { error: "Utakmicu u toku završava komesar." };
-    if (!done && match.home_score != null) return { error: "Rezultat je upisan. Za izmjenu se javi savezu." };
-  }
+  if (role !== "admin" && match.status === "live") return { error: "Utakmicu u toku završava komesar." };
 
-  const status = done ? "finished" : "scheduled";
-  if (match.status === status) return {};
-  const { error } = await db.from("matches").update({ status }).eq("id", matchId);
-  if (error) return { error: "Promjena nije sačuvana. Pokušaj ponovo." };
+  const { error } = await db.from("matches").update({ status: "finished" }).eq("id", matchId);
+  if (error) return { error: "Utakmica nije zaključena. Pokušaj ponovo." };
 
   invalidate({ table: "matches", match: matchId });
   return {};

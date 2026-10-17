@@ -2,7 +2,7 @@ import { TeamName } from "@/components/team-name";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Trash2, Users } from "lucide-react";
+import { ChevronDown, ChevronLeft, FileImage, FileText, Lock, MapPin, Printer, Trash2, Users } from "lucide-react";
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
 import { feeFor, formatKM, matchCost, round2 } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
@@ -30,7 +30,7 @@ import { AssignForm } from "./assign-form";
 import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
 import { MarkAllPaid, PaidToggle } from "@/components/paid-toggle";
-import { MatchDoneToggle } from "@/components/match-done-toggle";
+import { LockMatchButton } from "@/components/lock-match-button";
 import { listScoresheets } from "@/lib/scoresheets";
 
 export const metadata = { title: "Delegiranje — KSKS" };
@@ -261,10 +261,18 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           <Panel className="flex flex-col gap-4 py-4 sm:py-5">
             <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} crew={active.length} />
             <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
-            {match.status !== "cancelled" && match.status !== "postponed" && (
-              <div className="border-t border-line pt-3">
-                <MatchDoneToggle key={match.status} matchId={match.id} done={match.status === "finished"} />
-              </div>
+            {match.status === "finished" ? (
+              <p className="flex items-center gap-1.5 border-t border-line pt-3 text-[13px] font-medium text-mint">
+                <Lock className="size-4" aria-hidden="true" />
+                Utakmica je zaključena
+              </p>
+            ) : (
+              match.status !== "cancelled" &&
+              match.status !== "postponed" && (
+                <div className="border-t border-line pt-3">
+                  <LockMatchButton matchId={match.id} />
+                </div>
+              )
             )}
           </Panel>
 
