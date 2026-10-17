@@ -4,7 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { Check, RotateCcw } from "lucide-react";
 import { buttonClass, cx } from "@/components/ui";
 import { formatKM } from "@/lib/finance";
-import { setPaid } from "../actions";
+import { setPaid } from "@/app/(app)/admin/naknade/actions";
 
 /** Oznaka isplate: zeleno Isplaćeno / crveno Nije isplaćeno. Samo za prikaz kad nema onToggle (službena lica). */
 export function PaidBadge({ paid, className }: { paid: boolean; className?: string }) {

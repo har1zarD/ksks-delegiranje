@@ -16,7 +16,7 @@ import {
 } from "@/components/skeleton";
 import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
 import { CARD, cx, Empty, PageHeader } from "@/components/ui";
-import { MarkAllPaid } from "../../_components/paid-toggle";
+import { MarkAllPaid } from "@/components/paid-toggle";
 import { describeFilter, PayrollFilters, PayrollItems, PayrollSummary, PeriodPicker } from "../../_components/payroll-view";
 
 export const metadata = { title: "Naknade osobe — KSKS" };

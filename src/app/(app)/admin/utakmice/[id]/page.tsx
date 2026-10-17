@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronDown, ChevronLeft, FileImage, FileText, MapPin, Printer, Trash2, Users } from "lucide-react";
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
-import { formatKM, matchCost } from "@/lib/finance";
+import { feeFor, formatKM, matchCost, round2 } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
 import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
@@ -29,6 +29,8 @@ import { AddPosition } from "./add-position";
 import { AssignForm } from "./assign-form";
 import { ReplaceButton } from "./replace-dialog";
 import { PublishMatch } from "@/components/publish";
+import { MarkAllPaid, PaidToggle } from "@/components/paid-toggle";
+import { MatchDoneToggle } from "@/components/match-done-toggle";
 import { listScoresheets } from "@/lib/scoresheets";
 
 export const metadata = { title: "Delegiranje — KSKS" };
@@ -77,6 +79,12 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   // Brojač: popunjena je samo pozicija čija je nominacija prihvaćena (čeka odgovor se ne broji)
   const filled = positions.filter((p) => active.some((a) => a.position === p && a.status === "accepted")).length;
   const cost = matchCost(match.rules, crew);
+  // Naknada osobe: ručna cijena delegiranja ili pravilo takmičenja (null = nije određena); isplata po osobi kao u Naknadama
+  const accepted = active.filter((a) => a.status === "accepted");
+  const amountOf = (a: (typeof assignments)[number]) => (a.fee_km != null ? Number(a.fee_km) : feeFor(a.position, crew.refereeCount, match.rules, crew.digital));
+  const sumOf = (list: typeof accepted) => round2(list.reduce((s, a) => s + (amountOf(a) ?? 0), 0));
+  const unpaid = accepted.filter((a) => !a.paid_at);
+  const paid = accepted.filter((a) => a.paid_at);
   // Prazna pozicija se može ukloniti sa utakmice ako su prazne i sve pozicije koje bi s njom nestale (zadnja sudija, zadnja statistika)
   const removable = (position: Position) => {
     const kept = crewPositions(crewWithout(crew, position));
@@ -161,6 +169,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
             {group.positions.map((position) => {
               const current = active.find((a) => a.position === position);
               const declined = assignments.find((a) => a.position === position && a.status === "declined");
+              const amount = current?.status === "accepted" ? amountOf(current) : null;
               return (
                 <li key={position} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
                   <div className="text-[13px] font-semibold text-fg-muted sm:w-32 sm:shrink-0">{positionName(position, crew.digital)}</div>
@@ -169,13 +178,21 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                       {/* Na mobitelu ime u svom redu, dugmad ispod */}
                       <div className="min-w-0 flex-1 basis-full sm:basis-0">
                         <div className="truncate text-[17px] font-semibold">{current.profile!.full_name}</div>
-                        <div className="mt-0.5">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                           {current.status === "accepted" ? (
                             <Status tone="mint">Prihvaćeno</Status>
                           ) : current.notified_at ? (
                             <Status tone="gold">Čeka odgovor</Status>
                           ) : (
                             <Status tone="muted">Nije aktivirano</Status>
+                          )}
+                          {current.status === "accepted" && (
+                            <>
+                              <span className={cx("text-[13px] font-semibold", amount == null ? "text-orange" : "scoreboard")}>
+                                {amount == null ? "bez cijene" : formatKM(amount)}
+                              </span>
+                              <PaidToggle id={current.id} paid={Boolean(current.paid_at)} />
+                            </>
                           )}
                         </div>
                       </div>
@@ -244,6 +261,11 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
           <Panel className="flex flex-col gap-4 py-4 sm:py-5">
             <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} crew={active.length} />
             <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
+            {match.status !== "cancelled" && match.status !== "postponed" && (
+              <div className="border-t border-line pt-3">
+                <MatchDoneToggle key={match.status} matchId={match.id} done={match.status === "finished"} />
+              </div>
+            )}
           </Panel>
 
           <Panel className="py-4 sm:py-5">
@@ -272,6 +294,20 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                 </li>
               ))}
             </ul>
+            {accepted.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+                <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <span className="font-semibold text-fg-muted">Isplata</span>
+                  <span className={cx("font-semibold", unpaid.length === 0 ? "text-mint" : "text-orange")}>
+                    {unpaid.length === 0 ? "Sve isplaćeno" : `Isplaćeno ${paid.length}/${accepted.length}`}
+                  </span>
+                </div>
+                <div className="flex gap-2 empty:hidden">
+                  <MarkAllPaid ids={unpaid.map((a) => a.id)} amount={sumOf(unpaid)} label="Isplati" className="flex-1" />
+                  <MarkAllPaid ids={paid.map((a) => a.id)} amount={sumOf(paid)} label="Poništi isplatu" paid={false} className="flex-1" />
+                </div>
+              </div>
+            )}
           </Panel>
 
           {sheets.length > 0 && (

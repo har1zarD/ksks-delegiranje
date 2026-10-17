@@ -13,7 +13,7 @@ import {
 import { formatDayMonth, matchNo, POSITION_LABEL } from "@/lib/format";
 import { cx, inputClass } from "@/components/ui";
 import { FilterForm, FilterLink, FilterSegment, FilterSegments } from "@/components/filter-nav";
-import { MarkAllPaid, PaidBadge, PaidToggle } from "./paid-toggle";
+import { MarkAllPaid, PaidBadge, PaidToggle } from "@/components/paid-toggle";
 import { PayrollMatchCard } from "./match-card";
 
 type Params = Record<string, string | undefined>;

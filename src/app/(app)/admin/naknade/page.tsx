@@ -16,7 +16,7 @@ import {
 } from "@/components/skeleton";
 import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
 import { buttonClass, CARD, cx, Empty, PageHeader, ROWS, SectionTitle } from "@/components/ui";
-import { MarkAllPaid } from "./_components/paid-toggle";
+import { MarkAllPaid } from "@/components/paid-toggle";
 import { describeFilter, PayrollFilters, PayrollMatches, PayrollSummary, PayrollTable, PayrollViews, PeriodPicker } from "./_components/payroll-view";
 import { RulesForm } from "./rules-form";
 

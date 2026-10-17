@@ -13,6 +13,7 @@ import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
 import { FinishButton } from "./finish-button";
 import { MatchPaidToggle } from "./match-paid-toggle";
+import { MatchDoneToggle } from "@/components/match-done-toggle";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 
@@ -57,7 +58,10 @@ async function Match({ params }: { params: Params }) {
   // Pomoćni sudija smije ispraviti ili poništiti svoj rezultat još 24 sata nakon upisa
   const tableScores = isTable && !isAdmin && !match.has_commissioner;
   const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
-  const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.status !== "finished" || undoUntil !== null));
+  // Sto upisuje rezultat dok ga nema (i kad je sudija već označio utakmicu završenom) ili dok traje rok za ispravku
+  const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.home_score == null || undoUntil !== null));
+  // Završena bez unosa rezultata: sudije i sto na svojoj stranici, savez uvijek; utakmicu u toku završava komesar
+  const canMarkDone = open && (isAdmin || ((isReferee || isTable) && match.status !== "live"));
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
@@ -115,6 +119,11 @@ async function Match({ params }: { params: Params }) {
               )}
             </div>
           )}
+          {canMarkDone && (
+            <div className="mt-5 border-t border-line pt-5">
+              <MatchDoneToggle key={match.status} matchId={match.id} done={match.status === "finished"} />
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-line py-3 text-[14px] text-fg-muted">
           <span className="inline-flex items-center gap-1.5">
@@ -155,7 +164,7 @@ async function Match({ params }: { params: Params }) {
                 />
               </div>
             )}
-            {tableScores && match.status === "finished" && !undoUntil && (
+            {tableScores && open && !canFinal && (
               <p className="text-[14px] text-fg-muted">Rezultat je upisan i utakmica je završena. Za ispravku se javi savezu.</p>
             )}
             <div className={cx(canFinal && "border-t border-line pt-5")}>

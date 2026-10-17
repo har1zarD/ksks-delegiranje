@@ -28,7 +28,7 @@ export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_
 export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
 
 export const DELEGATION_ASSIGNMENT_SELECT =
-  "id, position, status, decline_reason, notified_at, responded_at, profile:profiles!assignments_profile_id_fkey ( id, full_name, email )" as const;
+  "id, position, status, decline_reason, notified_at, responded_at, paid_at, fee_km, profile:profiles!assignments_profile_id_fkey ( id, full_name, email )" as const;
 
 /** Delegiranja s utakmicom; filtrira se po match.starts_at (zato !inner) */
 export const ASSIGNMENT_WITH_TIME_SELECT = "profile_id, match:matches!assignments_match_id_fkey!inner ( id, starts_at )" as const;

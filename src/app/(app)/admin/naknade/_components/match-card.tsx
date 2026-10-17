@@ -8,7 +8,7 @@ import { Button, CARD, cx, inputClass } from "@/components/ui";
 import { formatKM, type PayrollMatch } from "@/lib/finance";
 import { matchNo, POSITION_LABEL } from "@/lib/format";
 import { setFees } from "../actions";
-import { MarkAllPaid, PaidToggle } from "./paid-toggle";
+import { MarkAllPaid, PaidToggle } from "@/components/paid-toggle";
 
 /** "50,00" za polje (prazno kad nema ručne cijene) */
 function toField(v: number | null) {
