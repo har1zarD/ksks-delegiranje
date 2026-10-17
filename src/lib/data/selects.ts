@@ -25,10 +25,11 @@ const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points 
 
 export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( id, position, status, notified_at, paid_at, profile:profiles!assignments_profile_id_fkey ( id, full_name ) )` as const;
 
-export const DELEGATION_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes` as const;
+export const DELEGATION_MATCH_SELECT =
+  `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes, finished_at, finisher:profiles!matches_finished_by_fkey ( id, full_name, role )` as const;
 
 export const DELEGATION_ASSIGNMENT_SELECT =
-  "id, position, status, decline_reason, notified_at, responded_at, paid_at, fee_km, profile:profiles!assignments_profile_id_fkey ( id, full_name, email )" as const;
+  "id, position, status, decline_reason, notified_at, responded_at, paid_at, fee_km, profile:profiles!assignments_profile_id_fkey ( id, full_name, email ), payer:profiles!assignments_paid_by_fkey ( id, full_name, role )" as const;
 
 /** Delegiranja s utakmicom; filtrira se po match.starts_at (zato !inner) */
 export const ASSIGNMENT_WITH_TIME_SELECT = "profile_id, match:matches!assignments_match_id_fkey!inner ( id, starts_at )" as const;

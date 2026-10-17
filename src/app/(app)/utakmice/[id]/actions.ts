@@ -177,7 +177,7 @@ export async function saveFinalScore(prev: FinalScoreState, formData: FormData):
   const enteredAt = role === "table" ? (correction ? match.score_entered_at : new Date().toISOString()) : null;
   const { error } = await db
     .from("matches")
-    .update({ home_score: h, away_score: a, status: "finished", score_entered_at: enteredAt })
+    .update({ home_score: h, away_score: a, status: "finished", score_entered_at: enteredAt, finished_by: user.id })
     .eq("id", matchId);
   if (error) return { error: "Rezultat nije sačuvan. Pokušaj ponovo." };
 
@@ -237,14 +237,22 @@ export async function deleteScoresheet(matchId: string, path: string): Promise<{
 
 /**
  * Isplata utakmice: prvi sudija utakmice (ili savez) označi da je klub isplatio službena lica (korisnik, 2026-10-17).
- * Isto što i isplata u Naknadama: paid_at na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije isplaćeno.
+ * Utakmica bez sudija (npr. seniori, samo zapisnički sto): bilo ko od prihvaćenih na njoj.
+ * Isto što i isplata u Naknadama: paid_at/paid_by na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije isplaćeno.
  */
 export async function setMatchPaid(matchId: string, paid: boolean): Promise<{ error?: string }> {
   const user = await getCurrentUser();
-  const allowed = user.role === "admin" || (await matchPositionsOf(user, matchId)).includes("referee_1");
-  if (!allowed) return { error: "Isplatu označava prvi sudija utakmice ili savez." };
+  const db = createAdminClient();
+  if (user.role !== "admin") {
+    const [positions, { data: match }] = await Promise.all([
+      matchPositionsOf(user, matchId),
+      db.from("matches").select("has_referees").eq("id", matchId).maybeSingle(),
+    ]);
+    const allowed = positions.includes("referee_1") || (positions.length > 0 && match?.has_referees === false);
+    if (!allowed) return { error: "Isplatu označava prvi sudija utakmice (bez sudija: pomoćne sudije) ili savez." };
+  }
 
-  const { error } = await createAdminClient()
+  const { error } = await db
     .from("assignments")
     .update(paid ? { paid_at: new Date().toISOString(), paid_by: user.id } : { paid_at: null, paid_by: null })
     .eq("match_id", matchId)
@@ -271,7 +279,8 @@ export async function lockMatch(matchId: string): Promise<{ error?: string }> {
   if (match.status === "cancelled" || match.status === "postponed") return { error: "Utakmica je otkazana ili odgođena." };
   if (role !== "admin" && match.status === "live") return { error: "Utakmicu u toku završava komesar." };
 
-  const { error } = await db.from("matches").update({ status: "finished" }).eq("id", matchId);
+  // finished_by: okidač pamti ko je zaključio (servisni klijent nema auth.uid())
+  const { error } = await db.from("matches").update({ status: "finished", finished_by: user.id }).eq("id", matchId);
   if (error) return { error: "Utakmica nije zaključena. Pokušaj ponovo." };
 
   invalidate({ table: "matches", match: matchId });

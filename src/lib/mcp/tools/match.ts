@@ -110,7 +110,7 @@ export const setPeriodScore = defineTool({
         if (profile.role !== "admin" && !commissionerCanSetStatus(next, "finished")) {
           throw new ToolError("Utakmica se ne može završiti u ovom statusu.");
         }
-        must(await db.from("matches").update({ status: "finished" }).eq("id", utakmica_id).select("id"));
+        must(await db.from("matches").update({ status: "finished", finished_by: profile.id }).eq("id", utakmica_id).select("id"));
       }
     } finally {
       invalidateFromRoute({ table: "match_periods", match: utakmica_id });

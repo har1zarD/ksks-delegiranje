@@ -65,7 +65,8 @@ async function Match({ params }: { params: Params }) {
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
-  // Isplata: prvi sudija (ili savez) označava; utakmica je isplaćena kad su sva prihvaćena delegiranja isplaćena
+  // Isplata: prvi sudija (ili savez) označava; bez sudija (samo sto) bilo ko s utakmice. Isplaćena = sva prihvaćena delegiranja isplaćena
+  const canPay = isAdmin || isFirstReferee || (!match.has_referees && (isTable || isCommissioner));
   const accepted = crew.filter((c) => c.status === "accepted");
   const allPaid = accepted.length > 0 && accepted.every((c) => c.paid_at);
   const homeName = match.home?.name ?? "Domaćin";
@@ -177,7 +178,7 @@ async function Match({ params }: { params: Params }) {
         </section>
       )}
 
-      {(isFirstReferee || isAdmin) && accepted.length > 0 && (
+      {canPay && accepted.length > 0 && (
         <section>
           <SectionTitle icon={<Wallet />}>Isplata</SectionTitle>
           <div className="rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">

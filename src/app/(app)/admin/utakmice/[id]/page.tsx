@@ -6,7 +6,7 @@ import { ChevronDown, ChevronLeft, FileImage, FileText, Lock, MapPin, Printer, T
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
 import { feeFor, formatKM, matchCost } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
-import { isoToSarajevo, matchKindLabel, matchNo, MATCH_STATUS_LABEL, POSITION_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
+import { formatDayMonth, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, matchKindLabel, matchNo, POSITION_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BoxScore, DateTile, KindTag } from "@/components/match-line";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -85,6 +85,14 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   const amountOf = (a: (typeof assignments)[number]) => (a.fee_km != null ? Number(a.fee_km) : feeFor(a.position, crew.refereeCount, match.rules, crew.digital));
   const unpaid = accepted.filter((a) => !a.paid_at);
   const paid = accepted.filter((a) => a.paid_at);
+  // Zadnja isplata (ko je označio): admin po osobi ili prvi sudija / sto cijelu utakmicu
+  const lastPaid = paid.reduce<(typeof paid)[number] | null>((best, a) => (!best || new Date(a.paid_at!) > new Date(best.paid_at!) ? a : best), null);
+  /** "17. 10. 18:40 · Mak Topčić (glavno vrijeme)": službeno lice s utakmice, savez ili automatski (cron) */
+  const stamp = (at: string, actor: { id: string; full_name: string; role: string } | null) => {
+    const pos = actor && accepted.find((a) => a.profile?.id === actor.id)?.position;
+    const who = !actor ? "automatski" : pos ? `${actor.full_name} (${POSITION_LABEL[pos].toLowerCase()})` : actor.role === "admin" ? `${actor.full_name} (savez)` : actor.full_name;
+    return `${formatDayMonth(at)} ${formatTime(at)} · ${who}`;
+  };
   // Prazna pozicija se može ukloniti sa utakmice ako su prazne i sve pozicije koje bi s njom nestale (zadnja sudija, zadnja statistika)
   const removable = (position: Position) => {
     const kept = crewPositions(crewWithout(crew, position));
@@ -262,10 +270,13 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
             <PublishMatch matchId={match.id} publishedAt={match.published_at} unpublished={unsentIn(null)} crew={active.length} />
             <p className="border-t border-line pt-3 text-[13px] text-fg-muted">{crewSummary(crew)}</p>
             {match.status === "finished" ? (
-              <p className="flex items-center gap-1.5 border-t border-line pt-3 text-[13px] font-medium text-mint">
-                <Lock className="size-4" aria-hidden="true" />
-                Utakmica je zaključena
-              </p>
+              <div className="border-t border-line pt-3">
+                <p className="flex items-center gap-1.5 text-[13px] font-medium text-mint">
+                  <Lock className="size-4" aria-hidden="true" />
+                  Utakmica je zaključena
+                </p>
+                {match.finished_at && <p className="mt-1 pl-[22px] text-[12px] text-fg-faint">{stamp(match.finished_at, match.finisher)}</p>}
+              </div>
             ) : (
               match.status !== "cancelled" &&
               match.status !== "postponed" && (
@@ -310,6 +321,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                 </div>
                 {/* Cijela utakmica odjednom (prvi sudija ima isto dugme); pojedinačno po osobi gore u redovima */}
                 <MatchPaidButton matchId={match.id} paid={unpaid.length === 0} />
+                {unpaid.length === 0 && lastPaid?.paid_at && <p className="text-[12px] text-fg-faint">{stamp(lastPaid.paid_at, lastPaid.payer)}</p>}
               </div>
             )}
           </Panel>
