@@ -301,7 +301,8 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
   }
 
   for (const p of people.values()) {
-    p.items.sort((x, y) => x.startsAt.localeCompare(y.startsAt) || POSITION_ORDER.indexOf(x.position) - POSITION_ORDER.indexOf(y.position));
+    // Najnovije utakmice prvo (korisnik, 2026-10-17); unutar utakmice po poziciji
+    p.items.sort((x, y) => y.startsAt.localeCompare(x.startsAt) || POSITION_ORDER.indexOf(x.position) - POSITION_ORDER.indexOf(y.position));
   }
   return [...people.values()].sort((a, b) => a.name.localeCompare(b.name, "bs"));
 }
@@ -352,7 +353,8 @@ export function payrollByMatch(people: PayrollPerson[]): PayrollMatch[] {
     }
   }
   for (const m of matches.values()) m.items.sort((x, y) => POSITION_ORDER.indexOf(x.position) - POSITION_ORDER.indexOf(y.position));
-  return [...matches.values()].sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.number - b.number);
+  // Najnovije utakmice prvo (korisnik, 2026-10-17)
+  return [...matches.values()].sort((a, b) => b.startsAt.localeCompare(a.startsAt) || b.number - a.number);
 }
 
 /** Zbir preko svih osoba */
