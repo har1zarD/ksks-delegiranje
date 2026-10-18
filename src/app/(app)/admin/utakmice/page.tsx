@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus, CalendarDays, ChevronLeft, ChevronRight, FileImage } from "lucide-react";
-import { getAdminMatches, getCompetitions, getHalls } from "@/lib/data/admin";
+import { getAdminMatches, getCompetitions, getHalls, type MatchPayment } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } from "@/components/filter-nav";
@@ -140,6 +140,8 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                     const editable = !past && !m.published_at && (m.status === "scheduled" || m.status === "postponed");
                     const sheet = withSheets.has(m.id) && m.status !== "scheduled";
                     const statusMark = m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0);
+                    // Isplata samo za utakmice koje su se igrale (odgođena/otkazana se ne plaća)
+                    const payMark = m.status !== "postponed" && m.status !== "cancelled" && m.payment.state !== "none";
                     // Delegiranje po poziciji bez otvaranja utakmice (samo zakazane)
                     const quick = editable && m.status === "scheduled";
                     const label = `${m.home?.name ?? "—"} – ${m.away?.name ?? "—"}`;
@@ -185,12 +187,13 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                                 }
                                 aside={
                                   past ? (
-                                    // Ko je radio utakmicu (kao na Pregledu), iznad zapisnik i stanje
+                                    // Ko je radio utakmicu (kao na Pregledu), iznad zapisnik, stanje i isplata
                                     <div className="flex flex-col items-start gap-1.5 sm:items-end">
-                                      {(sheet || statusMark) && (
-                                        <div className="flex items-center gap-3">
+                                      {(sheet || statusMark || payMark) && (
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                                           {sheet && <SheetMark />}
                                           {statusMark && <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>}
+                                          {payMark && <PaymentMark payment={m.payment} />}
                                         </div>
                                       )}
                                       <StaffingCrew staffing={m.staffing} tabbed={false} />
@@ -251,6 +254,14 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
 
   // Predstojeće: aktiviranje (objava nominacije)
   return past ? content : <PublishSelection incomplete={incomplete}>{content}</PublishSelection>;
+}
+
+/** Isplata utakmice: sva prihvaćena delegiranja isplaćena, dio ili ništa (bez delegiranih nema oznake) */
+function PaymentMark({ payment }: { payment: MatchPayment }) {
+  if (payment.state === "none") return null;
+  if (payment.state === "paid") return <Status tone="mint">Isplaćena</Status>;
+  if (payment.state === "partial") return <Status tone="gold">{`Isplaćeno ${payment.paid}/${payment.total}`}</Status>;
+  return <Status tone="orange">Nije isplaćena</Status>;
 }
 
 /** Telefon, gore desno, sitno: datum, ispod vrijeme, ispod dvorana */
