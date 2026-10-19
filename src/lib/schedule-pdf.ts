@@ -231,7 +231,7 @@ function drawMatch(page: PDFPage, f: Fonts, m: ScheduleMatch, opts: ScheduleOpti
   page.drawRectangle({ x: x2, y: y - teamH, width: x3 - x2, height: teamH, color: C.panel2 });
 
   // Broj utakmice
-  const no = String(m.number).padStart(2, "0");
+  const no = m.number == null ? "" : String(m.number).padStart(2, "0");
   const midY = bottom + h / 2;
   centeredIn(page, "UTAKMICA", f.bold, 7, x0, x1, midY + 6, C.faint);
   centeredIn(page, no, f.bold, 18, x0, x1, midY - 13, C.fg);
