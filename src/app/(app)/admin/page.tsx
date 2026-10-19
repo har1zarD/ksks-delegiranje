@@ -2,9 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
-import { getActivatedMatches, getAdminMatches } from "@/lib/data/admin";
+import { getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
-import { dayKey, formatDayHeading, formatDayMonth, formatTime, positionName } from "@/lib/format";
+import { dayKey, formatDayMonth, formatGroupHeading, formatTime, positionName, weekendKey } from "@/lib/format";
 import { PingPending, type PingItem } from "./ping-pending";
 import { LiveRefresh } from "@/components/live-refresh";
 import { CrewLine } from "@/components/crew-line";
@@ -16,7 +16,7 @@ import { ButtonLink, cx, Empty, MiniStat, Rows, SectionTitle, Status } from "@/c
 
 export const metadata = { title: "Pregled — KSKS" };
 
-const DAYS_AHEAD = 14;
+const DAYS_AHEAD = OVERVIEW_DAYS;
 
 export default function AdminHome() {
   return (
@@ -41,21 +41,13 @@ export default function AdminHome() {
 }
 
 async function Overview() {
-  const [soon, upcoming, activatedList] = await Promise.all([
-    getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }),
-    getAdminMatches({ when: "upcoming" }),
-    getActivatedMatches(),
-  ]);
-  const live = upcoming.filter((m) => m.status === "live");
+  const [soon, activatedList] = await Promise.all([getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }), getActivatedMatches()]);
+  const live = soon.filter((m) => m.status === "live");
   const active = soon.filter((m) => m.status === "scheduled" || m.status === "live");
   const open = active.filter((m) => m.staffing.missing.length > 0);
 
-  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po danu kao u rasporedu; neaktivirane su u Utakmicama
-  const activated = new Map<string, typeof activatedList>();
-  for (const m of activatedList) {
-    const day = dayKey(m.starts_at);
-    activated.set(day, [...(activated.get(day) ?? []), m]);
-  }
+  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po vikendu; neaktivirane su u Utakmicama
+  const activated = byWeekend(activatedList);
   // Potvrđene nominacije: prihvaćene od svih poslanih (prihvaćeno + čeka odgovor) na aktiviranim utakmicama.
   // Ista osoba na dvije utakmice su dvije nominacije; neposlana delegiranja (izmjene nakon aktiviranja) ne ulaze dok se ne objave.
   const people = activatedList.flatMap((m) => m.staffing.people);
@@ -98,12 +90,9 @@ async function Overview() {
             <span className="whitespace-nowrap text-[15px] sm:text-[17px]">Aktivirane utakmice</span>
           </SectionTitle>
           <div className="flex flex-col gap-6">
-            {[...activated].map(([day, list]) => (
-              <div key={day}>
-                <h3 className="flex items-baseline justify-between gap-3 pb-3">
-                  <span className="font-display text-[17px] font-semibold tracking-[-0.02em]">{formatDayHeading(day)}</span>
-                  <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(list.length)}</span>
-                </h3>
+            {activated.map(([key, list]) => (
+              <div key={key}>
+                <GroupHeading groupKey={key} count={list.length} />
                 <Rows>
                   {list.map((m) => (
                     <li key={m.id} className="relative flex items-center pt-5 transition-colors hover:bg-panel-2 sm:pt-0">
@@ -151,27 +140,34 @@ async function Overview() {
             {active.length > 0 ? `Sve utakmice u narednih ${DAYS_AHEAD} dana imaju popunjene pozicije.` : `Nema zakazanih utakmica u narednih ${DAYS_AHEAD} dana.`}
           </Empty>
         ) : (
-          <Rows>
-            {open.map((m) => (
-              <li key={m.id}>
-                <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                  <MatchLine
-                    match={m}
-                    meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />}
-                  />
-                  <ChevronRight className="size-5 shrink-0 text-fg-faint" />
-                </Link>
-              </li>
+          <div className="flex flex-col gap-6">
+            {byWeekend(open).map(([key, list]) => (
+              <div key={key}>
+                <GroupHeading groupKey={key} count={list.length} />
+                <Rows>
+                  {list.map((m) => (
+                    <li key={m.id}>
+                      <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
+                        <MatchLine
+                          match={m}
+                          meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />}
+                        />
+                        <ChevronRight className="size-5 shrink-0 text-fg-faint" />
+                      </Link>
+                    </li>
+                  ))}
+                </Rows>
+              </div>
             ))}
-          </Rows>
+          </div>
         )}
       </section>
 
-      {open.length === 0 && upcoming.length > 0 && (
+      {open.length === 0 && active.length > 0 && (
         <section>
           <SectionTitle icon={<CalendarDays />}>Sljedeće utakmice</SectionTitle>
           <Rows>
-            {upcoming.slice(0, 5).map((m) => (
+            {active.slice(0, 5).map((m) => (
               <li key={m.id}>
                 <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
                   <MatchLine match={m} meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />} aside={<StaffingBadge staffing={m.staffing} />} />
@@ -182,6 +178,26 @@ async function Overview() {
         </section>
       )}
     </div>
+  );
+}
+
+/** Utakmice po grupi rasporeda: vikend (subota i nedjelja) zajedno, radni dan posebno; redom kako su došle */
+function byWeekend<T extends { starts_at: string }>(list: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const m of list) {
+    const key = weekendKey(dayKey(m.starts_at));
+    groups.set(key, [...(groups.get(key) ?? []), m]);
+  }
+  return [...groups];
+}
+
+/** "Vikend, 24. – 25. oktobar" (ili dan) i broj utakmica desno */
+function GroupHeading({ groupKey, count }: { groupKey: string; count: number }) {
+  return (
+    <h3 className="flex items-baseline justify-between gap-3 pb-3">
+      <span className="font-display text-[17px] font-semibold tracking-[-0.02em]">{formatGroupHeading(groupKey)}</span>
+      <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(count)}</span>
+    </h3>
   );
 }
 

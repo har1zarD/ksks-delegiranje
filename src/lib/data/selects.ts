@@ -33,3 +33,14 @@ export const DELEGATION_ASSIGNMENT_SELECT =
 
 /** Delegiranja s utakmicom; filtrira se po match.starts_at (zato !inner) */
 export const ASSIGNMENT_WITH_TIME_SELECT = "profile_id, match:matches!assignments_match_id_fkey!inner ( id, starts_at )" as const;
+
+/** Satnice kola za klubove: takmičenje s ekipama (slobodna ekipa = ekipa bez utakmice u kolu) */
+export const SCHEDULE_COMPETITION_SELECT =
+  "id, name, short_name, category, sort, season:seasons!competitions_season_id_fkey!inner ( name, is_current ), teams ( id, name )" as const;
+
+/** Satnice kola: utakmica s terminom, dvoranom i delegiranim sudijama i komesarom */
+export const SCHEDULE_MATCH_SELECT = `id, number, round, starts_at, status, competition_id, home_team_id, away_team_id, ${CREW_COLUMNS},
+  home:teams!matches_home_team_id_fkey ( name ),
+  away:teams!matches_away_team_id_fkey ( name ),
+  hall:halls!matches_hall_id_fkey ( name ),
+  assignments ( position, status, profile:profiles!assignments_profile_id_fkey ( full_name ) )` as const;

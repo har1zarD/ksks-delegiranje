@@ -11,7 +11,10 @@ import {
   COMPETITION_SELECT,
   DELEGATION_ASSIGNMENT_SELECT,
   DELEGATION_MATCH_SELECT,
+  SCHEDULE_COMPETITION_SELECT,
+  SCHEDULE_MATCH_SELECT,
 } from "./selects";
+import { BULLETIN_CATEGORIES } from "./report";
 
 // Svaka izvezena funkcija sama provjerava ulogu (DAL), ne oslanja se na layout.
 // Keširani čitači (ispod) koriste servisni klijent, pa provjera uloge mora ostati u izvezenoj funkciji.
@@ -173,13 +176,23 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
     }));
 }
 
+/** Pregled prikazuje utakmice narednih toliko dana; aktivirane kasnije ostaju u Utakmicama */
+export const OVERVIEW_DAYS = 7;
+
+/** Kraj prozora Pregleda (ISO): utakmica počinje prije njega */
+export function overviewEnd(now = Date.now()) {
+  return new Date(now + OVERVIEW_DAYS * 86_400_000).toISOString();
+}
+
 /**
  * Aktivirane utakmice bez rezultata (Pregled): nominacija je poslana, a rezultat još nije upisan.
  * Ostaju i kad je vrijeme početka prošlo; upisan rezultat ih završava (status finished), poništen vraća.
+ * Samo one koje počinju u narednih OVERVIEW_DAYS dana (i prošle bez rezultata).
  */
 export async function getActivatedMatches() {
   await requireRole("admin");
-  return (await activatedPool()).map(({ assignments, ...m }) => ({
+  const end = overviewEnd();
+  return (await activatedPool()).filter((m) => m.starts_at < end).map(({ assignments, ...m }) => ({
     ...m,
     crew: crewOf(m),
     staffing: staffing(crewOf(m), assignments),
@@ -360,3 +373,79 @@ export async function getAllAbsences() {
   await requireRole("admin");
   return (await absenceRows()).filter((a) => a.profile);
 }
+
+// ───────── Satnice kola (PDF za klubove) ─────────
+
+/** Koliko dana unazad satnice nude kola (ponovno štampanje nedavnog kola) */
+const SCHEDULE_PAST_DAYS = 30;
+
+/** Utakmice tekuće sezone s kolom, od `from` nadalje; `from` je dan, pa se zapis dijeli cijeli dan */
+async function scheduleRows(from: string) {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.halls, TAG.assignments, TAG.profiles);
+  const db = createAdminClient();
+  const competitions = rows(await db.from("competitions").select(SCHEDULE_COMPETITION_SELECT).eq("season.is_current", true).order("sort").order("name"));
+  if (competitions.length === 0) return { competitions, matches: [] };
+  const matches = rows(
+    await db
+      .from("matches")
+      .select(SCHEDULE_MATCH_SELECT)
+      .in("competition_id", competitions.map((c) => c.id))
+      .not("round", "is", null)
+      .gte("starts_at", sarajevoToISO(from, "00:00"))
+      .order("starts_at")
+      .order("number"),
+  );
+  return { competitions, matches };
+}
+
+/** Omladinska kategorija (naslov "PIONIRI – 1. KOLO", zaglavlje "Omladinska liga Kantona Sarajevo") */
+const youthLabel = (category: string) => BULLETIN_CATEGORIES.find((c) => c.key === category)?.label ?? null;
+
+/**
+ * Satnice kola: takmičenja (s ekipama) i njihove utakmice po kolu, s terminom, dvoranom i delegiranim
+ * sudijama i komesarom (zapisnički sto klubovima ne treba). `suggested` = takmičenje najbliže utakmice koja tek dolazi.
+ */
+export async function getRoundSchedules() {
+  await requireRole("admin");
+  const data = await scheduleRows(addDays(todayISO(), -SCHEDULE_PAST_DAYS));
+  const matches = data.matches.map((m) => ({
+    id: m.id,
+    number: m.number,
+    round: m.round!,
+    startsAt: m.starts_at,
+    status: m.status,
+    competitionId: m.competition_id,
+    homeId: m.home_team_id,
+    awayId: m.away_team_id,
+    home: m.home?.name ?? "—",
+    away: m.away?.name ?? "—",
+    hall: m.hall?.name ?? null,
+    officials: crewSlots(crewOf(m), m.assignments)
+      .filter((s) => nominationGroupOf(s.position) === "officials")
+      .map((s) => ({ position: s.position, name: s.status === "pending" || s.status === "accepted" ? s.name : null })),
+  }));
+  const nowIso = new Date().toISOString();
+  /** Kolo najbliže zakazane utakmice (inače zadnje): takmičenje se otvara na njemu */
+  const nextRound = (list: typeof matches) => (list.find((m) => m.startsAt >= nowIso && m.status === "scheduled") ?? list.at(-1))?.round ?? null;
+  const competitions = data.competitions
+    .filter((c) => matches.some((m) => m.competitionId === c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      shortName: c.short_name ?? c.name,
+      /** Naziv u naslovu satnice: kategorija omladinske lige, inače kratki naziv */
+      label: youthLabel(c.category) ?? c.short_name ?? c.name,
+      youth: youthLabel(c.category) !== null,
+      season: c.season?.name ?? null,
+      teams: [...c.teams].sort((a, b) => a.name.localeCompare(b.name, "bs")),
+      nextRound: nextRound(matches.filter((m) => m.competitionId === c.id))!,
+    }));
+  const next = matches.find((m) => m.startsAt >= nowIso && m.status === "scheduled") ?? matches.at(-1);
+  return { competitions, matches, suggested: next?.competitionId ?? null };
+}
+
+export type RoundSchedules = Awaited<ReturnType<typeof getRoundSchedules>>;
+export type ScheduleCompetition = RoundSchedules["competitions"][number];
+export type ScheduleMatch = RoundSchedules["matches"][number];

@@ -98,6 +98,30 @@ export function formatDayHeading(day: string) {
   const s = dayHeading.format(new Date(`${day}T12:00:00Z`));
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+/** Grupa u rasporedu: vikend (subota i nedjelja) je jedna grupa s ključem subote, radni dan je svoja grupa */
+export function weekendKey(day: string) {
+  return parts(day).weekday === 0 ? addDays(day, -1) : day;
+}
+
+/** Naslov grupe: "Vikend, 24. – 25. oktobar" za subotu (ključ vikenda), inače naslov dana */
+export function formatGroupHeading(key: string) {
+  const sat = parts(key);
+  if (sat.weekday !== 6) return formatDayHeading(key);
+  const sun = parts(addDays(key, 1));
+  return sat.m === sun.m ? `Vikend, ${sat.d}. – ${sun.d}. ${MONTHS[sun.m - 1]}` : `Vikend, ${sat.d}. ${MONTHS[sat.m - 1]} – ${sun.d}. ${MONTHS[sun.m - 1]}`;
+}
+
+/** "KK IUS-Famos" → "kk-ius-famos" (ime fajla bez dijakritika) */
+export function slug(s: string) {
+  return s
+    .toLocaleLowerCase("bs")
+    .replace(/đ/g, "dj")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 /** "Utakmica 66" (broj je jedinstven u sezoni) */
 export function matchNo(n: number | null | undefined) {
   return n == null ? "" : `Utakmica ${n}`;

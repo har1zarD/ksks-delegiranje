@@ -1,16 +1,6 @@
 import { getClubLicenses } from "@/lib/data/licenses";
 import { licensesPdf } from "@/lib/license-pdf";
-
-/** "KK IUS-Famos" → "kk-ius-famos" (ime fajla bez dijakritika) */
-function slug(s: string) {
-  return s
-    .toLocaleLowerCase("bs")
-    .replace(/đ/g, "dj")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import { slug } from "@/lib/format";
 
 // PDF licenci kluba: ?preuzmi = preuzimanje, inače pregled u pregledniku. getClubLicenses provjerava admin ulogu.
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; clubId: string }> }) {
