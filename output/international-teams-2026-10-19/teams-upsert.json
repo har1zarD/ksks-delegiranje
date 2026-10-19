@@ -1,0 +1,110 @@
+[
+  {
+    "id": "0059238f-e704-40a7-bd5d-49d82f8fa05d",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "87ca37ee-c48e-476a-aa02-9dbe1b5146ea",
+    "name": "Bahcesehir College Istanbul"
+  },
+  {
+    "id": "c8faeabb-366a-4fb4-951c-96c9d25ea17e",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "b494eb07-88aa-424e-8044-9577ad4326b2",
+    "name": "ratiopharm ulm"
+  },
+  {
+    "id": "ebb59907-1b35-4d3c-99bc-f9df0e550181",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "e060924c-80ee-42f2-8c62-999e823451c7",
+    "name": "PAOK Thessaloniki"
+  },
+  {
+    "id": "4bac1932-b19a-45fc-b09d-b6613409547f",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "a30dc7cc-da17-4fd2-ada5-5f3181ab507b",
+    "name": "Lietkabelis Panevezys"
+  },
+  {
+    "id": "48eb91f8-a133-468c-be54-0b42c7a5906b",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "ac35ec27-7f3d-4b40-ae85-aae4d158f59d",
+    "name": "Roma Basketball"
+  },
+  {
+    "id": "12b528ec-5ece-4ab0-82ef-f91a4e3dd94e",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "c3a4842e-d44b-4264-ac45-ace5f4884066",
+    "name": "Kids&Us Manresa"
+  },
+  {
+    "id": "a083c0a8-4c9a-4e3b-91da-12cb450b2390",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "6fa91446-f915-42ee-b2f3-e4974e07ee06",
+    "name": "BOSNA BH Telecom Sarajevo"
+  },
+  {
+    "id": "b930e725-af7c-41de-9873-484cc45e57dd",
+    "competition_id": "6300fbe2-6c85-400b-a302-c134a34622b3",
+    "club_id": "59f04049-43d6-4b21-a27b-297537fe9d60",
+    "name": "Balkan Botevgrad"
+  },
+  {
+    "id": "4b38442d-4179-4ce2-8dd5-737b84bbcd94",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "3747bf70-c149-42ab-ae5b-b8531b36ec1a",
+    "name": "Partizan Mozzart Bet"
+  },
+  {
+    "id": "34a3e1d9-5984-4643-9b3f-7f69da455e26",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "6fa91446-f915-42ee-b2f3-e4974e07ee06",
+    "name": "Bosna BH Telecom"
+  },
+  {
+    "id": "9ff9ac50-5fb5-47a8-a8fc-53f23dd761b3",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "55b6c6d6-e27d-4e5a-b585-3a2ab0cab443",
+    "name": "Spartak Office Shoes"
+  },
+  {
+    "id": "30873959-ea6a-4593-944d-e60b9f0c87fd",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "d74b2de4-3ee0-4771-9fcf-1f629672b9b4",
+    "name": "Dubai Basketball"
+  },
+  {
+    "id": "dd99f90e-b491-42db-904c-d3d88d5df9f3",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "5852451c-6548-4638-ac54-39874e38b497",
+    "name": "Perspektiva Ilirija"
+  },
+  {
+    "id": "c812125d-b67d-4e0d-920d-22556a3bb482",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "3328cbbc-90f6-48d4-832d-fea2a546f8c2",
+    "name": "Zadar"
+  },
+  {
+    "id": "0cedf16c-95bc-49f9-986d-34b93358afc9",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "d954627a-de51-45da-b2f0-3640a71a1823",
+    "name": "U-BT Cluj-Napoca"
+  },
+  {
+    "id": "3ea357d8-6f31-455c-ab43-d0fd0c09e395",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "76987701-45ab-45dd-8ab7-48402e1fc33b",
+    "name": "BC Vienna"
+  },
+  {
+    "id": "a3b6d8b2-b1d8-4b9a-9fd0-7659ba2c9ead",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "2c443031-9b9d-43ed-84c7-c9c7dc43352c",
+    "name": "Mega Superbet"
+  },
+  {
+    "id": "ef19b5f0-cb46-452c-99d6-7ffede893657",
+    "competition_id": "c869ed14-0263-4c20-a7e2-1ec77dbacf8e",
+    "club_id": "9883e77a-90d1-4da6-988d-5f8b5dd217df",
+    "name": "SC Derby"
+  }
+]

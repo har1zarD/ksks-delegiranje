@@ -1,0 +1,101 @@
+{
+  "season": "2026/27",
+  "competitions": [
+    {
+      "name": "ABA liga",
+      "teams": 10,
+      "teamsWithLogos": 10
+    },
+    {
+      "name": "EuroCup",
+      "teams": 8,
+      "teamsWithLogos": 8
+    }
+  ],
+  "missingTeams": [],
+  "existingTeamIdsPreserved": true,
+  "changedCompetitionSettings": [],
+  "existingMatchesAndAssignmentsUnchanged": true,
+  "existingMatches": 1,
+  "publicLogos": [
+    {
+      "slug": "bahcesehir",
+      "identical": true
+    },
+    {
+      "slug": "ulm",
+      "identical": true
+    },
+    {
+      "slug": "lietkabelis",
+      "identical": true
+    },
+    {
+      "slug": "roma",
+      "identical": true
+    },
+    {
+      "slug": "manresa",
+      "identical": true
+    },
+    {
+      "slug": "balkan",
+      "identical": true
+    },
+    {
+      "slug": "spartak",
+      "identical": true
+    },
+    {
+      "slug": "dubai",
+      "identical": true
+    },
+    {
+      "slug": "ilirija",
+      "identical": true
+    },
+    {
+      "slug": "zadar",
+      "identical": true
+    },
+    {
+      "slug": "cluj",
+      "identical": true
+    },
+    {
+      "slug": "vienna",
+      "identical": true
+    },
+    {
+      "slug": "mega",
+      "identical": true
+    },
+    {
+      "slug": "derby",
+      "identical": true
+    }
+  ],
+  "browserVerification": "Unavailable: browser discovery returned no connected browsers.",
+  "testsRun": false,
+  "buildRun": false,
+  "existingPublicLogos": [
+    {
+      "slug": "bosna",
+      "format": "png",
+      "width": 768,
+      "height": 512
+    },
+    {
+      "slug": "paok",
+      "format": "png",
+      "width": 768,
+      "height": 512
+    },
+    {
+      "slug": "partizan",
+      "format": "png",
+      "width": 768,
+      "height": 512
+    }
+  ]
+}
