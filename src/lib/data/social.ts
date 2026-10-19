@@ -22,8 +22,8 @@ async function socialRows(from: string) {
       away:teams!matches_away_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ),
       hall:halls!matches_hall_id_fkey ( name )
     `).eq("competition.season.is_current", true)
-      .eq("status", "scheduled")
-      .gte("starts_at", sarajevoToISO(from, "00:00"))
+      .in("status", ["scheduled", "postponed"])
+      .or(`status.eq.postponed,starts_at.gte.${sarajevoToISO(from, "00:00")}`)
       .order("starts_at").order("id").range(offset, offset + batchSize - 1));
     matches.push(...batch);
     if (batch.length < batchSize) break;
@@ -31,6 +31,7 @@ async function socialRows(from: string) {
   return matches.map((m) => ({
     id: m.id,
     startsAt: m.starts_at,
+    status: m.status,
     date: dayKey(m.starts_at),
     round: m.round,
     competitionId: m.competition.id,
@@ -48,7 +49,7 @@ export async function getSocialSchedules() {
   const today = todayISO();
   const matches = await socialRows(today);
   const now = Date.now();
-  return { matches: matches.filter((match) => new Date(match.startsAt).getTime() > now), today, now };
+  return { matches: matches.filter((match) => match.status === "postponed" || new Date(match.startsAt).getTime() > now), today, now };
 }
 
 export type SocialMatch = Awaited<ReturnType<typeof getSocialSchedules>>["matches"][number];

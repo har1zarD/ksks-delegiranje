@@ -12,7 +12,7 @@ import { SocialPreviewSkeleton } from "./skeleton";
 
 export function SocialBuilder({ matches: initialMatches, today, now: initialNow }: { matches: SocialMatch[]; today: string; now: number }) {
   const [now, setNow] = useState(initialNow);
-  const matches = useMemo(() => initialMatches.filter((m) => new Date(m.startsAt).getTime() > now), [initialMatches, now]);
+  const matches = useMemo(() => initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), [initialMatches, now]);
   const [selected, setSelected] = useState(() => new Set(matches.filter((m) => m.date >= today && m.date <= addDays(today, 6)).map((m) => m.id)));
   const [competition, setCompetition] = useState("");
   const [round, setRound] = useState("");
@@ -43,13 +43,14 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
     (!competition || m.competitionId === competition) &&
     (!round || (round === "none" ? m.round == null : String(m.round) === round)) &&
     (!from || m.date >= from) && (!to || m.date <= to) &&
-    (!query || fold(`${m.home} ${m.away} ${m.competition} ${m.hall ?? ""}`).includes(query)),
+    (!query || fold(`${m.home} ${m.away} ${m.competition} ${m.hall ?? ""} ${m.status === "postponed" ? "Odgođeno" : ""}`).includes(query)),
   );
   const hiddenSelected = chosen.length - visible.filter((m) => selected.has(m.id)).length;
 
   useEffect(() => {
     const refreshTime = () => setNow(Date.now());
-    const nextStart = matches[0] ? new Date(matches[0].startsAt).getTime() : null;
+    const nextScheduled = matches.find((match) => match.status === "scheduled");
+    const nextStart = nextScheduled ? new Date(nextScheduled.startsAt).getTime() : null;
     const timer = nextStart == null ? undefined : window.setTimeout(refreshTime, Math.min(2_147_483_647, Math.max(0, nextStart - Date.now() + 20)));
     window.addEventListener("focus", refreshTime);
     document.addEventListener("visibilitychange", refreshTime);
@@ -112,8 +113,8 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
               <option value="none">Bez kola</option>
               {rounds.map((n) => <option key={n} value={String(n)}>{n}. kolo</option>)}
             </Select>
-            <Field label="Od datuma" type="date" value={from} min={today} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
-            <Field label="Do datuma" type="date" value={to} min={from || today} onChange={(event) => setTo(event.target.value)} />
+            <Field label="Od datuma" type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
+            <Field label="Do datuma" type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} />
           </div>
           <Field label="Pretraži utakmice" placeholder="Ekipa, takmičenje ili dvorana…" icon={<Search className="size-4" />} value={search} onChange={(event) => setSearch(event.target.value)} />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
@@ -131,14 +132,14 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
               <label key={m.id} className={cx("flex cursor-pointer items-start gap-3 border-b border-line p-3 last:border-b-0 hover:bg-panel-2", selected.has(m.id) && "bg-panel-2")}>
                 <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] text-fg-muted">{m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}</span>
+                  <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">{m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}{m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}</span>
                   <span className="mt-0.5 block text-[14px] font-semibold">{m.home} <span className="font-normal text-fg-faint">–</span> {m.away}</span>
-                  <span className="mt-1 block text-[12px] text-fg-muted">{formatDate(m.date)} · {formatTime(m.startsAt)} · {m.hall ?? "Dvorana nije određena"}</span>
+                  <span className="mt-1 block text-[12px] text-fg-muted">{m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}</span>
                 </span>
               </label>
             )) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
           </div>
-          <p className="text-[12px] text-fg-faint">Samo buduće, zakazane utakmice tekuće sezone. Početni izbor: narednih 7 dana.</p>
+          <p className="text-[12px] text-fg-faint">Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum. Početni izbor: narednih 7 dana.</p>
         </Step>
 
         <Step number={2} title="Predložak i format">
@@ -170,7 +171,7 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
           <div className="flex flex-wrap gap-x-5 gap-y-3">
             {([{ key: "showLogos", label: "Grbovi ekipa" }, { key: "showCompetition", label: "Takmičenje i kolo" }, { key: "showHall", label: "Dvorana" }] as const).map(({ key, label }) => <label key={key} className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={options[key]} onChange={(event) => change(key, event.target.checked)} className="size-4 accent-brand" />{label}</label>)}
           </div>
-          <p className="text-[12px] text-fg-faint">KSKS logo, datum i satnica su uvijek prikazani. Vrijeme je po sarajevskoj vremenskoj zoni.</p>
+          <p className="text-[12px] text-fg-faint">KSKS logo je uvijek prikazan. Termini su po sarajevskom vremenu; za odgođene utakmice piše „ODGOĐENO“ umjesto termina.</p>
         </Step>
       </div>
 
@@ -184,7 +185,7 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
             : error ? <p role="alert" className="p-6 text-[14px] text-crest">{error}</p>
             : ready ? (
               // eslint-disable-next-line @next/next/no-img-element -- Local PNG blob is the exact downloadable image.
-              <img src={preview.url} alt={`${options.title || "Raspored utakmica"}, slika ${currentPage + 1}: ${pageMatches.map((m) => `${m.home} – ${m.away}, ${formatDate(m.date)} u ${formatTime(m.startsAt)}`).join("; ")}`} width={format.width} height={format.height} className="block h-auto max-h-[66vh] w-auto max-w-full shadow-panel" />
+              <img src={preview.url} alt={`${options.title || "Raspored utakmica"}, slika ${currentPage + 1}: ${pageMatches.map((m) => `${m.home} – ${m.away}, ${m.status === "postponed" ? "ODGOĐENO, novi termin naknadno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`} width={format.width} height={format.height} className="block h-auto max-h-[66vh] w-auto max-w-full shadow-panel" />
             ) : <SocialPreviewSkeleton width={format.width} height={format.height} rows={pageMatches.length} />}
         </div>
         {pages > 1 && <div className="flex items-center justify-between gap-2">
@@ -196,7 +197,7 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
         {ready && preview.missingLogos > 0 && <p role="status" className="text-[12px] text-orange">Nisu učitani svi grbovi ({preview.missingLogos}). Na njihovom mjestu su inicijali ekipa.</p>}
         <Button disabled={!ready} onClick={() => {
           if (!ready || !preview) return;
-          if (pageMatches.some((match) => new Date(match.startsAt).getTime() <= Date.now())) { setNow(Date.now()); return; }
+          if (pageMatches.some((match) => match.status !== "postponed" && new Date(match.startsAt).getTime() <= Date.now())) { setNow(Date.now()); return; }
           const link = document.createElement("a");
           link.href = preview.url;
           link.download = `${slug(options.title) || "raspored"}-${options.format}-${currentPage + 1}.png`;

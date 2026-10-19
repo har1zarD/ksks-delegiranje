@@ -96,12 +96,14 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
   const format = SOCIAL_FORMATS.find((f) => f.id === options.format)!;
   const theme = SOCIAL_TEMPLATES.find((t) => t.id === options.template)!;
   const font = getComputedStyle(document.body).fontFamily;
+  const postponedFont = getComputedStyle(document.body).getPropertyValue("--font-geist-mono").trim() || "monospace";
   const urls = options.showLogos ? [...new Set(matches.flatMap((m) => [m.homeLogo, m.awayLogo]).filter((url): url is string => Boolean(url)))] : [];
   const [loaded, brandLogo, background] = await Promise.all([
     Promise.all(urls.map(async (url) => [url, await loadImage(url)] as const)),
     loadImage(KSKS_LOGO),
     theme.background ? loadImage(theme.background) : Promise.resolve(null),
     document.fonts.load(`700 36px ${font}`, "ČĆŠĐŽčćšđž"),
+    matches.some((match) => match.status === "postponed") ? document.fonts.load(`700 36px ${postponedFont}`, "ODGOĐENO") : Promise.resolve(),
   ]);
   if (!brandLogo) throw new Error("KSKS logo nije učitan. Osvježi stranicu i pokušaj ponovo.");
   if (theme.background && !background) throw new Error("Pozadina predloška nije učitana. Osvježi stranicu i pokušaj ponovo.");
@@ -137,6 +139,29 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
       ctx!.font = `${weight} ${fitted}px ${font}`;
     }
     ctx!.fillText(value, x, y, maxWidth);
+  }
+
+  function postponedLabel(x: number, y: number, size: number, maxWidth: number) {
+    ctx!.save();
+    const letters = [..."ODGOĐENO"];
+    let fitted = size;
+    ctx!.font = `700 ${fitted}px ${postponedFont}`;
+    while (ctx!.measureText("ODGOĐENO").width + fitted * 0.08 * (letters.length - 1) > maxWidth && fitted > 8) {
+      fitted -= 1;
+      ctx!.font = `700 ${fitted}px ${postponedFont}`;
+    }
+    const spacing = fitted * 0.08;
+    const widths = letters.map((letter) => ctx!.measureText(letter).width);
+    const width = widths.reduce((sum, value) => sum + value, 0) + spacing * (letters.length - 1);
+    ctx!.fillStyle = theme.background ? "#ff7474" : "#b91c1c";
+    ctx!.textAlign = "left";
+    ctx!.textBaseline = "middle";
+    let cursor = x - width / 2;
+    letters.forEach((letter, index) => {
+      ctx!.fillText(letter, cursor, y);
+      cursor += widths[index] + spacing;
+    });
+    ctx!.restore();
   }
 
   function contain(image: HTMLImageElement, x: number, y: number, size: number, padding = 0) {
@@ -229,6 +254,8 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
   const cardWidth = (w - margin * 2 - (columns - 1) * gap) / columns;
 
   matches.forEach((m, index) => {
+    const postponed = m.status === "postponed";
+    const dateLabel = postponed ? "Novi termin naknadno" : `${formatWeekday(m.startsAt).toUpperCase()} · ${formatDate(m.date)}`;
     const y = contentTop + Math.floor(index / columns) * (rowHeight + gap);
     const x = margin + (index % columns) * (cardWidth + gap);
     const center = x + cardWidth / 2;
@@ -243,13 +270,14 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
       teamName(m.home, x + cardWidth * 0.265, middle, cardWidth * 0.22, nameSize);
       teamName(m.away, x + cardWidth * 0.735, middle, cardWidth * 0.22, nameSize);
       if (options.showCompetition) text([m.competition, m.round == null ? null : `${m.round}. kolo`].filter(Boolean).join(" · "), center, y + rowHeight * 0.13, metaSize, theme.muted, cardWidth * 0.67, 600, "center");
-      text(formatTime(m.startsAt), center, middle - rowHeight * 0.03, Math.min(48, cardWidth * 0.045, rowHeight * 0.30), theme.accent, cardWidth * 0.22, 800, "center");
-      text(`${formatWeekday(m.startsAt).toUpperCase()} · ${formatDate(m.date)}`, center, y + rowHeight * 0.72, Math.min(18, cardWidth * 0.019, rowHeight * 0.13), theme.muted, cardWidth * 0.23, 600, "center");
-      if (options.showHall) text(m.hall ?? "Dvorana nije određena", center, y + rowHeight * 0.90, metaSize, theme.muted, cardWidth * 0.67, 500, "center");
+      if (postponed) postponedLabel(center, middle - rowHeight * 0.03, Math.min(30, cardWidth * 0.03, rowHeight * 0.23), cardWidth * 0.22);
+      else text(formatTime(m.startsAt), center, middle - rowHeight * 0.03, Math.min(48, cardWidth * 0.045, rowHeight * 0.30), theme.accent, cardWidth * 0.22, 800, "center");
+      text(dateLabel, center, y + rowHeight * 0.72, Math.min(18, cardWidth * 0.019, rowHeight * 0.13), theme.muted, cardWidth * 0.23, 600, "center");
+      if (options.showHall && !postponed) text(m.hall ?? "Dvorana nije određena", center, y + rowHeight * 0.90, metaSize, theme.muted, cardWidth * 0.67, 500, "center");
       return;
     }
     box(margin + 26, y + 23, 5, 22, theme.accent, 2);
-    const meta = options.showCompetition ? [m.competition, m.round == null ? null : `${m.round}. kolo`].filter(Boolean).join(" · ") : "NAREDNA UTAKMICA";
+    const meta = options.showCompetition ? [m.competition, m.round == null ? null : `${m.round}. kolo`].filter(Boolean).join(" · ") : postponed ? "ODGOĐENA UTAKMICA" : "NAREDNA UTAKMICA";
     text(meta, w / 2, y + 34, solo && !wide ? 26 : 21, theme.muted, cardWidth - 130, 600, "center");
     const leftX = margin + cardWidth * 0.22;
     const rightX = w - leftX;
@@ -262,10 +290,11 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
     const nameWidth = cardWidth * (options.showLogos ? 0.35 : 0.30);
     teamName(m.home, leftX, nameY, nameWidth, nameSize);
     teamName(m.away, rightX, nameY, nameWidth, nameSize);
-    text(`${formatWeekday(m.startsAt).toUpperCase()} · ${formatDate(m.date)}`, w / 2, badgeY - (solo ? 59 : 34), solo ? 23 : 18, theme.muted, cardWidth * 0.25, 600, "center");
-    text(formatTime(m.startsAt), w / 2, badgeY + (solo ? 2 : 9), solo ? (wide ? 64 : 82) : 48, theme.accent, cardWidth * 0.25, 800, "center");
+    text(dateLabel, w / 2, badgeY - (solo ? 59 : 34), solo ? 23 : 18, theme.muted, cardWidth * 0.25, 600, "center");
+    if (postponed) postponedLabel(w / 2, badgeY + (solo ? 2 : 9), solo ? 38 : 30, cardWidth * 0.25);
+    else text(formatTime(m.startsAt), w / 2, badgeY + (solo ? 2 : 9), solo ? (wide ? 64 : 82) : 48, theme.accent, cardWidth * 0.25, 800, "center");
     text("VS", w / 2, badgeY + (solo ? 65 : 52), 17, theme.muted, 90, 700, "center");
-    if (options.showHall) text(m.hall ?? "Dvorana nije određena", w / 2, y + rowHeight - 28, solo ? 24 : 20, theme.muted, cardWidth - 100, 500, "center");
+    if (options.showHall && !postponed) text(m.hall ?? "Dvorana nije određena", w / 2, y + rowHeight - 28, solo ? 24 : 20, theme.muted, cardWidth - 100, 500, "center");
   });
 
   const footerY = h - (story ? 142 : wide ? 29 : 44);

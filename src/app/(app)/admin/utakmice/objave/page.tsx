@@ -26,6 +26,6 @@ export default function SocialPage() {
 
 async function Builder() {
   const data = await getSocialSchedules();
-  if (!data.matches.length) return <Empty icon={<Images />} title="Nema budućih utakmica za objavu">Ovdje se nude samo zakazane utakmice tekuće sezone čiji termin tek dolazi, uključujući utakmice bez kola.</Empty>;
+  if (!data.matches.length) return <Empty icon={<Images />} title="Nema utakmica za objavu">Ovdje se nude buduće zakazane i odgođene utakmice tekuće sezone, uključujući utakmice bez kola.</Empty>;
   return <SocialBuilder {...data} />;
 }
