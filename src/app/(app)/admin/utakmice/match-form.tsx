@@ -64,7 +64,7 @@ export function MatchForm({
   const teams = competition?.teams ?? [];
   const isEdit = Boolean(values.id);
   // Broj se broji po takmičenju: nova utakmica predlaže sljedeći slobodan u izabranom takmičenju
-  const [number, setNumber] = useState(String(values.number ?? nextNumbers[competitionId] ?? 1));
+  const [number, setNumber] = useState(String(values.number ?? (isEdit ? "" : nextNumbers[competitionId] ?? 1)));
   const cost = crew ? matchCost(competition ?? null, crew) : null;
 
   return (
