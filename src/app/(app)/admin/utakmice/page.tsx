@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus, CalendarDays, ChevronLeft, ChevronRight, FileImage, FileText } from "lucide-react";
+import { Plus, CalendarDays, ChevronLeft, ChevronRight, FileImage, FileText, Images } from "lucide-react";
 import { getAdminMatches, getCompetitions, getHalls, overviewEnd, type MatchPayment } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
@@ -25,6 +25,9 @@ export default function AdminMatchesPage({ searchParams }: { searchParams: Searc
   return (
     <>
       <PageHeader icon={<CalendarDays />} title="Utakmice" subtitle="Raspored po danima. Otvori utakmicu da delegiraš sudije, sto i komesara.">
+        <ButtonLink href="/admin/utakmice/objave" variant="secondary">
+          <Images className="size-4" aria-hidden="true" /> Slike za objavu
+        </ButtonLink>
         <ButtonLink href="/admin/utakmice/satnice" variant="secondary">
           <FileText className="size-4" aria-hidden="true" />
           Satnice (PDF)

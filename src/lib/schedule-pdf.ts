@@ -6,7 +6,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import type { ScheduleCompetition, ScheduleMatch } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
-import { formatDate, formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, type Position } from "@/lib/format";
+import { formatDate, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, WEEKDAYS_LONG, type Position } from "@/lib/format";
 
 const A4 = { w: 595.28, h: 841.89 };
 const M = 42; // margina
@@ -195,11 +195,14 @@ function officialRows(m: ScheduleMatch, opts: ScheduleOptions) {
   return opts.officials === "none" ? [] : m.officials.filter((o) => OFFICIAL_LABEL[o.position]);
 }
 
-/** Redovi termina: dan i datum, vrijeme (odgođena bez vremena), dvorana, stanje (odgođena/otkazana) */
+/** Redovi termina: puni naziv dana, datum, vrijeme (odgođena bez vremena), dvorana, stanje (odgođena/otkazana) */
 function timeLines(m: ScheduleMatch, opts: ScheduleOptions) {
   const { date } = isoToSarajevo(m.startsAt);
+  // Puni naziv dana u svom redu: "PONEDJELJAK, 26. 10. 2026." ne stane u kolonu termina
+  const weekday = WEEKDAYS_LONG[new Date(`${date}T12:00:00Z`).getUTCDay()];
   const lines: { text: string; size: number; bold: boolean; color: typeof C.fg }[] = [
-    { text: `${upper(formatWeekday(m.startsAt))}, ${formatDate(date)}`, size: 9, bold: true, color: C.fg },
+    { text: upper(weekday), size: 9, bold: true, color: C.fg },
+    { text: formatDate(date), size: 9, bold: true, color: C.fg },
   ];
   if (opts.time && m.status !== "postponed") lines.push({ text: formatTime(m.startsAt), size: 14, bold: true, color: C.fg });
   if (opts.hall) lines.push(m.hall ? { text: upper(m.hall), size: 8.5, bold: false, color: C.fg } : { text: "Dvorana naknadno", size: 8.5, bold: false, color: C.faint });

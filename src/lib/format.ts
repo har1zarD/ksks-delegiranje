@@ -76,6 +76,7 @@ const TZ = "Europe/Sarajevo";
 // Datumi se formatiraju ručno (ne Intl "bs-BA"): browseri nemaju isti bosanski format kao server,
 // pa bi se tekst razlikovao pri hidrataciji. Zona je uvijek Europe/Sarajevo.
 export const WEEKDAYS = ["ned", "pon", "uto", "sri", "čet", "pet", "sub"];
+export const WEEKDAYS_LONG = ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"];
 export const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
 export const MONTHS = ["januar", "februar", "mart", "april", "maj", "juni", "juli", "august", "septembar", "oktobar", "novembar", "decembar"];
 
