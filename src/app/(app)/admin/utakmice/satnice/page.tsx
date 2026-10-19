@@ -15,7 +15,7 @@ export default function RoundSchedulePage() {
         <ChevronLeft className="size-4" /> Utakmice
       </Link>
       <div className="pt-4">
-        <PageHeader icon={<FileText />} title="Satnice kola" subtitle="PDF za klubove: termini, dvorane, komesar i sudije, i slobodna ekipa kola. Izaberi kolo, označi utakmice i šta ide u PDF." />
+        <PageHeader icon={<FileText />} title="Satnice kola" subtitle="PDF za klubove: termini, dvorane, prazna polja za komesara i sudije, i slobodna ekipa kola. Izaberi kolo, označi utakmice i šta ide u PDF." />
       </div>
       <Suspense fallback={<BuilderSkeleton />}>
         <Builder />

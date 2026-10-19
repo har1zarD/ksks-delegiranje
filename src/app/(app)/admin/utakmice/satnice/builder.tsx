@@ -7,14 +7,6 @@ import { matchesLabel } from "@/lib/finance";
 import { formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { buttonClass, CARD, cx, Field, Status, Textarea } from "@/components/ui";
 
-type Officials = "imena" | "prazno" | "bez";
-
-const OFFICIALS: { key: Officials; label: string }[] = [
-  { key: "imena", label: "S imenima" },
-  { key: "prazno", label: "Prazna polja" },
-  { key: "bez", label: "Bez" },
-];
-
 const SIGNATURE = "Takmičarska komisija";
 
 /** "sub 24. okt" */
@@ -37,7 +29,6 @@ export function ScheduleBuilder({ competitions, matches, suggested }: RoundSched
   const [cover, setCover] = useState(true);
   const [time, setTime] = useState(true);
   const [hall, setHall] = useState(true);
-  const [officials, setOfficials] = useState<Officials>("imena");
   const [note, setNote] = useState("");
   const [signature, setSignature] = useState(SIGNATURE);
 
@@ -69,7 +60,6 @@ export function ScheduleBuilder({ competitions, matches, suggested }: RoundSched
     if (!cover) q.set("naslovna", "0");
     if (!time) q.set("vrijeme", "0");
     if (!hall) q.set("dvorana", "0");
-    q.set("lica", officials);
     if (note.trim()) q.set("napomena", note.trim());
     q.set("potpis", signature.trim());
     return q.toString();
@@ -203,25 +193,6 @@ export function ScheduleBuilder({ competitions, matches, suggested }: RoundSched
             <Toggle label="Naslovna strana" hint="Grb, sezona i naslov" checked={cover} onChange={setCover} />
             <Toggle label="Vrijeme početka" checked={time} onChange={setTime} />
             <Toggle label="Dvorana" checked={hall} onChange={setHall} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-fg-muted">Komesar i sudije</span>
-            <div className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:inline-flex sm:w-auto sm:self-start">
-              {OFFICIALS.map((o) => (
-                <button
-                  key={o.key}
-                  type="button"
-                  onClick={() => setOfficials(o.key)}
-                  aria-pressed={officials === o.key}
-                  className={cx(
-                    "flex-1 whitespace-nowrap rounded-md px-3.5 py-2.5 text-[14px] font-semibold transition-colors sm:flex-none sm:py-1.5",
-                    officials === o.key ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg",
-                  )}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
           </div>
           <Textarea label="Napomena" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Npr. domaćin obezbjeđuje zapisnički sto." hint="Ispisuje se ispod utakmica" />
           <Field label="Potpis" value={signature} onChange={(e) => setSignature(e.target.value)} />

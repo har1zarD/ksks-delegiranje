@@ -1,11 +1,9 @@
 import { getRoundSchedules } from "@/lib/data/admin";
 import { slug } from "@/lib/format";
-import { schedulePdf, type OfficialsMode, type ScheduleSection } from "@/lib/schedule-pdf";
-
-const OFFICIALS: Record<string, OfficialsMode> = { imena: "names", prazno: "blank", bez: "none" };
+import { schedulePdf, type ScheduleSection } from "@/lib/schedule-pdf";
 
 // PDF satnice kola za klubove. ?m=id,id (utakmice), s=id (slobodna ekipa, može više), naslov, naslovna/vrijeme/dvorana=0,
-// lica=imena|prazno|bez, napomena, potpis; ?preuzmi = preuzimanje, inače pregled. getRoundSchedules provjerava admin ulogu.
+// napomena, potpis; komesar i sudije su uvijek prazna polja (imena se klubovima ne šalju); ?preuzmi = preuzimanje, inače pregled. getRoundSchedules provjerava admin ulogu.
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const data = await getRoundSchedules();
@@ -25,7 +23,7 @@ export async function GET(request: Request) {
     cover: sp.get("naslovna") !== "0",
     time: sp.get("vrijeme") !== "0",
     hall: sp.get("dvorana") !== "0",
-    officials: OFFICIALS[sp.get("lica") ?? ""] ?? "names",
+    officials: "blank",
     note: sp.get("napomena") ?? "",
     signature: sp.get("potpis") ?? "Takmičarska komisija",
   });
