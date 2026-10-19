@@ -25,7 +25,7 @@ function resultText(r: NonNullable<PublishState["result"]>) {
 
 const CONFIRM = (n: number) => ({
   title: `Aktivirati ${n === 1 ? "utakmicu" : `${n} utakmica`}?`,
-  message: "Delegirani će vidjeti nominaciju, svim sudijama i pomoćnim sudijama ide nominacija emailom, a klubovima raspored omladinske lige bez službenih lica.",
+  message: "Delegirani će vidjeti nominaciju, svim sudijama i pomoćnim sudijama ide nominacija emailom. Klubovima se ništa ne šalje (satnice preuzmi kao PDF).",
   confirmLabel: "Aktiviraj",
 });
 

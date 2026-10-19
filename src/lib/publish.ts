@@ -134,10 +134,11 @@ export async function publishMatches(db: Db, matchIds: string[], audience: Publi
     .map((kind) => ({ kind, matches: matches.filter((m) => nominationKindOf(m) === kind).length, sent }))
     .filter((d) => d.matches > 0);
 
-  // 4: klubovima raspored omladinske lige (datum, vrijeme, dvorana, ekipe; bez službenih lica), ali SAMO pri prvom aktiviranju.
-  //    "Objavi izmjene" nakon zamjene sudije ne ide klubovima; promjena termina, dvorane ili statusa ide posebnom obavijesti (notifyMatchChanged).
-  const forClubs = rows.filter((m) => !m.clubs_notified_at && m.kind === "league" && CLUB_CATEGORIES.has(m.competition?.category ?? "")).map((m) => m.id);
-  const clubs = forClubs.length ? await sendScheduleToClubs(db, forClubs) : null;
+  // 4: raspored klubovima se pri aktiviranju VIŠE NE ŠALJE (2026-10-19): savez ga preuzima kao PDF (Utakmice → Satnice) i šalje ručno.
+  //    Za vraćanje: odkomentarisati ispod i ukloniti `const clubs = null`.
+  // const forClubs = rows.filter((m) => !m.clubs_notified_at && m.kind === "league" && CLUB_CATEGORIES.has(m.competition?.category ?? "")).map((m) => m.id);
+  // const clubs = forClubs.length ? await sendScheduleToClubs(db, forClubs) : null;
+  const clubs = null;
 
   return { matches: rows.length, revealed: pending.length, recipients: recipients.length, audience, documents, emailed: documents.length > 0 && documents.every((d) => d.sent), clubs };
 }
