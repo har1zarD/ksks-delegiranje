@@ -178,10 +178,11 @@ const TONE: Record<Tone, string> = {
 };
 
 /** Stanje: mala tačka u boji + tekst (pulse = utakmica uživo) */
-export function Status({ tone, children, pulse }: { tone: Tone; children: ReactNode; pulse?: boolean }) {
+/** `size="lg"` = krupnije (npr. odgođena utakmica u listi) */
+export function Status({ tone, children, pulse, size }: { tone: Tone; children: ReactNode; pulse?: boolean; size?: "lg" }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[13px] text-fg-muted">
-      <span className={cx("size-2 shrink-0 rounded-full", DOT[tone], pulse && "animate-pulse")} aria-hidden />
+    <span className={cx("inline-flex items-center text-fg-muted", size === "lg" ? "gap-2 text-[15px]" : "gap-1.5 text-[13px]")}>
+      <span className={cx("shrink-0 rounded-full", size === "lg" ? "size-2.5" : "size-2", DOT[tone], pulse && "animate-pulse")} aria-hidden />
       <span className={tone === "muted" ? undefined : "font-medium text-fg"}>{children}</span>
     </span>
   );

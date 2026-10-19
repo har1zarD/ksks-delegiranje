@@ -195,13 +195,13 @@ function officialRows(m: ScheduleMatch, opts: ScheduleOptions) {
   return opts.officials === "none" ? [] : m.officials.filter((o) => OFFICIAL_LABEL[o.position]);
 }
 
-/** Redovi termina: dan i datum, vrijeme, dvorana, stanje (odgođena/otkazana) */
+/** Redovi termina: dan i datum, vrijeme (odgođena bez vremena), dvorana, stanje (odgođena/otkazana) */
 function timeLines(m: ScheduleMatch, opts: ScheduleOptions) {
   const { date } = isoToSarajevo(m.startsAt);
   const lines: { text: string; size: number; bold: boolean; color: typeof C.fg }[] = [
     { text: `${upper(formatWeekday(m.startsAt))}, ${formatDate(date)}`, size: 9, bold: true, color: C.fg },
   ];
-  if (opts.time) lines.push({ text: formatTime(m.startsAt), size: 14, bold: true, color: C.fg });
+  if (opts.time && m.status !== "postponed") lines.push({ text: formatTime(m.startsAt), size: 14, bold: true, color: C.fg });
   if (opts.hall) lines.push(m.hall ? { text: upper(m.hall), size: 8.5, bold: false, color: C.fg } : { text: "Dvorana naknadno", size: 8.5, bold: false, color: C.faint });
   if (m.status === "postponed" || m.status === "cancelled") lines.push({ text: upper(MATCH_STATUS_LABEL[m.status]), size: 8.5, bold: true, color: C.orange });
   return lines;

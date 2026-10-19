@@ -157,7 +157,9 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                       <li
                         key={m.id}
                         className={cx(
-                          "relative flex items-center gap-3 transition-colors hover:bg-panel-2 sm:gap-4",
+                          "relative flex items-center gap-3 transition-colors sm:gap-4",
+                          // Odgođena: druga boja kartice
+                          m.status === "postponed" ? "bg-orange/8 hover:bg-orange/12" : "hover:bg-panel-2",
                           m.status === "scheduled" && "pt-5 sm:pt-0",
                           // Telefon: pozicije za delegiranje u svom redu preko cijele kartice
                           quick && "flex-wrap gap-y-0 md:flex-nowrap",
@@ -172,6 +174,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                               <MatchLine
                                 match={m}
                                 hideDate={!past && m.status === "scheduled"}
+                                hideTime={m.status === "postponed"}
                                 hideHall={editable}
                                 hideLabelOnMobile={m.status === "scheduled"}
                                 periods={m.status === "live" || (m.status === "finished" && m.periods.length > 0) ? m.periods : undefined}
@@ -208,17 +211,19 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                                   ) : m.status === "scheduled" ? (
                                     <StaffingCrew staffing={m.staffing} />
                                   ) : m.status === "postponed" || m.status === "cancelled" || (m.status === "finished" && m.periods.length === 0) ? (
-                                    <Status tone={m.status === "finished" ? "muted" : "orange"}>{MATCH_STATUS_LABEL[m.status]}</Status>
+                                    <Status tone={m.status === "finished" ? "muted" : "orange"} size={m.status === "postponed" ? "lg" : undefined}>
+                                      {MATCH_STATUS_LABEL[m.status]}
+                                    </Status>
                                   ) : undefined
                                 }
                               />
                             </Link>
                             {/* Telefon: dugmad ispod su samo ikonice, pa se termin i dvorana čitaju gore desno */}
-                            {editable && <ScheduleText iso={m.starts_at} hall={m.hall?.name ?? null} />}
+                            {editable && <ScheduleText iso={m.starts_at} hall={m.hall?.name ?? null} hideTime={m.status === "postponed"} />}
                           </div>
                           {editable && (
                             <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2", quick ? "pb-2.5 md:pb-4" : "pb-4")}>
-                              <ScheduleEdit id={m.id} iso={m.starts_at} hallId={m.hall?.id ?? null} halls={halls} label={label} />
+                              <ScheduleEdit id={m.id} iso={m.starts_at} hallId={m.hall?.id ?? null} halls={halls} label={label} hideTime={m.status === "postponed"} />
                               {quick && crewButtons("hidden border-l border-line pl-3 md:flex")}
                             </div>
                           )}
@@ -269,15 +274,15 @@ function PaymentMark({ payment }: { payment: MatchPayment }) {
   return <Status tone="orange">Nije isplaćena</Status>;
 }
 
-/** Telefon, gore desno, sitno: datum, ispod vrijeme, ispod dvorana */
-function ScheduleText({ iso, hall }: { iso: string; hall: string | null }) {
+/** Telefon, gore desno, sitno: datum, ispod vrijeme (odgođena bez vremena), ispod dvorana */
+function ScheduleText({ iso, hall, hideTime }: { iso: string; hall: string | null; hideTime?: boolean }) {
   const [, month, day] = isoToSarajevo(iso).date.split("-").map(Number);
   return (
     <div className="flex max-w-[45%] shrink-0 flex-col items-end pt-4 text-right text-[12px] font-medium leading-snug text-fg-muted md:hidden">
       <span className="whitespace-nowrap">
         {formatWeekday(iso)}, {day}. {MONTHS_SHORT[month - 1]}
       </span>
-      <span className="tabular">{formatTime(iso)}</span>
+      {!hideTime && <span className="tabular">{formatTime(iso)}</span>}
       <span className={cx("max-w-full truncate", !hall && "text-fg-faint")}>{hall ?? "Bez dvorane"}</span>
     </div>
   );

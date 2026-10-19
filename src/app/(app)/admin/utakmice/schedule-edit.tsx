@@ -15,6 +15,7 @@ const SEARCH_FROM = 8;
 
 /**
  * Datum, vrijeme i dvorana u redu liste utakmica (samo neaktivirane): klik otvara izbor, izmjena se čuva odmah.
+ * `hideTime` = odgođena: termin nije poznat, pa nema vremena.
  */
 export function ScheduleEdit({
   id,
@@ -22,12 +23,14 @@ export function ScheduleEdit({
   hallId,
   halls,
   label,
+  hideTime,
 }: {
   id: string;
   iso: string;
   hallId: string | null;
   halls: { id: string; name: string }[];
   label: string;
+  hideTime?: boolean;
 }) {
   const [value, setValue] = useOptimistic<Schedule>({ ...isoToSarajevo(iso), hallId: hallId ?? "" });
   const [pending, start] = useTransition();
@@ -62,7 +65,7 @@ export function ScheduleEdit({
         <span className="capitalize">{WEEKDAYS[d.getUTCDay()]}</span>, {d.getUTCDate()}. {MONTHS_SHORT[d.getUTCMonth()]}
       </Chip>
 
-      <TimeChip value={value.time} disabled={pending} onSave={(time) => void save({ time })} />
+      {!hideTime && <TimeChip value={value.time} disabled={pending} onSave={(time) => void save({ time })} />}
 
       <Chip icon={<MapPin />} label="Dvorana" width={280} disabled={pending} empty={!hall} className="min-w-0 max-w-full"
         popover={(close) => (

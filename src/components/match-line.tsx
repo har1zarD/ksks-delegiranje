@@ -19,8 +19,8 @@ export type MatchSummary = {
   hall: { name: string } | null;
 };
 
-/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice, `selected` = označen (puna boja). */
-export function DateTile({ iso, size = "md", selected, className }: { iso: string; size?: "md" | "lg"; selected?: boolean; className?: string }) {
+/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice, `selected` = označen (puna boja), `hideTime` = bez vremena (odgođena). */
+export function DateTile({ iso, size = "md", selected, hideTime, className }: { iso: string; size?: "md" | "lg"; selected?: boolean; hideTime?: boolean; className?: string }) {
   const { date } = isoToSarajevo(iso);
   const d = new Date(`${date}T12:00:00Z`);
   const lg = size === "lg";
@@ -39,15 +39,17 @@ export function DateTile({ iso, size = "md", selected, className }: { iso: strin
         <span className={cx("scoreboard font-semibold leading-none tracking-[-0.03em]", lg ? "text-[32px] sm:text-[42px]" : "text-[24px]")}>{d.getUTCDate()}</span>
         <span className={label}>{MONTHS_SHORT[d.getUTCMonth()]}</span>
       </div>
-      <span
-        className={cx(
-          "scoreboard whitespace-nowrap border-t font-semibold",
-          selected ? "border-brand-ink/20" : "border-line bg-panel",
-          lg ? "py-1.5 text-[15px] sm:text-[16px]" : "py-1 text-[13px]",
-        )}
-      >
-        {formatTime(iso)}
-      </span>
+      {!hideTime && (
+        <span
+          className={cx(
+            "scoreboard whitespace-nowrap border-t font-semibold",
+            selected ? "border-brand-ink/20" : "border-line bg-panel",
+            lg ? "py-1.5 text-[15px] sm:text-[16px]" : "py-1 text-[13px]",
+          )}
+        >
+          {formatTime(iso)}
+        </span>
+      )}
     </div>
   );
 }
@@ -84,6 +86,7 @@ export function MatchLine({
   periods,
   aside,
   hideDate,
+  hideTime,
   hideHall,
   hideLabelOnMobile,
 }: {
@@ -92,6 +95,8 @@ export function MatchLine({
   hideLabelOnMobile?: boolean;
   /** Datum se crta izvan reda (npr. kao dugme za označavanje) */
   hideDate?: boolean;
+  /** Datum bez vremena (odgođena utakmica) */
+  hideTime?: boolean;
   /** Dvorana se crta izvan reda (npr. kao polje za izmjenu) */
   hideHall?: boolean;
   meta?: React.ReactNode;
@@ -112,7 +117,7 @@ export function MatchLine({
   if (periods) {
     return (
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-        {!hideDate && <DateTile iso={match.starts_at} />}
+        {!hideDate && <DateTile iso={match.starts_at} hideTime={hideTime} />}
         <div className="min-w-0 flex-1 basis-40">
           <BoxScore match={match} periods={periods} label={competition} badge={badge} />
           {hall}
@@ -129,7 +134,7 @@ export function MatchLine({
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-      {!hideDate && <DateTile iso={match.starts_at} />}
+      {!hideDate && <DateTile iso={match.starts_at} hideTime={hideTime} />}
       <div className="min-w-0 flex-1 basis-40">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint">
           <span className={cx("min-w-0 max-w-full truncate", hideLabelOnMobile && "max-sm:hidden")}>{competition}</span>
