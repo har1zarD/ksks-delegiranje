@@ -18,27 +18,300 @@ export type Database = {
                   }
                   Relationships: []
                 }
-            "fiba_games": {
-                  Row: {
-                    "away_logo": string | null,"away_name": string,"away_score": number | null,"category": string | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"starts_at": string | null,"status": string,"stream_key": string | null,"updated_at": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"stream_key"?: string | null,"updated_at"?: string
-                  }
-                  Update: {
-                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"stream_key"?: string | null,"updated_at"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "fiba_games_competition_id_fkey"
-      columns: ["competition_id"]
-isOneToOne: false
-      referencedRelation: "fiba_competitions"
-      referencedColumns: ["id"]
-    }
-                  ]
-                }
+            fiba_games: {
+        Row: {
+          away_logo: string | null
+          away_name: string
+          away_score: number | null
+          category: string | null
+          competition_id: number | null
+          home_logo: string | null
+          home_name: string
+          home_score: number | null
+          id: number
+          live: boolean
+          starts_at: string | null
+          stats_at: string | null
+          status: string
+          stream_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          away_logo?: string | null
+          away_name: string
+          away_score?: number | null
+          category?: string | null
+          competition_id?: number | null
+          home_logo?: string | null
+          home_name: string
+          home_score?: number | null
+          id: number
+          live?: boolean
+          starts_at?: string | null
+          stats_at?: string | null
+          status?: string
+          stream_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          away_logo?: string | null
+          away_name?: string
+          away_score?: number | null
+          category?: string | null
+          competition_id?: number | null
+          home_logo?: string | null
+          home_name?: string
+          home_score?: number | null
+          id?: number
+          live?: boolean
+          starts_at?: string | null
+          stats_at?: string | null
+          status?: string
+          stream_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiba_games_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "fiba_competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+            fiba_player_games: {
+        Row: {
+          ast: number
+          blk: number
+          captain: boolean
+          dreb: number
+          eff: number
+          family_name: string | null
+          fd: number
+          fga: number
+          fgm: number
+          first_name: string | null
+          fta: number
+          ftm: number
+          game_id: number
+          number: string | null
+          oreb: number
+          pf: number
+          player_id: string
+          plus_minus: number
+          position: string | null
+          pts: number
+          reb: number
+          seconds: number
+          side: number
+          starter: boolean
+          stl: number
+          team_name: string
+          tov: number
+          tpa: number
+          tpm: number
+        }
+        Insert: {
+          ast?: number
+          blk?: number
+          captain?: boolean
+          dreb?: number
+          eff?: number
+          family_name?: string | null
+          fd?: number
+          fga?: number
+          fgm?: number
+          first_name?: string | null
+          fta?: number
+          ftm?: number
+          game_id: number
+          number?: string | null
+          oreb?: number
+          pf?: number
+          player_id: string
+          plus_minus?: number
+          position?: string | null
+          pts?: number
+          reb?: number
+          seconds?: number
+          side: number
+          starter?: boolean
+          stl?: number
+          team_name: string
+          tov?: number
+          tpa?: number
+          tpm?: number
+        }
+        Update: {
+          ast?: number
+          blk?: number
+          captain?: boolean
+          dreb?: number
+          eff?: number
+          family_name?: string | null
+          fd?: number
+          fga?: number
+          fgm?: number
+          first_name?: string | null
+          fta?: number
+          ftm?: number
+          game_id?: number
+          number?: string | null
+          oreb?: number
+          pf?: number
+          player_id?: string
+          plus_minus?: number
+          position?: string | null
+          pts?: number
+          reb?: number
+          seconds?: number
+          side?: number
+          starter?: boolean
+          stl?: number
+          team_name?: string
+          tov?: number
+          tpa?: number
+          tpm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiba_player_games_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "fiba_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+            fiba_team_aliases: {
+        Row: {
+          club_key: string
+          team_key: string
+        }
+        Insert: {
+          club_key: string
+          team_key: string
+        }
+        Update: {
+          club_key?: string
+          team_key?: string
+        }
+        Relationships: []
+      }
+            fiba_team_games: {
+        Row: {
+          ast: number
+          bench: number | null
+          biggest_lead: number | null
+          biggest_run: number | null
+          blk: number
+          club_key: string
+          coach: string | null
+          dreb: number
+          eff: number
+          fast_break: number | null
+          fga: number
+          fgm: number
+          from_turnovers: number | null
+          fta: number
+          ftm: number
+          game_id: number
+          lead_changes: number | null
+          oreb: number
+          paint: number | null
+          periods: number[]
+          pf: number
+          pts: number
+          reb: number
+          score: number
+          second_chance: number | null
+          side: number
+          stl: number
+          team_name: string
+          times_tied: number | null
+          tov: number
+          tpa: number
+          tpm: number
+        }
+        Insert: {
+          ast?: number
+          bench?: number | null
+          biggest_lead?: number | null
+          biggest_run?: number | null
+          blk?: number
+          club_key: string
+          coach?: string | null
+          dreb?: number
+          eff?: number
+          fast_break?: number | null
+          fga?: number
+          fgm?: number
+          from_turnovers?: number | null
+          fta?: number
+          ftm?: number
+          game_id: number
+          lead_changes?: number | null
+          oreb?: number
+          paint?: number | null
+          periods?: number[]
+          pf?: number
+          pts?: number
+          reb?: number
+          score: number
+          second_chance?: number | null
+          side: number
+          stl?: number
+          team_name: string
+          times_tied?: number | null
+          tov?: number
+          tpa?: number
+          tpm?: number
+        }
+        Update: {
+          ast?: number
+          bench?: number | null
+          biggest_lead?: number | null
+          biggest_run?: number | null
+          blk?: number
+          club_key?: string
+          coach?: string | null
+          dreb?: number
+          eff?: number
+          fast_break?: number | null
+          fga?: number
+          fgm?: number
+          from_turnovers?: number | null
+          fta?: number
+          ftm?: number
+          game_id?: number
+          lead_changes?: number | null
+          oreb?: number
+          paint?: number | null
+          periods?: number[]
+          pf?: number
+          pts?: number
+          reb?: number
+          score?: number
+          second_chance?: number | null
+          side?: number
+          stl?: number
+          team_name?: string
+          times_tied?: number | null
+          tov?: number
+          tpa?: number
+          tpm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiba_team_games_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "fiba_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
             "assignment_declines": {
                   Row: {
                     "declined_at": string,"id": string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string | null
@@ -562,8 +835,41 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
-          }
+      fiba_player_season: {
+        Row: {
+          ast: number | null
+          best_pts: number | null
+          blk: number | null
+          category: string | null
+          dreb: number | null
+          eff: number | null
+          family_name: string | null
+          fd: number | null
+          fga: number | null
+          fgm: number | null
+          first_name: string | null
+          fta: number | null
+          ftm: number | null
+          games: number | null
+          number: string | null
+          oreb: number | null
+          pf: number | null
+          player_id: string | null
+          plus_minus: number | null
+          season: string | null
+          pts: number | null
+          reb: number | null
+          seconds: number | null
+          starts: number | null
+          stl: number | null
+          team_name: string | null
+          tov: number | null
+          tpa: number | null
+          tpm: number | null
+        }
+        Relationships: []
+      }
+    }
           Functions: {
             "current_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]

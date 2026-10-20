@@ -97,6 +97,7 @@ type RawPlayer = RawPerson & {
   sBlocks: number;
   sTurnovers: number;
   sFoulsPersonal: number;
+  sFoulsOn?: number;
   sPlusMinusPoints: number;
   eff_1: number;
 };
@@ -128,6 +129,32 @@ type RawTeam = {
   tot_sTurnovers?: number;
   tot_sFoulsPersonal?: number;
   tot_eff_1?: number;
+  tot_sPointsInThePaint?: number;
+  tot_sPointsFastBreak?: number;
+  tot_sPointsSecondChance?: number;
+  tot_sPointsFromTurnovers?: number;
+  tot_sBenchPoints?: number;
+  tot_sBiggestLead?: number;
+  tot_sBiggestScoringRun?: number;
+  tot_sLeadChanges?: number;
+  tot_sTimesScoresLevel?: number;
+  tot_sTimeLeading?: number;
+};
+
+type RawAction = RawPerson & {
+  actionNumber: number;
+  actionType: string;
+  subType?: string;
+  period: number;
+  periodType?: string;
+  gt: string;
+  s1: string;
+  s2: string;
+  tno: number;
+  success: number;
+  scoring: number;
+  shirtNumber?: string;
+  qualifier?: string[];
 };
 
 type RawGame = {
@@ -136,10 +163,12 @@ type RawGame = {
   periodType: string;
   inOT: number;
   periodsMax: number;
+  periodLengthREGULAR?: number;
+  periodLengthOVERTIME?: number;
   attendance?: number;
   tm: Record<"1" | "2", RawTeam>;
   officials?: Record<string, RawPerson | undefined>;
-  pbp?: { actionType: string; subType?: string; period: number }[];
+  pbp?: RawAction[];
 };
 
 export type FibaLine = {
@@ -164,6 +193,10 @@ export type FibaLine = {
 export type FibaPlayer = FibaLine & {
   number: string;
   name: string;
+  firstName: string | null;
+  familyName: string | null;
+  /** Iznuđene lične greške */
+  fd: number;
   starter: boolean;
   captain: boolean;
   onCourt: boolean;
@@ -181,6 +214,30 @@ export type FibaTeam = {
   periods: number[];
   players: FibaPlayer[];
   totals: FibaLine;
+  /** Poeni iz reketa, kontre, druge šanse, nakon izgubljene lopte, s klupe; najveće vodstvo i serija… (null = FIBA ne vodi) */
+  extras: Record<FibaExtra, number | null>;
+};
+
+export type FibaExtra = "paint" | "fastBreak" | "secondChance" | "fromTurnovers" | "bench" | "biggestLead" | "biggestRun" | "leadChanges" | "timesTied";
+
+/** Akcija u toku utakmice (play-by-play), od prve do zadnje */
+export type FibaAction = {
+  n: number;
+  period: number;
+  /** Preostalo vrijeme perioda "07:43" */
+  clock: string;
+  /** Sekunde od početka utakmice */
+  elapsed: number;
+  /** 1 domaćin, 2 gost, 0 bez ekipe (početak/kraj perioda) */
+  side: 0 | 1 | 2;
+  type: string;
+  subType: string;
+  success: boolean;
+  scoring: boolean;
+  player: string | null;
+  number: string | null;
+  home: number;
+  away: number;
 };
 
 export type FibaGame = {
@@ -193,6 +250,9 @@ export type FibaGame = {
   home: FibaTeam;
   away: FibaTeam;
   officials: { role: string; name: string }[];
+  /** Trajanje četvrtine i produžetka u minutama */
+  periodMinutes: { regular: number; overtime: number };
+  actions: FibaAction[];
 };
 
 const OFFICIALS: [string, string][] = [
@@ -204,13 +264,24 @@ const OFFICIALS: [string, string][] = [
 
 const personName = (p: RawPerson) => p.name ?? [p.firstName, p.familyName].filter(Boolean).join(" ");
 
+/** "MEDIN Duskaj" → "Medin Duskaj": riječi pisane velikim slovima dobiju veliko samo prvo slovo */
+export function properName(s: string) {
+  return s.replace(/\p{L}[\p{L}'’-]*/gu, (w) => (w.length > 1 && w === w.toUpperCase() ? w.charAt(0) + w.slice(1).toLowerCase() : w));
+}
+
+/** Puno ime igrača ("Joshua Ola-Joseph"), inače FIBA skraćeno ("J. Ola-Joseph") */
+const fullName = (p: RawPerson) => properName([p.firstName, p.familyName].filter(Boolean).join(" ") || p.name || "");
+
 function team(t: RawTeam): FibaTeam {
   const periods: number[] = [];
   for (let i = 1; t[`p${i}_score`] !== undefined; i++) periods.push(Number(t[`p${i}_score`]));
   const players = Object.values(t.pl ?? {})
     .map<FibaPlayer>((p) => ({
       number: p.shirtNumber,
-      name: personName(p),
+      name: fullName(p),
+      firstName: p.firstName || null,
+      familyName: p.familyName || null,
+      fd: p.sFoulsOn ?? 0,
       starter: p.starter === 1,
       captain: p.captain === 1,
       onCourt: p.active === 1,
@@ -262,7 +333,52 @@ function team(t: RawTeam): FibaTeam {
       pf: t.tot_sFoulsPersonal ?? 0,
       eff: t.tot_eff_1 ?? 0,
     },
+    extras: {
+      paint: t.tot_sPointsInThePaint ?? null,
+      fastBreak: t.tot_sPointsFastBreak ?? null,
+      secondChance: t.tot_sPointsSecondChance ?? null,
+      fromTurnovers: t.tot_sPointsFromTurnovers ?? null,
+      bench: t.tot_sBenchPoints ?? null,
+      biggestLead: t.tot_sBiggestLead ?? null,
+      biggestRun: t.tot_sBiggestScoringRun ?? null,
+      leadChanges: t.tot_sLeadChanges ?? null,
+      timesTied: t.tot_sTimesScoresLevel ?? null,
+    },
   };
+}
+
+/** "07:43" → sekunde */
+const clockSeconds = (gt: string) => {
+  const [m, s] = gt.split(":").map(Number);
+  return (m || 0) * 60 + (s || 0);
+};
+
+/** Play-by-play od početka (FIBA daje od zadnje akcije); vrijeme od početka utakmice za grafikon toka */
+function actions(g: RawGame): FibaAction[] {
+  const regular = (g.periodLengthREGULAR ?? 10) * 60;
+  const overtime = (g.periodLengthOVERTIME ?? 5) * 60;
+  const start = (period: number) => (period <= 4 ? (period - 1) * regular : 4 * regular + (period - 5) * overtime);
+  return [...(g.pbp ?? [])]
+    .sort((a, b) => a.actionNumber - b.actionNumber)
+    .map((a) => {
+      const length = a.period <= 4 ? regular : overtime;
+      const name = a.firstName || a.familyName ? fullName(a) : null;
+      return {
+        n: a.actionNumber,
+        period: a.period,
+        clock: a.gt,
+        elapsed: start(a.period) + Math.max(0, length - clockSeconds(a.gt)),
+        side: a.tno === 1 || a.tno === 2 ? a.tno : 0,
+        type: a.actionType,
+        subType: a.subType ?? "",
+        success: a.success === 1,
+        scoring: a.scoring === 1,
+        player: name,
+        number: a.shirtNumber || null,
+        home: Number(a.s1) || 0,
+        away: Number(a.s2) || 0,
+      };
+    });
 }
 
 /** Stanje iz play-by-play: "game end" = završena, bilo koja akcija = u toku */
@@ -289,8 +405,10 @@ export async function fetchFibaGame(matchId: number, startsAt?: string | null): 
     officials: OFFICIALS.flatMap(([key, role]) => {
       const p = g.officials?.[key];
       const name = p && personName(p);
-      return name ? [{ role, name }] : [];
+      return name ? [{ role, name: properName(name) }] : [];
     }),
+    periodMinutes: { regular: g.periodLengthREGULAR ?? 10, overtime: g.periodLengthOVERTIME ?? 5 },
+    actions: actions(g),
   };
 }
 
@@ -321,6 +439,7 @@ const SENIOR_CATEGORIES = new Set(["plbih", "plbih_z", "a1", "a2"]);
 
 /** "Premijer liga" ili "Omladinska liga KS, Kadeti" (naslov FIBA utakmice) */
 export function fibaCategoryLabel(category: string | null | undefined) {
+  if (category === "ostalo") return "Turniri i prijateljske";
   const label = FIBA_CATEGORIES.find((c) => c.key === category)?.label;
   if (category && SENIOR_CATEGORIES.has(category)) return label!;
   return label ? `Omladinska liga KS, ${label}` : "Omladinska liga KS";

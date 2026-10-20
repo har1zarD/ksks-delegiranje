@@ -16,6 +16,7 @@ import { MatchLineSkeleton, SegmentsSkeleton, Skeleton, StatusSkeleton, Text, ti
 import { ButtonLink, cx, Empty, PageHeader, Rows, ROWS, Segments, Status } from "@/components/ui";
 import { QuickAssign } from "./quick-assign";
 import { ScheduleEdit } from "./schedule-edit";
+import { paginateDays, pageRange } from "@/lib/paginate";
 
 export const metadata = { title: "Utakmice — KSKS" };
 
@@ -299,33 +300,6 @@ function SheetMark() {
       Zapisnik
     </span>
   );
-}
-
-/** Stranica ima cijele dane, dok ne skupi bar PAGE_MATCHES utakmica (dan se nikad ne dijeli) */
-const PAGE_MATCHES = 20;
-
-function paginateDays<T>(days: [string, T[]][]) {
-  const pages: [string, T[]][][] = [];
-  let count = PAGE_MATCHES;
-  for (const d of days) {
-    if (count >= PAGE_MATCHES) {
-      pages.push([]);
-      count = 0;
-    }
-    pages[pages.length - 1].push(d);
-    count += d[1].length;
-  }
-  return pages;
-}
-
-const shortDay = new Intl.DateTimeFormat("bs-BA", { day: "numeric", month: "short", timeZone: "UTC" });
-
-/** "24. okt – 14. nov" (prvi i zadnji dan stranice) */
-function pageRange(page: [string, unknown[]][]) {
-  const fmt = (day: string) => shortDay.format(new Date(`${day}T12:00:00Z`)).replace(/\.$/, "");
-  const first = fmt(page[0][0]);
-  const last = fmt(page[page.length - 1][0]);
-  return first === last ? first : `${first} – ${last}`;
 }
 
 /** Kao raspored: filteri, pa dani s utakmicama (datum, utakmica, stanje delegiranja) */

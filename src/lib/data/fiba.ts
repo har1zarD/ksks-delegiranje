@@ -158,3 +158,104 @@ export async function getLinkCandidates(startsAt: string | null) {
       .order("starts_at"),
   );
 }
+
+// ───────── Statistika (box score završenih utakmica u bazi: fiba_player_games, fiba_team_games) ─────────
+
+const LINE = "pts, fgm, fga, tpm, tpa, ftm, fta, oreb, dreb, reb, ast, stl, blk, tov, pf, eff" as const;
+const TEAM_GAME = `game_id, side, team_name, club_key, coach, score, periods, ${LINE}, paint, fast_break, second_chance, from_turnovers, bench, biggest_lead, biggest_run, lead_changes, times_tied` as const;
+const PLAYER_GAME = `game_id, side, player_id, team_name, first_name, family_name, number, position, starter, captain, seconds, ${LINE}, fd, plus_minus` as const;
+
+/** Klubovi FIBA ekipa (ID igrača = klub + ime) */
+async function teamAliases() {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba);
+  const data = rows(await createAdminClient().from("fiba_team_aliases").select("team_key, club_key"));
+  return Object.fromEntries(data.map((a) => [a.team_key, a.club_key]));
+}
+
+/** Statistika ekipa svih završenih utakmica (četvrtine za listu, prosjeci ekipa) */
+async function teamGames() {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba);
+  return rows(await createAdminClient().from("fiba_team_games").select(TEAM_GAME).limit(5000));
+}
+
+/** Prosjeci igrača jedne kategorije u sezoni (pogled fiba_player_season) */
+async function seasonRows(category: string, season: string) {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba);
+  return rows(await createAdminClient().from("fiba_player_season").select("*").eq("category", category).eq("season", season).limit(5000));
+}
+
+/** Sve utakmice jednog igrača, najnovija prva */
+async function playerLines(playerId: string) {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba);
+  return rows(
+    await createAdminClient()
+      .from("fiba_player_games")
+      .select(`${PLAYER_GAME}, game:fiba_games!inner ( ${GAME_COLUMNS} )`)
+      .eq("player_id", playerId),
+  ).sort((a, b) => Date.parse(b.game.starts_at ?? "") - Date.parse(a.game.starts_at ?? ""));
+}
+
+/** Igrači jedne ekipe u kategoriji, po utakmici */
+async function teamPlayerLines(category: string, teamName: string) {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba);
+  return rows(
+    await createAdminClient()
+      .from("fiba_player_games")
+      .select(`${PLAYER_GAME}, game:fiba_games!inner ( id, category, starts_at )`)
+      .eq("team_name", teamName)
+      .eq("game.category", category)
+      .limit(5000),
+  );
+}
+
+export type FibaTeamGame = Awaited<ReturnType<typeof teamGames>>[number];
+export type FibaSeasonRow = Awaited<ReturnType<typeof seasonRows>>[number];
+
+/** Četvrtine i statistika ekipa po FIBA utakmici: { [gameId]: [domaćin, gost] } */
+export async function getFibaTeamGames() {
+  await getCurrentUser();
+  const byGame = new Map<number, FibaTeamGame[]>();
+  for (const t of await teamGames()) byGame.set(t.game_id, [...(byGame.get(t.game_id) ?? []), t].sort((a, b) => a.side - b.side));
+  return byGame;
+}
+
+/** Igrači kategorije u sezoni (prosjeci) s logom ekipe */
+export async function getFibaSeason(category: string, seasonKey: string) {
+  await getCurrentUser();
+  const [season, logos] = await Promise.all([seasonRows(category, seasonKey), clubLogos()]);
+  return season.map((p) => ({ ...p, logo: logos[fibaClubName(p.team_name ?? "")] ?? null }));
+}
+
+export async function getFibaAliases() {
+  await getCurrentUser();
+  return teamAliases();
+}
+
+/** Igrač: sve njegove utakmice (s rezultatom i protivnikom) */
+export async function getFibaPlayer(playerId: string) {
+  await getCurrentUser();
+  const [lines, logos] = await Promise.all([playerLines(playerId), clubLogos()]);
+  return lines.map((l) => ({ ...l, game: withClubLogos(l.game, logos) }));
+}
+
+/** Igrači ekipe u kategoriji (po utakmici) */
+export async function getFibaTeamPlayers(category: string, teamName: string) {
+  await getCurrentUser();
+  return teamPlayerLines(category, teamName);
+}
+
+/** Logo FIBA ekipe po nazivu */
+export async function getFibaLogo(name: string) {
+  await getCurrentUser();
+  return (await clubLogos())[fibaClubName(name)] ?? null;
+}
