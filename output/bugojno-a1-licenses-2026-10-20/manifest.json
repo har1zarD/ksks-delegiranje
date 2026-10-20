@@ -1,0 +1,302 @@
+{
+  "status": "imported_and_verified",
+  "club": "KK Bugojno",
+  "competition": "A1 liga žene",
+  "season": "2026/27",
+  "club_id": "03d4df12-f427-4cda-91a3-201fd805f45c",
+  "competition_id": "443667aa-44cf-4c3c-9934-5b3d426c8de4",
+  "source": "/Users/tarikvelic/Downloads/Bugojno/Lista KSK SARAJEVO.pdf",
+  "photos": [
+    {
+      "index": 1,
+      "person": "Asja Hasanbegović",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/ASJA Hasanbegović.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/ASJA Hasanbegović.jpg",
+      "original_sha256": "d3eeb97fac07896ca20682ae879ba8ba3c2c369315f9c3b3a7aa3bad46008c6e",
+      "sha256": "d3eeb97fac07896ca20682ae879ba8ba3c2c369315f9c3b3a7aa3bad46008c6e",
+      "size": 263057,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-8077a3e3-dce4-4668-b067-a5f0fadd8fb4.jpg"
+    },
+    {
+      "index": 2,
+      "person": "Ilhana Hadžić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/ILHANA Hadžić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/ILHANA Hadžić.jpg",
+      "original_sha256": "48883a65d2320c8497831ef46765b14f15ff5890752702ba66c947fc3b8f3ebf",
+      "sha256": "48883a65d2320c8497831ef46765b14f15ff5890752702ba66c947fc3b8f3ebf",
+      "size": 401862,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-6ec845da-7561-46ef-bd59-2759846bd6a2.jpg"
+    },
+    {
+      "index": 3,
+      "person": "Belma Arnautović",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/BELMA Arnautović.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/BELMA Arnautović.jpg",
+      "original_sha256": "499de8cffafe0febcbc32c715ff690a57cffaa8214eb18883b9733e102579ec6",
+      "sha256": "499de8cffafe0febcbc32c715ff690a57cffaa8214eb18883b9733e102579ec6",
+      "size": 421806,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-100a6408-56f6-4932-ac1d-638dc8057653.jpg"
+    },
+    {
+      "index": 4,
+      "person": "Ilma Gulamić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/ILMA Gulamić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/ILMA Gulamić.jpg",
+      "original_sha256": "97af688b2d88eceb8dcc2b69dd952c908be15d6f030e937ccf4f9a4e0a6ba107",
+      "sha256": "97af688b2d88eceb8dcc2b69dd952c908be15d6f030e937ccf4f9a4e0a6ba107",
+      "size": 199811,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-af52fd87-5daa-40bc-85de-630be5a493db.jpg"
+    },
+    {
+      "index": 5,
+      "person": "Lena Zeljko",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/LENA Zeljko.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/LENA Zeljko.jpg",
+      "original_sha256": "a6d46226399e8df9a8b8f6bb29bdf0b5da33eee6ad0271056c814f8ab7af6084",
+      "sha256": "a6d46226399e8df9a8b8f6bb29bdf0b5da33eee6ad0271056c814f8ab7af6084",
+      "size": 140977,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-fd3d960d-ccba-4dc9-aa73-61c203f00b28.jpg"
+    },
+    {
+      "index": 6,
+      "person": "Monika Šafradin",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/MONIKA Šafradin.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/MONIKA Šafradin.jpg",
+      "original_sha256": "9c08f220fdd0530a4f6dfe6a4437da7afd6b2328402b0beec2440082c1ee279a",
+      "sha256": "9c08f220fdd0530a4f6dfe6a4437da7afd6b2328402b0beec2440082c1ee279a",
+      "size": 469144,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-6ab1f46b-f2e1-48fa-9f82-9bcb0e1e7c7b.jpg"
+    },
+    {
+      "index": 7,
+      "person": "Nejla Mujčić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/NEJLA Mujčić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/NEJLA Mujčić.jpg",
+      "original_sha256": "2eceac9313dd5167478e8fd2ccd018de56599055492adf756af4fb44ec451650",
+      "sha256": "2eceac9313dd5167478e8fd2ccd018de56599055492adf756af4fb44ec451650",
+      "size": 430533,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-d933db9d-2b08-499f-b476-94b78465373e.jpg"
+    },
+    {
+      "index": 8,
+      "person": "Nikol Peša",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/NIKOL Peša.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/NIKOL Peša.jpg",
+      "original_sha256": "48c8361d969381f48bb436f250a6869262f1df1bd4792bee57def5301b02e796",
+      "sha256": "48c8361d969381f48bb436f250a6869262f1df1bd4792bee57def5301b02e796",
+      "size": 279436,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-7cb594fd-bbc7-4e5a-af6d-06d9158de133.jpg"
+    },
+    {
+      "index": 9,
+      "person": "Naida Rejan",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/NAIDA.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/NAIDA.jpg",
+      "original_sha256": "e41f8f8c5bd13d92b32c47bd903c7c88419c9aafca7c07bf2ae8aecbbd2737ff",
+      "sha256": "e41f8f8c5bd13d92b32c47bd903c7c88419c9aafca7c07bf2ae8aecbbd2737ff",
+      "size": 259852,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-b7617d28-2b73-41f3-836e-d3684a77abbd.jpg"
+    },
+    {
+      "index": 10,
+      "person": "Lejla Mešan",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/LEJLA Mešan.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/LEJLA Mešan.jpg",
+      "original_sha256": "558d6750540ae1a87d4a868536805978ddc21bdb362ca704c3aa66f1fff1a695",
+      "sha256": "558d6750540ae1a87d4a868536805978ddc21bdb362ca704c3aa66f1fff1a695",
+      "size": 397224,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-c9aab496-02d5-41b3-b708-71d1fc36e153.jpg"
+    },
+    {
+      "index": 11,
+      "person": "Marija Bojanić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/MARIJA Bojanić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/MARIJA Bojanić.jpg",
+      "original_sha256": "5edddb37c9f823f9c8f73b5592a0b318d3aa383b500c30676ec32ade89f2051d",
+      "sha256": "5edddb37c9f823f9c8f73b5592a0b318d3aa383b500c30676ec32ade89f2051d",
+      "size": 425465,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-49ce6664-cb32-44bb-ac42-2013473b05bd.jpg"
+    },
+    {
+      "index": 12,
+      "person": "Rahela Porča",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/RAHELA Porča.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/RAHELA Porča.jpg",
+      "original_sha256": "bf389ff024ef8f379ad1b2b8ba1d3bc16699ce2360bd2048f3a3cf89c5181f18",
+      "sha256": "bf389ff024ef8f379ad1b2b8ba1d3bc16699ce2360bd2048f3a3cf89c5181f18",
+      "size": 165401,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-78e974db-4f0f-4545-8582-7da61441f857.jpg"
+    },
+    {
+      "index": 13,
+      "person": "Amra Hurić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/AMRA Hurić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/AMRA Hurić.jpg",
+      "original_sha256": "b2b1577c29edfe54c058936f3918a9583712e3b9214d57f2c7c15debb565c9f3",
+      "sha256": "b2b1577c29edfe54c058936f3918a9583712e3b9214d57f2c7c15debb565c9f3",
+      "size": 408271,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-18587e8a-176d-4c46-af9a-81d6bd399b37.jpg"
+    },
+    {
+      "index": 14,
+      "person": "Sajra Baručija",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/SAJRA Baručija.jpg",
+      "source": "/Users/tarikvelic/KSKS/ksks-delegiranje/output/bugojno-a1-licenses-2026-10-20/sajra-barucija.webp",
+      "original_sha256": "888db3059c38a1d87c44ff546bb89d986c1439ba2f22302190467cf7514899f8",
+      "sha256": "c3d3fcd3b63d7bee5e8f8195b15591e9a271a693d3ef5e33754ce295c7036f9b",
+      "size": 78028,
+      "content_type": "image/webp",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-5acfe803-eaec-4cce-8c2b-943f12ca8c8d.webp"
+    },
+    {
+      "index": 15,
+      "person": "Sarah Mešinović",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/SARAH Mešinović.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/SARAH Mešinović.jpg",
+      "original_sha256": "10f7f9bad8852dd69ed8b6c1c2a8906deb894985cf9a4938b757152595a4168f",
+      "sha256": "10f7f9bad8852dd69ed8b6c1c2a8906deb894985cf9a4938b757152595a4168f",
+      "size": 402718,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-bac905a5-299a-4c77-949b-8b8fe474a3a5.jpg"
+    },
+    {
+      "index": 16,
+      "person": "Amina Ajkić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/AMINA Ajkić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/AMINA Ajkić.jpg",
+      "original_sha256": "fa273800b5bdddab6b237a6039067dc0ec31e77dcb3cc86305c7935029e6844f",
+      "sha256": "fa273800b5bdddab6b237a6039067dc0ec31e77dcb3cc86305c7935029e6844f",
+      "size": 260176,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-84742bd5-5b38-4e4c-8db5-fd1c32fc0fbc.jpg"
+    },
+    {
+      "index": 17,
+      "person": "Sajra Hakanović",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/SAJRA Hakanović.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/SAJRA Hakanović.jpg",
+      "original_sha256": "9b15516a2a80ca075f2b45f3050cfe396947ac0f718de22596025312fc8b7714",
+      "sha256": "9b15516a2a80ca075f2b45f3050cfe396947ac0f718de22596025312fc8b7714",
+      "size": 320622,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-8aa19e36-ab5e-4c24-ad40-0884ea6dead5.jpg"
+    },
+    {
+      "index": 18,
+      "person": "Lejla Sadiković",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/LEJLA SADIKOVIĆ.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/LEJLA SADIKOVIĆ.jpg",
+      "original_sha256": "970fc89e39ef3bde292471d3ac04bff4576f22283144efc842c82362830e3d9d",
+      "sha256": "970fc89e39ef3bde292471d3ac04bff4576f22283144efc842c82362830e3d9d",
+      "size": 406156,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-50193d7b-ff6e-4ad1-8590-e91b47c00e9a.jpg"
+    },
+    {
+      "index": 19,
+      "person": "Zaim Zajmović",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/ZAIM ZAJMOVIĆ.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/ZAIM ZAJMOVIĆ.jpg",
+      "original_sha256": "932e4ab5aac349df877c940218f4d4e6d3629c0ea3273cdb0d4064f391901d96",
+      "sha256": "932e4ab5aac349df877c940218f4d4e6d3629c0ea3273cdb0d4064f391901d96",
+      "size": 3150673,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-8a7e2b07-46c8-4ceb-9e83-070211e59f6e.jpg"
+    },
+    {
+      "index": 20,
+      "person": "Izet Kelić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/IZET Kelić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/IZET Kelić.jpg",
+      "original_sha256": "0a6e2cd5011535693d958c6a59779e2f083c36eec5d877dcb29ff4e181c523b6",
+      "sha256": "0a6e2cd5011535693d958c6a59779e2f083c36eec5d877dcb29ff4e181c523b6",
+      "size": 292704,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-ac652188-6195-43f1-9f0b-aa1068590cb6.jpg"
+    },
+    {
+      "index": 21,
+      "person": "Miro Dražić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/MIRO Dražić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/MIRO Dražić.jpg",
+      "original_sha256": "7f7bb88fff7e67f998f11c862ca375e02105eedd869f3ccb877f955a8095ca86",
+      "sha256": "7f7bb88fff7e67f998f11c862ca375e02105eedd869f3ccb877f955a8095ca86",
+      "size": 377703,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-c0907ec0-1be2-451c-a895-cf35c319566c.jpg"
+    },
+    {
+      "index": 22,
+      "person": "Mersed Mešan",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/MERSED Mešan.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/MERSED Mešan.jpg",
+      "original_sha256": "32e8f878c190065269bf9df5c7f384700867febc358f3dd774f1c475dc324cd3",
+      "sha256": "32e8f878c190065269bf9df5c7f384700867febc358f3dd774f1c475dc324cd3",
+      "size": 222966,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-948344ab-dc39-4698-9400-c57f2075123c.jpg"
+    },
+    {
+      "index": 23,
+      "person": "Mirza Ćatić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/MIRZA ĆATIĆ.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/MIRZA ĆATIĆ.jpg",
+      "original_sha256": "a1765d9b8c58651907567e1ff79d32af4d4be0d77c937050c6d38373edd7abfd",
+      "sha256": "a1765d9b8c58651907567e1ff79d32af4d4be0d77c937050c6d38373edd7abfd",
+      "size": 769433,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-31a4f90a-f884-4d8e-a8fd-249d715c7818.jpg"
+    },
+    {
+      "index": 24,
+      "person": "Dragan Mučibabić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/DRAGAN Mučibabić.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/DRAGAN Mučibabić.jpg",
+      "original_sha256": "b7b3652c423533f6a5fa4d5d3410b02197d18725d85e724c3a0ce07db3ea2635",
+      "sha256": "b7b3652c423533f6a5fa4d5d3410b02197d18725d85e724c3a0ce07db3ea2635",
+      "size": 2236552,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-2ead80a7-1309-4e08-b0d4-6d1711ce4491.jpg"
+    },
+    {
+      "index": 25,
+      "person": "Adila Ganić",
+      "original": "/Users/tarikvelic/Downloads/Bugojno/ADILA GANIĆ.jpg",
+      "source": "/Users/tarikvelic/Downloads/Bugojno/ADILA GANIĆ.jpg",
+      "original_sha256": "9f2be31166654338f8c84c58cf4f5f6e27bdcdb569b927f07843d6b2472af20d",
+      "sha256": "9f2be31166654338f8c84c58cf4f5f6e27bdcdb569b927f07843d6b2472af20d",
+      "size": 127686,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-7b58c829-a4ea-4308-9da4-ef3826419c5e.jpg"
+    }
+  ],
+  "missing_photos": [
+    "Tajra Jašarević",
+    "Ajla Čatić",
+    "Amelisa Karagić",
+    "Enes Trapo"
+  ],
+  "notes": [
+    "Birth places and license numbers were not provided. Bugojno is the registration club, not the birth place.",
+    "Positions normalized: PLAY → PG, BEK → SG, KRILO → SF, CENTAR → C.",
+    "Mersed Mešan has two separate official licenses (doctor and representative), sharing one photo.",
+    "Identical duplicate photographs of Ilma Gulamić and Sajra Baručija excluded.",
+    "NAIDA.jpg mapped to Naida Rejan, the only Naida on the roster.",
+    "Sajra Baručija photo converted to 1200×1600 WebP to meet the 5 MiB storage limit.",
+    "Ljekarski 2627.jpg is a supporting document, not a portrait; not uploaded to license photos.",
+    "Naida's photo is labeled REJHAN; surname Rejan retained exactly as printed in the PDF."
+  ]
+}

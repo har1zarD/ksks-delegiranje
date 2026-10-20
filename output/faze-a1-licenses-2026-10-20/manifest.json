@@ -1,0 +1,164 @@
+{
+  "status": "imported_and_verified",
+  "club": "ŽKK Faze",
+  "competition": "A1 liga žene",
+  "season": "2026/27",
+  "club_id": "24292426-bf56-4824-8578-d3addfdd5fdb",
+  "competition_id": "443667aa-44cf-4c3c-9934-5b3d426c8de4",
+  "source": "/Users/tarikvelic/Downloads/spisak za licenciranje  2026-2027_A1_kk FaZe (2).docx",
+  "photos": [
+    {
+      "index": 1,
+      "name": "Najda Njemčević",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Najda Njemcevic_2009_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-5b4595a8-47a9-49b7-b524-e20884fff2a1.jpg",
+      "sha256": "23582b00f4462b94b97715b60aeabab41e98830daf673af80bbf6a09c5e85885",
+      "size": 76129
+    },
+    {
+      "index": 2,
+      "name": "Hanadi Jašarević",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Hanadi Jasarevic_2010_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-8a500c54-29d6-4582-9d3c-e106075cd0d2.jpg",
+      "sha256": "c0e3026f58ac263ce4bf7527178182ffbf132d77d2b418ff1855c986a4dda2de",
+      "size": 117337
+    },
+    {
+      "index": 3,
+      "name": "Azra Dautbegović",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Azra Dautbegovic_photo.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-86f2a7c7-2a6a-4758-8ab1-fb5920bd4af4.jpg",
+      "sha256": "3e61954e22ce434abea5079026de3b6fe29f0b2145feae6109c7e05a7c380812",
+      "size": 7628
+    },
+    {
+      "index": 4,
+      "name": "Ajla Kukuljac",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Ajla Kukuljac_2010_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-b83fd3d4-0649-4e25-a364-a89b9fedf8fd.jpg",
+      "sha256": "9cb2c01c3b20c148b31902e838e37263f4b5608c5cbdc79b887bf036167cf3d3",
+      "size": 154509
+    },
+    {
+      "index": 5,
+      "name": "Lamija Buljugić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Buljugić Lamija_photo.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-c41fe3d9-7e67-4fe5-b118-2d6c3659bd11.jpg",
+      "sha256": "1c1e1add2e885216568e71d64d21e38bf49dceee48380b1c82e85c1d55dfe2d6",
+      "size": 37240
+    },
+    {
+      "index": 6,
+      "name": "Ilma Likić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Ilma Likic_photo.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-7bb95bba-483f-41b1-96bd-25965a3315c6.jpg",
+      "sha256": "765a79deb476af897a07b1436a72d2f6d1a48f9524a93c3c80bfde5bbbbe7c8e",
+      "size": 21839
+    },
+    {
+      "index": 7,
+      "name": "Esma Alijagić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Esma Alijagic_2011_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-1a63d88c-a8b0-4d69-bf68-2521403ddeff.jpg",
+      "sha256": "ea46d88eec7a6da408d7a78697d3ba158c6c7d77e0321efc110866aad367a01c",
+      "size": 84343
+    },
+    {
+      "index": 8,
+      "name": "Sara Jašić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Sara Jasic_2012_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-46d9ec35-b756-440d-bbfc-5ea431285775.jpg",
+      "sha256": "d5f500e4f4290fdff31d68869ade7b92177f00deca3b49c440626ac493b3a260",
+      "size": 261975
+    },
+    {
+      "index": 9,
+      "name": "Ejla Hrgić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Ejla Hrgic_2012_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-47a29ce3-5afa-4b62-8080-dd0be7587648.jpg",
+      "sha256": "d2430da1590a6e3ef654b63d045674960e238c069d6967b1317f8d2341e9645e",
+      "size": 76903
+    },
+    {
+      "index": 10,
+      "name": "Amna Balta",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Amna Balta_2011_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-1c99131a-d959-4e98-93fa-fe93f38ec539.jpg",
+      "sha256": "5f9f7971fbbb617188642a8104a43d0dde07d5930fdd051abe34af9ad33c3b59",
+      "size": 89633
+    },
+    {
+      "index": 11,
+      "name": "Uma Pita",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Uma Pita_2013_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-3794e68b-3895-4c17-8298-a66d54faeaea.jpg",
+      "sha256": "a1b4645c9c9f81c61abf5493fe9b2a7fce367509874f5a82c4c5763dcd558e3e",
+      "size": 88972
+    },
+    {
+      "index": 12,
+      "name": "Nejra Ajanović",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Nejra Ajanovic_2013_photo_kk Faze.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-ab6c2647-1327-458e-a0a0-6c733cebc18b.jpg",
+      "sha256": "421aca03a23eef917542393e64df44fb1db4bdef7e2f12846aff3758c04677b6",
+      "size": 147199
+    },
+    {
+      "index": 13,
+      "name": "Una Avdić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Avdić Una_photo.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-7453c344-5116-4495-83cf-f58e68feed4f.jpg",
+      "sha256": "41ac458a9631b139f8f24c1abfedbb297a2482cf7e0920461c2d129fcab16ba3",
+      "size": 35546
+    },
+    {
+      "index": 14,
+      "name": "Tayra Kočo",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Kočo Tajra.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-351a6fd8-bfea-4b73-b49e-28cf348e61b0.jpg",
+      "sha256": "b8ea59e4333830414c647ff6d0216a37df5ba46c66e3179a4547a53d68151139",
+      "size": 30943
+    },
+    {
+      "index": 15,
+      "name": "Nidžara Munković",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Munković Nidžara.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-2c5f8624-827f-4074-a6c2-afa7c05cf898.jpg",
+      "sha256": "a85139a96baa1847f958b66ae016c4790ffbff0d4794ddf0939f66b338528637",
+      "size": 76990
+    },
+    {
+      "index": 16,
+      "name": "Amir Aljilji",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Aljilji Amir.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-7b240984-ed2d-479e-b469-420d1278071d.jpg",
+      "sha256": "a3629f0f17d268e30ef90349e2255ededf81c4ead82edeaf535735836c525c74",
+      "size": 54571
+    },
+    {
+      "index": 17,
+      "name": "Edin Buljugić",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Buljugić Edin.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-997ca0fb-235b-442e-ba5e-5ee440fe5dbd.jpg",
+      "sha256": "ce8e06e9b503c68721c84831337156740658d2ac47bb044f0a0dd58cc00a9269",
+      "size": 54567
+    },
+    {
+      "index": 18,
+      "name": "Edin Dautbegović",
+      "source": "/Users/tarikvelic/Downloads/KK Faze/Dautbegovic Edin.jpg",
+      "path": "24292426-bf56-4824-8578-d3addfdd5fdb/faze-2026-27-53b189a6-99ce-430c-b0e8-220219c06d83.jpg",
+      "sha256": "2d1b4917572ed429d875928f00918225cedf14f3a81030627ed66b6c9ede7c96",
+      "size": 40295
+    }
+  ],
+  "notes": [
+    "Sara Jašić birth date is 2011-09-30 per DOCX; photo filename contains 2012.",
+    "Tayra Kočo spelling retained from DOCX; photo filename says Tajra.",
+    "Doctor title dr. omitted from first_name; Edin Buljugić has role Ljekar.",
+    "Positions retained verbatim from DOCX, including Plajmejker.",
+    "All 18 license numbers are blank in source and remain null.",
+    "Official birth details are not supplied and remain null.",
+    "Original photographs are stored without edits in the private licenses bucket."
+  ]
+}

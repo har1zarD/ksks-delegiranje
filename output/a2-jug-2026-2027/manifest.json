@@ -1,0 +1,60 @@
+{
+  "competition": "A2 liga jug KSBiH",
+  "season": "2026/27",
+  "source": "/Users/tarikvelic/Downloads/A2 LIGA GRUPA JUG 2026-2027.pdf",
+  "sourcePage": 3,
+  "scope": "teams-and-logos-only",
+  "teams": [
+    {
+      "name": "Vukovi",
+      "clubName": "KK Vukovi",
+      "sort": 1
+    },
+    {
+      "name": "Never Stop",
+      "clubName": "KK Never Stop",
+      "sort": 2
+    },
+    {
+      "name": "Lokomotiva",
+      "clubName": "KK Lokomotiva J&A",
+      "sort": 3
+    },
+    {
+      "name": "Point",
+      "clubName": "KK Point",
+      "sort": 4
+    },
+    {
+      "name": "Hrasnica",
+      "clubName": "KK Hrasnica",
+      "sort": 5
+    },
+    {
+      "name": "Čelik",
+      "clubName": "KK Čelik",
+      "sort": 6
+    },
+    {
+      "name": "Realway",
+      "clubName": "KK Realway",
+      "sort": 7
+    },
+    {
+      "name": "Mladost",
+      "clubName": "KK Mladost",
+      "sort": 8
+    },
+    {
+      "name": "Ilidža",
+      "clubName": "KK Ilidža",
+      "sort": 9
+    },
+    {
+      "name": "Star Fojnica",
+      "clubName": "KK Star",
+      "sort": 10
+    }
+  ],
+  "removalApproved": true
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "4297ae22-453c-4a66-9f3d-f7df210041a3",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "3d01197f-2001-4b0e-82f3-0e98e490a5ba",
+    "name": "Vukovi",
+    "sort": 1
+  },
+  {
+    "id": "15315cb5-7893-4a76-a934-c729e9aa99ee",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "c5525224-841a-4c53-93b3-d05157259b2f",
+    "name": "Never Stop",
+    "sort": 2
+  },
+  {
+    "id": "760cc4c1-9986-4ecf-b79a-5ba17d5bd922",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "1d06ba2c-c999-4e14-b256-f41a7c5bcd07",
+    "name": "Lokomotiva",
+    "sort": 3
+  },
+  {
+    "id": "8840a236-eb54-4dea-875c-1ec6a43afde1",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "436f8af2-7691-4a1b-8666-71057277d861",
+    "name": "Point",
+    "sort": 4
+  },
+  {
+    "id": "a363895b-2c09-4151-8178-b25240524b81",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "dc904a0c-f1e0-4fac-8da6-51f0ace7be16",
+    "name": "Hrasnica",
+    "sort": 5
+  },
+  {
+    "id": "05df7806-8a74-48f3-acbf-93e6ddc3079f",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "484c9753-58c1-4760-b30a-f886b4838b74",
+    "name": "Čelik",
+    "sort": 6
+  },
+  {
+    "id": "9083bf35-a5b3-44da-a70a-18fa68f734ab",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "2bc39e25-4b29-49e9-a2b2-255f068b5ef0",
+    "name": "Realway",
+    "sort": 7
+  },
+  {
+    "id": "274476bb-268f-416c-8b22-63c4041bf4d3",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "923b4c9f-85ec-473d-a927-a8fd541351a7",
+    "name": "Mladost",
+    "sort": 8
+  },
+  {
+    "id": "0e314b72-24a3-4557-bc49-91a1d7819cd2",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "370294d2-5ab0-4ac7-9ebb-fc1637027a82",
+    "name": "Ilidža",
+    "sort": 9
+  },
+  {
+    "id": "6b7aa2db-7bbf-4b7b-9aaa-26d2d03a016d",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "99aac297-8c60-440c-a03b-75b9a9d8df66",
+    "name": "Star Fojnica",
+    "sort": 10
+  }
+]

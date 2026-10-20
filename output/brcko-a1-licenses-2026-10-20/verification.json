@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-10-20T11:01:01.460Z",
+  "club": "KK Brčko Distrikt",
+  "competition": "A1 liga žene",
+  "season": "2026/27",
+  "players": 15,
+  "coaches": 2,
+  "photos_verified_by_sha256": 15,
+  "all_fields_match": true,
+  "existing_licenses_preserved": true,
+  "license_numbers_not_provided": 17,
+  "coaches_without_source_photos": 2,
+  "tests_run": false,
+  "build_run": false
+}
