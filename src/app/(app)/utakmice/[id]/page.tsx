@@ -16,7 +16,6 @@ import { LockMatchButton } from "@/components/lock-match-button";
 import { MatchPaidButton } from "@/components/match-paid-button";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
-import { FibaMatchForm } from "@/app/(app)/fiba/link-match";
 
 export const metadata = { title: "Utakmica — KSKS" };
 
@@ -157,18 +156,6 @@ async function Match({ params }: { params: Params }) {
         </div>
         {match.notes && <p className="border-t border-line py-3 text-[14px]">{match.notes}</p>}
       </section>
-
-      {scoresheetAccess && (
-        <section>
-          <SectionTitle icon={<Radio />}>FIBA LiveStats</SectionTitle>
-          <div className="rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
-            <p className="mb-4 text-[14px] text-fg-muted">
-              Zalijepi link FIBA utakmice i pristupni kod. Rezultat se tada sam preuzima s FIBA LiveStats.
-            </p>
-            <FibaMatchForm matchId={match.id} fibaGameId={match.fiba_game_id} streamKey={match.fiba_stream_key} />
-          </div>
-        </section>
-      )}
 
       {scoresheetAccess && (
         <section>

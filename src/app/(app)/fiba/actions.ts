@@ -1,7 +1,6 @@
 "use server";
 
-import { getCurrentUser, requireRole } from "@/lib/auth";
-import { matchRoleOf } from "@/lib/scoresheets";
+import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { fetchFibaGame, parseFibaMatchId } from "@/lib/fiba";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -58,14 +57,13 @@ function categoryOf(competition: { name: string; category: string; gender: strin
 }
 
 /**
- * Veza naše utakmice s FIBA LiveStats utakmicom i pristupni kod (Stream Key) za zapisničara.
- * Smiju admin i prihvaćeni delegirani na toj utakmici (sudije, komesar, pomoćne sudije).
+ * Admin: veza naše utakmice s FIBA LiveStats utakmicom i pristupni kod (Stream Key) za zapisničara.
  * Prazan link = bez FIBA utakmice. FIBA utakmica koje još nema u spisku se doda (podaci s FIBA LiveStats).
  */
 export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Promise<FibaLinkState> {
+  await requireRole("admin");
   const matchId = String(formData.get("match_id") ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(matchId)) return { error: "Nepoznata utakmica." };
-  if (!(await matchRoleOf(await getCurrentUser(), matchId))) return { error: "FIBA utakmicu povezuje savez ili službeno lice koje je prihvatilo ovu utakmicu." };
   const rawLink = String(formData.get("link") ?? "").trim();
   const streamKey = String(formData.get("stream_key") ?? "").trim().toUpperCase() || null;
   if (streamKey && !/^[A-Z0-9]{6,40}$/.test(streamKey)) return { error: "Pristupni kod (Stream Key) ima samo slova i brojeve, npr. 1SYA3ZV64M476WEVRFW1." };
