@@ -13,7 +13,6 @@ const PHOTO = "aspect-[4/5] w-full rounded-lg";
 const FACTS = "mx-4 mb-4 grid grid-cols-2 gap-x-5 gap-y-3 rounded-lg bg-panel-2 p-3";
 const FOOT = "mt-auto flex min-h-14 items-center gap-2 border-t border-line px-3 py-2";
 
-/** Licenca kao kartica: grb saveza, takmičenje i sezona gore, fotografija i podaci, klub i broj licence dole */
 export function LicenseCard({ license: l, competition, club }: { license: License } & Pick<ClubLicenses, "competition" | "club">) {
   const player = l.kind === "player";
   const role = player ? (competition.category === "seniorke" ? "Igračica" : "Igrač") : (l.role ?? "Službeno lice");

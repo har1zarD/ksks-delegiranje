@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-10-20T12:49:15.634Z",
+  "club": "KK Star",
+  "competition": "A2 liga jug KSBiH",
+  "season": "2026/27",
+  "players": 18,
+  "official_licenses": 5,
+  "unique_photos_verified": 20,
+  "records_with_photos": 20,
+  "missing_photos": [
+    "Kučuk Samir",
+    "Karalija Muris"
+  ],
+  "all_fields_match": true
+}
