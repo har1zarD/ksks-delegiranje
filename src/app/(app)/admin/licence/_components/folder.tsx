@@ -31,7 +31,7 @@ export function CompetitionFolders({ competitions }: { competitions: LicenseComp
 }
 
 const TAB = "absolute left-0 top-0 z-10 h-[13px] w-24 rounded-t-lg border border-b-0 border-line bg-panel";
-const BODY = "relative flex items-center gap-4 rounded-lg rounded-tl-none border border-line bg-panel px-4 py-5 shadow-panel sm:px-5";
+const BODY = "relative flex h-25 items-center gap-4 rounded-lg rounded-tl-none border border-line bg-panel px-4 py-5 shadow-panel sm:px-5";
 
 /** Folder: jezičak gore lijevo, grb, naziv i brojke; vodi u sadržaj */
 export function Folder({ href, logo, title, meta }: { href: string; logo: React.ReactNode; title: string; meta: string }) {
@@ -44,7 +44,7 @@ export function Folder({ href, logo, title, meta }: { href: string; logo: React.
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-display text-[19px] font-semibold leading-tight tracking-[-0.02em]">{title}</span>
-          <span className="mt-1 block text-[13px] text-fg-muted">{meta}</span>
+          <span title={meta} className="mt-1 block truncate text-[13px] text-fg-muted">{meta}</span>
         </span>
         <ChevronRight className="size-5 shrink-0 text-fg-faint" aria-hidden="true" />
       </span>
