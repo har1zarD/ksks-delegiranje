@@ -1,0 +1,12 @@
+{
+  "generatedAndUploaded": 9,
+  "existingLogosPreserved": 40,
+  "publicImagesFetchedAndMatched": 49,
+  "fibaTeamNamesCovered": 90,
+  "existingClubRecordsUnchanged": true,
+  "sourceReviewed": true,
+  "testsRun": false,
+  "buildRun": false,
+  "deployed": false,
+  "browserVerification": "Blocked: no connected browser; unauthenticated /fiba redirects to /prijava."
+}

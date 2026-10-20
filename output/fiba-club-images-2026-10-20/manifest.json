@@ -1,0 +1,533 @@
+[
+  {
+    "slug": "realway",
+    "clubId": "2bc39e25-4b29-49e9-a2b2-255f068b5ef0",
+    "clubName": "KK Realway",
+    "aliases": [
+      "AKADEMIJA REALWAY",
+      "Realway",
+      "KK Realway U14",
+      "KK Realway U16",
+      "REALWAY 1 U18",
+      "REALWAY U14",
+      "REALWAY U16",
+      "REALWAY U18",
+      "REALWAY WU13",
+      "REALWAY WU14",
+      "REALWAY WU16"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/2bc39e25-4b29-49e9-a2b2-255f068b5ef0.png",
+    "file": "realway.png"
+  },
+  {
+    "slug": "bosna",
+    "clubId": "6fa91446-f915-42ee-b2f3-e4974e07ee06",
+    "clubName": "KK Bosna",
+    "aliases": [
+      "BOSNA U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/6fa91446-f915-42ee-b2f3-e4974e07ee06.png",
+    "file": "bosna.png"
+  },
+  {
+    "slug": "bosnjak",
+    "clubId": "1804b244-b0d8-4294-9a74-b0a53731e4c0",
+    "clubName": "KK Bošnjak",
+    "aliases": [
+      "Bošnjak"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/1804b244-b0d8-4294-9a74-b0a53731e4c0.png",
+    "file": "bosnjak.png"
+  },
+  {
+    "slug": "ceba",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "CEBA U18"
+    ],
+    "referenceUrl": "https://images.statsengine.playbyplay.api.geniussports.com/e928b5c5c86d62c1ff623a20583b62d5T1.jpg",
+    "file": "ceba.png"
+  },
+  {
+    "slug": "celik",
+    "clubId": "484c9753-58c1-4760-b30a-f886b4838b74",
+    "clubName": "KK Čelik",
+    "aliases": [
+      "Celik"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/484c9753-58c1-4760-b30a-f886b4838b74.png",
+    "file": "celik.png"
+  },
+  {
+    "slug": "celik-zene",
+    "clubId": "5b0dd343-4ccd-58eb-bb19-4320462a859f",
+    "clubName": "KŽK Čelik",
+    "aliases": [
+      "Celik BH Telecom"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/5b0dd343-4ccd-58eb-bb19-4320462a859f.png",
+    "file": "celik-zene.png"
+  },
+  {
+    "slug": "drina",
+    "clubId": "f46b36a0-b494-43f4-81d0-fe0e50047c9c",
+    "clubName": "KK Drina",
+    "aliases": [
+      "Drina Betin"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/drina.png",
+    "file": "drina.png"
+  },
+  {
+    "slug": "gen",
+    "clubId": "7191cfa2-1708-44eb-9a2b-e2772e50fff2",
+    "clubName": "KK GEN",
+    "aliases": [
+      "GEN U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/7191cfa2-1708-44eb-9a2b-e2772e50fff2.png",
+    "file": "gen.png"
+  },
+  {
+    "slug": "gradina-srebrenik",
+    "clubId": "d36288c2-1806-4cfc-bade-44a507f3214d",
+    "clubName": "KK Gradina Srebrenik",
+    "aliases": [
+      "Gradina S"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/d36288c2-1806-4cfc-bade-44a507f3214d.png",
+    "file": "gradina-srebrenik.png"
+  },
+  {
+    "slug": "gradina-tesanj",
+    "clubId": "d00fe371-fc65-4f0c-90dd-28c316203988",
+    "clubName": "KK Gradina Tešanj",
+    "aliases": [
+      "Gradina Tesanj"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/gradina.png",
+    "file": "gradina-tesanj.png"
+  },
+  {
+    "slug": "siroki",
+    "clubId": "7f67e716-381a-46de-888e-75b28a2dd6b3",
+    "clubName": "HKK Široki",
+    "aliases": [
+      "HKK Siroki TT Kabeli",
+      "ŠIROKI BRIJEG U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/siroki.png",
+    "file": "siroki.png"
+  },
+  {
+    "slug": "zrinjski",
+    "clubId": "dbb32c49-5b19-481c-b7fc-af6794200174",
+    "clubName": "HKK Zrinjski 1992",
+    "aliases": [
+      "HKK Zrinjski 1992"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/zrinjski.png",
+    "file": "zrinjski.png"
+  },
+  {
+    "slug": "igman-istocna-ilidza",
+    "clubId": "0a5c2806-2f83-4cf6-9919-f3aa56c80f9b",
+    "clubName": "OKK Igman",
+    "aliases": [
+      "IGMAN IST. ILIDŽA U14",
+      "IGMAN IST. ILIDŽA U16",
+      "IGMAN IST. ILIDŽA WU14"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-16/0a5c2806-2f83-4cf6-9919-f3aa56c80f9b.png",
+    "file": "igman-istocna-ilidza.png"
+  },
+  {
+    "slug": "ilidza",
+    "clubId": "370294d2-5ab0-4ac7-9ebb-fc1637027a82",
+    "clubName": "KK Ilidža",
+    "aliases": [
+      "ILIDŽA BLACK U14",
+      "ILIDŽA U16",
+      "ILIDŽA U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/370294d2-5ab0-4ac7-9ebb-fc1637027a82.png",
+    "file": "ilidza.png"
+  },
+  {
+    "slug": "igman-burch",
+    "clubId": "3e399948-dfc5-4859-8db9-8fa67fbf6bc0",
+    "clubName": "KK Igman Burch",
+    "aliases": [
+      "Igman Burch",
+      "Igman Burch U16",
+      "Igman Burch U18",
+      "KK Igman Burch U16",
+      "IGMAN RICHMOND PARK U16",
+      "IGMAN RICHMOND PARK U18",
+      "Igman Richmond Park U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/igman.png",
+    "file": "igman-burch.png"
+  },
+  {
+    "slug": "jedinstvo",
+    "clubId": "9a72cefc-e594-409d-b842-4bbdf79b117d",
+    "clubName": "ŽKK Jedinstvo",
+    "aliases": [
+      "Jedinstvo"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/club-additions/9a72cefc-e594-409d-b842-4bbdf79b117d.png",
+    "file": "jedinstvo.png"
+  },
+  {
+    "slug": "travnik",
+    "clubId": "e3ad5938-48bd-4f27-90c4-118dc1187ed6",
+    "clubName": "KK Travnik",
+    "aliases": [
+      "KK \"TRAVNIK\" TRAVNIK",
+      "KK Travnik"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/e3ad5938-48bd-4f27-90c4-118dc1187ed6.png",
+    "file": "travnik.png"
+  },
+  {
+    "slug": "zivinice",
+    "clubId": "08bb19a3-70c3-42cf-a484-722f94d12a5c",
+    "clubName": "KK Živinice",
+    "aliases": [
+      "KK \"ZIVINICE\" ZIVINICE",
+      "Zivinice"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/08bb19a3-70c3-42cf-a484-722f94d12a5c.png",
+    "file": "zivinice.png"
+  },
+  {
+    "slug": "basket-zivinice",
+    "clubId": "10633d35-d8f4-49dc-92b1-974ceaeb4651",
+    "clubName": "KK Basket Živinice",
+    "aliases": [
+      "KK Basket Zivinice"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/basket-zivinice.png",
+    "file": "basket-zivinice.png"
+  },
+  {
+    "slug": "borac",
+    "clubId": "a245c5f2-dfc1-435f-8980-f3413e5d4bbb",
+    "clubName": "KK Borac",
+    "aliases": [
+      "KK Borac WWIN"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/borac.png",
+    "file": "borac.png"
+  },
+  {
+    "slug": "donji-vakuf",
+    "clubId": "983c1eb5-5f27-4602-b13a-a324bac8e53d",
+    "clubName": "KK Donji Vakuf Promo",
+    "aliases": [
+      "KK Donji Vakuf",
+      "KK Donji Vakuf Promo"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/donji-vakuf.png",
+    "file": "donji-vakuf.png"
+  },
+  {
+    "slug": "gradacac",
+    "clubId": "2a188593-4168-4d30-b99a-f47eefe5454b",
+    "clubName": "KK Gradačac",
+    "aliases": [
+      "KK Gradacac"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/2a188593-4168-4d30-b99a-f47eefe5454b.png",
+    "file": "gradacac.png"
+  },
+  {
+    "slug": "jumper",
+    "clubId": "b5f01bdb-33eb-4193-89ec-9593d541af5b",
+    "clubName": "KK Jumper",
+    "aliases": [
+      "KK Jumper"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-16/additions/b5f01bdb-33eb-4193-89ec-9593d541af5b.png",
+    "file": "jumper.png"
+  },
+  {
+    "slug": "kos",
+    "clubId": "f546d0aa-0c12-410a-b6bd-2a28feff91c7",
+    "clubName": "KK Koš",
+    "aliases": [
+      "KK Koš U14",
+      "KK Koš U16",
+      "KK Koš u16",
+      "KOŠ U16",
+      "KOŠ U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/f546d0aa-0c12-410a-b6bd-2a28feff91c7.png",
+    "file": "kos.png"
+  },
+  {
+    "slug": "lavovi",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "KK Lavovi"
+    ],
+    "referenceUrl": "https://www.kklavovibrcko.com/wp-content/uploads/2016/01/grb_kk_lavovi.png",
+    "file": "lavovi.png"
+  },
+  {
+    "slug": "leotar",
+    "clubId": "047cc84d-c7d0-4611-bc27-e979154e02a7",
+    "clubName": "KK Leotar",
+    "aliases": [
+      "KK Leotar"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/leotar.png",
+    "file": "leotar.png"
+  },
+  {
+    "slug": "mladost-mrkonjic-grad",
+    "clubId": "caaf3558-c0a5-4e5d-a216-8917e28fb42f",
+    "clubName": "KK Mladost Mrkonjić Grad",
+    "aliases": [
+      "KK Mladost"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/mladost.png",
+    "file": "mladost-mrkonjic-grad.png"
+  },
+  {
+    "slug": "orlovik",
+    "clubId": "de0dd25e-3783-48d4-bae9-b235a51c6bfb",
+    "clubName": "KK Orlovik",
+    "aliases": [
+      "KK Orlovik"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/orlovik.png",
+    "file": "orlovik.png"
+  },
+  {
+    "slug": "radnicki",
+    "clubId": "cd57b11f-479b-4245-be47-6fd38bab86ab",
+    "clubName": "KK Radnički",
+    "aliases": [
+      "KK Radnicki"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/radnicki.png",
+    "file": "radnicki.png"
+  },
+  {
+    "slug": "startz",
+    "clubId": "7692ba50-0cbf-4abc-8a3d-c44889e46a51",
+    "clubName": "KK StarTz",
+    "aliases": [
+      "KK STARTz"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/7692ba50-0cbf-4abc-8a3d-c44889e46a51.png",
+    "file": "startz.png"
+  },
+  {
+    "slug": "turbina",
+    "clubId": "dfa0d5ef-310d-4892-a9bc-01afacf30021",
+    "clubName": "KK Turbina",
+    "aliases": [
+      "KK Turbina",
+      "Turbina"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/dfa0d5ef-310d-4892-a9bc-01afacf30021.png",
+    "file": "turbina.png"
+  },
+  {
+    "slug": "vogosca",
+    "clubId": "ecc3a2ef-41af-4da6-ab77-7fc32b59441c",
+    "clubName": "KK Vogošća",
+    "aliases": [
+      "KK Vogošća",
+      "Vogosca",
+      "VOGOŠĆA U18"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/ecc3a2ef-41af-4da6-ab77-7fc32b59441c.png",
+    "file": "vogosca.png"
+  },
+  {
+    "slug": "kakanj",
+    "clubId": "65c0a81c-2856-4e77-b4db-d2666ad0bed5",
+    "clubName": "KK Kakanj",
+    "aliases": [
+      "Kakanj"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/65c0a81c-2856-4e77-b4db-d2666ad0bed5.png",
+    "file": "kakanj.png"
+  },
+  {
+    "slug": "konjic",
+    "clubId": "29a704d6-7465-4dd3-851a-be3b023de1b0",
+    "clubName": "KK Konjic",
+    "aliases": [
+      "Konjic"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/29a704d6-7465-4dd3-851a-be3b023de1b0.png",
+    "file": "konjic.png"
+  },
+  {
+    "slug": "lider",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "LIDER"
+    ],
+    "referenceUrl": "https://www.kklavovibrcko.com/wp-content/uploads/2024/03/KKLiderGradiskaGrb-500.png",
+    "file": "lider.png"
+  },
+  {
+    "slug": "leotar-03",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "Leotar 03"
+    ],
+    "referenceUrl": "https://www.kklavovibrcko.com/wp-content/uploads/2021/05/zkk-leotar-03-500.png",
+    "file": "leotar-03.png"
+  },
+  {
+    "slug": "marsonia",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "MARSONIA U18"
+    ],
+    "referenceUrl": "https://images.statsengine.playbyplay.api.geniussports.com/53ddea922bd4c59d8f7a396290172ddfT1.png",
+    "file": "marsonia.png"
+  },
+  {
+    "slug": "mladost-ilijas",
+    "clubId": "923b4c9f-85ec-473d-a927-a8fd541351a7",
+    "clubName": "KK Mladost",
+    "aliases": [
+      "MLADOST ILIJAS WU14",
+      "MLADOST WU16"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/923b4c9f-85ec-473d-a927-a8fd541351a7.png",
+    "file": "mladost-ilijas.png"
+  },
+  {
+    "slug": "mladi-krajisnik",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "Mladi Krajisnik"
+    ],
+    "referenceUrl": "https://www.zkkmladikrajisnik.com/logo-tima/1550565733-logo.PNG",
+    "file": "mladi-krajisnik.png"
+  },
+  {
+    "slug": "slavija",
+    "clubId": "f69a2ed5-41f8-4e7f-acab-3434a4ce09cc",
+    "clubName": "OKK Slavija 1996",
+    "aliases": [
+      "OKK Slavija 1996"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/slavija.png",
+    "file": "slavija.png"
+  },
+  {
+    "slug": "sloboda",
+    "clubId": "0676f2c4-143d-4341-9f3b-849f47119c09",
+    "clubName": "OKK Sloboda",
+    "aliases": [
+      "OKK Sloboda Energoinvest",
+      "SLOBODA U16"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/plbih/sloboda.png",
+    "file": "sloboda.png"
+  },
+  {
+    "slug": "spars",
+    "clubId": "5d655778-973c-4589-849c-ab5eaf8f9ccd",
+    "clubName": "KK Spars",
+    "aliases": [
+      "OKK Spars U14",
+      "OKK Spars U16",
+      "SPARS U18",
+      "Spars Number 1 U16",
+      "Spars U18",
+      "BOSNA-SPARS U18",
+      "KK Bosna Spars"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/5d655778-973c-4589-849c-ab5eaf8f9ccd.png",
+    "file": "spars.png"
+  },
+  {
+    "slug": "zenica",
+    "clubId": "8c706bbf-520c-4d4a-bf5f-31c1111714b5",
+    "clubName": "KK Zenica",
+    "aliases": [
+      "OKK Zenica"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/8c706bbf-520c-4d4a-bf5f-31c1111714b5.png",
+    "file": "zenica.png"
+  },
+  {
+    "slug": "orlovi",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "Orlovi"
+    ],
+    "referenceUrl": "https://kkorlovi.net/files/osnovno/slike/orlovi.jpg",
+    "file": "orlovi.png"
+  },
+  {
+    "slug": "play-off",
+    "clubId": "25c7f34e-409e-4037-9e96-70468caa0eb7",
+    "clubName": "KK Play Off",
+    "aliases": [
+      "PLAY OFF WU14",
+      "PLAY OFF WU16",
+      "Play Off"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/25c7f34e-409e-4037-9e96-70468caa0eb7.png",
+    "file": "play-off.png"
+  },
+  {
+    "slug": "rilski-sportist",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "RILSKI SPORTIST U16"
+    ],
+    "referenceUrl": "https://images.statsengine.playbyplay.api.geniussports.com/9701084c2b2a63e5c77bc132f1c77586T1.png",
+    "file": "rilski-sportist.png"
+  },
+  {
+    "slug": "banovici",
+    "clubId": null,
+    "clubName": null,
+    "aliases": [
+      "RMU Banovici"
+    ],
+    "referenceUrl": "https://images.statsengine.playbyplay.api.geniussports.com/7190336b8952b0f2995016f082b74a24T1.jpg",
+    "file": "banovici.png"
+  },
+  {
+    "slug": "ius-famos",
+    "clubId": "dd7c7d07-09c7-4b47-a1be-e6b1a5e0b526",
+    "clubName": "KK IUS-Famos",
+    "aliases": [
+      "UKK IUS FAMOS"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/dd7c7d07-09c7-4b47-a1be-e6b1a5e0b526.png",
+    "file": "ius-famos.png"
+  },
+  {
+    "slug": "zeljo-1971",
+    "clubId": "a925551f-9a55-4e03-a55b-c6f59d55b945",
+    "clubName": "KK Željo 1971",
+    "aliases": [
+      "Željo 1971"
+    ],
+    "referenceUrl": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-15/transparent-v2/a925551f-9a55-4e03-a55b-c6f59d55b945.png",
+    "file": "zeljo-1971.png"
+  }
+]

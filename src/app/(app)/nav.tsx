@@ -140,13 +140,13 @@ function BrandMark() {
   );
 }
 
-/** Donja navigacija (mobitel): do 5 mjesta; ako ima više stavki, 4 + "Više" */
+/** Donja navigacija (mobitel): do 6 mjesta (službeno lice: sve stavke); ako ima više stavki, 4 + "Više" */
 function BottomNav({ items, active, logout }: { items: NavItem[]; active?: string; logout: () => Promise<void> }) {
   const pathname = usePathname();
   const [sheetAt, setSheetAt] = useState<string | null>(null);
   const sheetOpen = sheetAt === pathname; // navigacija sama zatvara listu
 
-  const overflow = items.length > 5;
+  const overflow = items.length > 6;
   const primary = overflow ? items.filter((i) => i.primary).slice(0, 4) : items;
   const rest = overflow ? items.filter((i) => !primary.includes(i)) : [];
   const restActive = rest.some((i) => i.href === active);
@@ -167,7 +167,7 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
         <ul className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${primary.length + (overflow ? 1 : 0)}, minmax(0, 1fr))` }}>
           {primary.map((item) => (
             <li key={item.href}>
-              <TabLink href={item.href} label={item.label} Icon={ICONS[item.icon]} active={item.href === active && !sheetOpen} />
+              <TabLink href={item.href} label={item.label} Icon={ICONS[item.icon]} active={item.href === active && !sheetOpen} compact={primary.length > 5} />
             </li>
           ))}
           {overflow && (
@@ -176,7 +176,7 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
                 type="button"
                 onClick={() => setSheetAt(sheetOpen ? null : pathname)}
                 aria-expanded={sheetOpen}
-                className={cx(TAB, restActive || sheetOpen ? "text-brand" : "text-fg-faint hover:text-fg-muted")}
+                className={cx(TAB, TAB_TEXT, restActive || sheetOpen ? "text-brand" : "text-fg-faint hover:text-fg-muted")}
               >
                 <Ellipsis className="size-[23px]" strokeWidth={restActive || sheetOpen ? 2.3 : 1.8} />
                 <span>Više</span>
@@ -232,15 +232,18 @@ function BottomNav({ items, active, logout }: { items: NavItem[]; active?: strin
   );
 }
 
-const TAB = "flex h-[60px] w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold tracking-[-0.01em] transition-colors";
+/** Mjesto u donjoj traci; veličina natpisa ide posebno (TAB_TEXT ili uži kod 6 mjesta) */
+const TAB = "flex h-[60px] w-full flex-col items-center justify-center gap-1 font-semibold transition-colors";
+const TAB_TEXT = "text-[11px] tracking-[-0.01em]";
 
-function TabLink({ href, label, Icon, active }: { href: string; label: string; Icon: LucideIcon; active: boolean }) {
+/** `compact`: 6 mjesta u traci, uži natpis da stane i na uskom telefonu */
+function TabLink({ href, label, Icon, active, compact }: { href: string; label: string; Icon: LucideIcon; active: boolean; compact?: boolean }) {
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={cx(TAB, active ? "text-brand" : "text-fg-faint hover:text-fg-muted")}>
-      <span className={cx("grid h-7 w-12 place-items-center rounded-lg", active && "bg-brand-soft")}>
+    <Link href={href} aria-current={active ? "page" : undefined} className={cx(TAB, compact ? "text-[10px] tracking-[-0.02em]" : TAB_TEXT, active ? "text-brand" : "text-fg-faint hover:text-fg-muted")}>
+      <span className={cx("grid h-7 place-items-center rounded-lg", compact ? "w-10" : "w-12", active && "bg-brand-soft")}>
         <Icon className="size-[21px]" strokeWidth={active ? 2 : 1.7} aria-hidden="true" />
       </span>
-      <span className="max-w-full truncate px-1">{label}</span>
+      <span className={cx("max-w-full truncate", compact ? "px-0.5" : "px-1")}>{label}</span>
     </Link>
   );
 }
@@ -363,7 +366,7 @@ export function AppNavSkeleton() {
       >
         <ul className="mx-auto grid max-w-md grid-cols-5">
           {[0, 1, 2, 3, 4].map((i) => (
-            <li key={i} className={TAB}>
+            <li key={i} className={cx(TAB, TAB_TEXT)}>
               <span className="grid h-7 w-12 place-items-center">
                 <Bone className="size-[21px] rounded-md" />
               </span>

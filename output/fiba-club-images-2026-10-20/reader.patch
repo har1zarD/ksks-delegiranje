@@ -1,0 +1,78 @@
+--- output/fiba-club-images-2026-10-20/fiba-reader-before.ts.txt	2026-10-20 17:13:04
++++ src/lib/data/fiba.ts	2026-10-20 17:13:24
+@@ -3,6 +3,7 @@
+ import { getCurrentUser, requireRole } from "@/lib/auth";
+ import { LIFE, TAG } from "@/lib/cache";
+ import { fetchCompetitionFeed, fetchFibaGame, type FibaFeedGame } from "@/lib/fiba";
++import { FIBA_CLUBS, fibaClubName } from "@/lib/fiba-clubs";
+ import { createAdminClient } from "@/lib/supabase/admin";
+ import { row, rows } from "./db";
+ 
+@@ -22,6 +23,30 @@
+   stream_key?: string | null;
+ };
+ 
++async function clubLogos(): Promise<Record<string, string>> {
++  "use cache: remote";
++  cacheLife(LIFE.reference);
++  cacheTag(TAG.clubs);
++  const clubs = rows(await createAdminClient().from("clubs").select("id, logo_url"));
++  const byId = new Map(clubs.map((club) => [club.id, club.logo_url]));
++  const storage = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/club-logos`;
++  return Object.fromEntries(FIBA_CLUBS.flatMap((club) => {
++    const logo = club.clubId ? byId.get(club.clubId) : club.logoPath ? `${storage}/${club.logoPath}` : null;
++    return logo ? club.names.map((name) => [fibaClubName(name), logo]) : [];
++  }));
++}
++
++function withClubLogos<T extends Pick<FibaGameRow, "home_name" | "away_name" | "home_logo" | "away_logo">>(
++  game: T,
++  logos: Record<string, string>,
++): T {
++  return {
++    ...game,
++    home_logo: logos[fibaClubName(game.home_name)] ?? game.home_logo,
++    away_logo: logos[fibaClubName(game.away_name)] ?? game.away_logo,
++  };
++}
++
+ async function competitionRows() {
+   "use cache: remote";
+   cacheLife(LIFE.reference);
+@@ -76,12 +101,12 @@
+ /** Sve poznate FIBA utakmice (s našom utakmicom ako je povezana); feed ima prednost i upisuje se u bazu poslije odgovora */
+ export async function getFibaGames() {
+   await getCurrentUser();
+-  const [feed, stored, linked] = await Promise.all([feedGames(), storedGames(), linkedMatches()]);
++  const [feed, stored, linked, logos] = await Promise.all([feedGames(), storedGames(), linkedMatches(), clubLogos()]);
+   after(() => storeFeed(feed));
+   const byId = new Map<number, FibaGameRow>(stored.map((g) => [g.id, g]));
+   for (const g of feed) byId.set(g.id, { ...g, category: g.category ?? byId.get(g.id)?.category ?? null, stream_key: byId.get(g.id)?.stream_key ?? null });
+   const matchOf = new Map(linked.map((m) => [m.fiba_game_id!, m]));
+-  return [...byId.values()].map((g) => ({ ...g, match: matchOf.get(g.id) ?? null }));
++  return [...byId.values()].map((g) => ({ ...withClubLogos(g, logos), match: matchOf.get(g.id) ?? null }));
+ }
+ 
+ async function liveGame(matchId: number, startsAt: string | null) {
+@@ -101,9 +126,19 @@
+ /** Cijela utakmica s FIBA LiveStats + zapis iz baze (termin, kategorija) + naša povezana utakmica */
+ export async function getFibaGame(matchId: number) {
+   await getCurrentUser();
+-  const [stored, linked] = await Promise.all([storedGame(matchId), linkedMatches()]);
++  const [stored, linked, logos] = await Promise.all([storedGame(matchId), linkedMatches(), clubLogos()]);
+   const game = await liveGame(matchId, stored?.starts_at ?? null);
+-  return { game, stored, match: linked.find((m) => m.fiba_game_id === matchId) ?? null };
++  const logoFor = (name: string, storedName: string | undefined, fallback: string | null) =>
++    logos[fibaClubName(name)] ?? (storedName ? logos[fibaClubName(storedName)] : undefined) ?? fallback;
++  return {
++    game: game ? {
++      ...game,
++      home: { ...game.home, logo: logoFor(game.home.name, stored?.home_name, game.home.logo) },
++      away: { ...game.away, logo: logoFor(game.away.name, stored?.away_name, game.away.logo) },
++    } : null,
++    stored: stored ? withClubLogos(stored, logos) : null,
++    match: linked.find((m) => m.fiba_game_id === matchId) ?? null,
++  };
+ }
+ 
+ /** Admin: naše utakmice omladinske lige oko termina FIBA utakmice (±3 dana) koje još nemaju FIBA utakmicu */
