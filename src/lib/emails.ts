@@ -36,19 +36,6 @@ export function cancellationEmail(
   return withdrawnEmail({ name, position }, match, reason, siteUrl("/nominacije"), siteUrl("/icons/icon-192.png"));
 }
 
-/** Savezu: osoba je prihvatila nominaciju (potvrda na adresu pošiljaoca) */
-export function acceptedEmail(person: string, position: Position, match: MatchInfo & { id: string }) {
-  return {
-    subject: `Prihvaćena nominacija: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,
-    text: `${person} je prihvatio/la nominaciju (${positionName(position, match.digital_scoresheet).toLowerCase()}):
-
-${describe(match)}
-
-Utakmica i delegiranje:
-${siteUrl(`/admin/utakmice/${match.id}`)}`,
-  };
-}
-
 export function declinedEmail(person: string, position: Position, reason: string, match: MatchInfo & { id: string }) {
   return {
     subject: `Odbijena nominacija: ${match.home?.name} – ${match.away?.name}, ${formatDayMonth(match.starts_at)}`,

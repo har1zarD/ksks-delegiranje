@@ -5,9 +5,9 @@
 // s tabelom "assignments" i utakmicom (povratne vrijednosti nose matchId).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
-import { senderAddress, sendEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import { publishMatches } from "@/lib/publish";
-import { acceptedEmail, cancellationEmail, declinedEmail } from "@/lib/emails";
+import { cancellationEmail, declinedEmail } from "@/lib/emails";
 import { CREW_COLUMNS, crewOf, crewPositions, skillsFor } from "@/lib/crew";
 import { formatAbsence, matchWindow, type MatchStatus, type Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
@@ -159,7 +159,7 @@ export async function replaceAssignment(
 }
 
 /**
- * Odgovor na vlastitu, poslanu nominaciju. Prihvatanje javlja savezu (adresa pošiljaoca), odbijanje (i otkazivanje prihvaćene) svim adminima.
+ * Odgovor na vlastitu, poslanu nominaciju. Odbijanje (i otkazivanje prihvaćene) javlja svim adminima; prihvatanje se ne javlja emailom.
  * Vraća funkciju za slanje obavijesti, da je web može pokrenuti nakon odgovora (after()).
  */
 export async function respondToNomination(
@@ -179,7 +179,7 @@ export async function respondToNomination(
     .eq("id", assignmentId)
     .eq("profile_id", profileId)
     .not("notified_at", "is", null)
-    // Prihvatanje samo iz pending: ponovljeno prihvatanje ne šalje savezu novi email
+    // Prihvatanje samo iz pending
     .in("status", accept ? ["pending"] : ["pending", "accepted"])
     .select("id, status, position, match_id, profile:profiles!assignments_profile_id_fkey ( full_name )");
   if (error) throw new Error(error.message);
@@ -199,15 +199,10 @@ export async function respondToNomination(
   }
 
   const notifyAdmins = async () => {
+    // Prihvatanje se savezu ne javlja emailom (vidi se u aplikaciji)
+    if (accept) return;
     const { data: match } = await db.from("matches").select(MATCH_SELECT).eq("id", row.match_id).single();
     if (!match) return;
-    if (accept) {
-      // Potvrda prihvatanja ide savezu, na adresu pošiljaoca (ksksdelegiranje@gmail.com)
-      const to = senderAddress();
-      const { data: office } = await db.from("profiles").select("id").eq("email", to).maybeSingle();
-      await sendEmail({ to, kind: "accepted", profileId: office?.id, assignmentId: row.id, ...acceptedEmail(row.profile?.full_name ?? "", row.position, match) });
-      return;
-    }
     const { data: admins } = await db.from("profiles").select("id, email").eq("role", "admin").eq("active", true);
     const email = declinedEmail(row.profile?.full_name ?? "", row.position, why!, match);
     for (const admin of admins ?? []) {
