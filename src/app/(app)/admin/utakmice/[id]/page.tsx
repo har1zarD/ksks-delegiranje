@@ -2,7 +2,7 @@ import { TeamName } from "@/components/team-name";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, FileImage, FileText, Lock, MapPin, Printer, Trash2, Users } from "lucide-react";
+import { ChevronDown, ChevronLeft, FileImage, FileText, Lock, MapPin, Printer, Radio, Trash2, Users } from "lucide-react";
 import { candidateFits, getCompetitions, getDelegation, getHalls } from "@/lib/data/admin";
 import { feeFor, formatKM, matchCost } from "@/lib/finance";
 import { crewOf, crewPositions, crewSummary, crewWithout, NOMINATION_GROUP_LABEL, nominationGroupOf, type NominationGroup } from "@/lib/crew";
@@ -33,6 +33,7 @@ import { PaidToggle } from "@/components/paid-toggle";
 import { LockMatchButton } from "@/components/lock-match-button";
 import { MatchPaidButton } from "@/components/match-paid-button";
 import { listScoresheets } from "@/lib/scoresheets";
+import { FibaMatchForm } from "@/app/(app)/fiba/link-match";
 
 export const metadata = { title: "Delegiranje — KSKS" };
 
@@ -344,6 +345,14 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
               </ul>
             </Panel>
           )}
+
+          <Panel className="py-4 sm:py-5">
+            <h2 className="mb-3 flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted">
+              <Radio className="size-4" aria-hidden="true" />
+              FIBA LiveStats
+            </h2>
+            <FibaMatchForm matchId={match.id} fibaGameId={match.fiba_game_id} streamKey={match.fiba_stream_key} />
+          </Panel>
 
           <div className="grid grid-cols-2 gap-2">
             <Link href={`/utakmice/${match.id}`} className={buttonClass("secondary", "text-[14px]")}>

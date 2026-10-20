@@ -19,6 +19,14 @@ async function authorize(matchId: string) {
 
 export type PeriodState = { error?: string; savedAt?: number };
 
+const FIBA_SCORE = "Rezultat ove utakmice se automatski preuzima s FIBA LiveStats.";
+
+/** Utakmica povezana s FIBA LiveStats: rezultat se ne unosi ručno (prepisuje ga sync_fiba_periods) */
+async function fibaLinked(matchId: string) {
+  const { data } = await createAdminClient().from("matches").select("fiba_game_id").eq("id", matchId).maybeSingle();
+  return data?.fiba_game_id != null;
+}
+
 function points(v: FormDataEntryValue | null) {
   const n = Number(String(v ?? "").trim() || "0");
   return Number.isInteger(n) && n >= 0 && n <= 200 ? n : null;
@@ -31,6 +39,7 @@ export async function savePeriod(matchId: string, period: number, home: string, 
   const a = points(away);
   if (h === null || a === null) return { error: "Poeni moraju biti cijeli broj od 0 do 200." };
   if (!Number.isInteger(period) || period < 1 || period > 12) return { error: "Nepoznata četvrtina." };
+  if (await fibaLinked(matchId)) return { error: FIBA_SCORE };
 
   const { error } = await auth.supabase
     .from("match_periods")
@@ -46,6 +55,7 @@ export async function removePeriod(matchId: string, period: number): Promise<Per
   const auth = await authorize(matchId);
   if (!auth) return { error: "Samo komesar utakmice unosi rezultat." };
   if (period <= 4) return { error: "Regularne četvrtine se ne brišu." };
+  if (await fibaLinked(matchId)) return { error: FIBA_SCORE };
   const { error } = await auth.supabase.from("match_periods").delete().eq("match_id", matchId).eq("period", period);
   if (error) return { error: "Produžetak nije obrisan." };
   invalidate({ table: "match_periods", match: matchId });
@@ -155,8 +165,9 @@ export async function saveFinalScore(prev: FinalScoreState, formData: FormData):
   if (role !== "admin" && role !== "table") return { error: "Konačni rezultat upisuje pomoćni sudija za stolom." };
 
   const db = createAdminClient();
-  const { data: match } = await db.from("matches").select("status, has_commissioner, score_entered_at, home_score").eq("id", matchId).maybeSingle();
+  const { data: match } = await db.from("matches").select("status, has_commissioner, score_entered_at, home_score, fiba_game_id").eq("id", matchId).maybeSingle();
   if (!match) return { error: "Utakmica nije pronađena." };
+  if (match.fiba_game_id != null) return { error: FIBA_SCORE };
   if (match.status === "cancelled" || match.status === "postponed") return { error: "Utakmica je otkazana ili odgođena." };
   // Ispravka = rezultat već upisan (utakmica može biti završena i bez rezultata, kad je sudija označi odigranom)
   const correction = match.home_score != null;

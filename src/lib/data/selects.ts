@@ -2,7 +2,7 @@
 import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS } from "@/lib/crew";
 
 export const MATCH_SELECT = `
-  id, number, kind, kind_label, starts_at, round, status, published_at, clubs_notified_at, ${CREW_COLUMNS}, home_score, away_score,
+  id, number, kind, kind_label, starts_at, round, status, published_at, clubs_notified_at, ${CREW_COLUMNS}, home_score, away_score, fiba_game_id, fiba_stream_key,
   competition:competitions!matches_competition_id_fkey ( id, name, short_name, category ),
   home:teams!matches_home_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
   away:teams!matches_away_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),

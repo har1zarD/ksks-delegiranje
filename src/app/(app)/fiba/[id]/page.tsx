@@ -2,14 +2,16 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, Radio } from "lucide-react";
-import { getFibaGame } from "@/lib/data/fiba";
-import { fibaGameUrl, type FibaGame, type FibaLine, type FibaTeam } from "@/lib/fiba";
-import { formatDayHeading, formatTime, isoToSarajevo, periodShort } from "@/lib/format";
+import { getCurrentUser } from "@/lib/auth";
+import { getFibaGame, getLinkCandidates } from "@/lib/data/fiba";
+import { fibaCategoryLabel, fibaGameUrl, type FibaGame, type FibaLine, type FibaTeam } from "@/lib/fiba";
+import { formatDayHeading, formatTime, isoToSarajevo, matchNo, periodShort } from "@/lib/format";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BoxScore } from "@/components/match-line";
 import { Bone, SectionTitleSkeleton, Skeleton, Text } from "@/components/skeleton";
 import { TeamName } from "@/components/team-name";
 import { cx, Empty, SectionTitle, Status } from "@/components/ui";
+import { LinkMatch } from "../link-match";
 
 export const metadata = { title: "FIBA utakmica — KSKS" };
 
@@ -36,8 +38,9 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const matchId = Number(id);
   if (!Number.isInteger(matchId) || matchId <= 0) notFound();
-  const { game, stored, competition } = await getFibaGame(matchId);
+  const [{ game, stored, match }, user] = await Promise.all([getFibaGame(matchId), getCurrentUser()]);
   if (!game && !stored) notFound();
+  const candidates = user.role === "admin" && !match ? await getLinkCandidates(stored?.starts_at ?? null) : [];
 
   const state = game?.state ?? "scheduled";
   const home = game?.home ?? null;
@@ -58,8 +61,8 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
       <section className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
           <span className="text-[13px] font-semibold text-fg-muted">
-            {competition && <span className="text-fg">{competition.name}</span>}
-            {competition && startsAt && ", "}
+            <span className="text-fg">{fibaCategoryLabel(stored?.category)}</span>
+            {startsAt && ", "}
             {startsAt && `${formatDayHeading(isoToSarajevo(startsAt).date)}, ${formatTime(startsAt)}`}
           </span>
           <Status tone={STATE[state].tone} pulse={state === "live"}>
@@ -77,11 +80,18 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
             </span>
           ))}
           {game?.attendance && <span>Gledalaca: {game.attendance}</span>}
+          {match && (
+            <Link href={user.role === "admin" ? `/admin/utakmice/${match.id}` : `/utakmice/${match.id}`} className="font-semibold text-fg hover:underline">
+              {matchNo(match.number)}, {match.competition?.short_name ?? match.competition?.name}
+            </Link>
+          )}
           <a href={fibaGameUrl(matchId)} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 font-semibold hover:text-fg">
             FIBA LiveStats <ExternalLink className="size-3.5" aria-hidden="true" />
           </a>
         </div>
       </section>
+
+      {user.role === "admin" && !match && <LinkMatch fibaGameId={matchId} candidates={candidates} />}
 
       {!game ? (
         <Empty icon={<Radio />}>FIBA LiveStats još nema podatke za ovu utakmicu. Statistika se pojavi kad zapisničar pokrene utakmicu.</Empty>

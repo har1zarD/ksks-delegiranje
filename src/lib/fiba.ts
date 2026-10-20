@@ -272,15 +272,15 @@ function stateOf(g: RawGame): FibaGame["state"] {
   return pbp.length > 0 ? "live" : "scheduled";
 }
 
-/** Cijela utakmica (null = FIBA je nema ili još nema podataka) */
-export async function fetchFibaGame(matchId: number): Promise<FibaGame | null> {
+/** Cijela utakmica (null = FIBA je nema ili još nema podataka). `startsAt`: nezatvorena stara utakmica nije "uživo". */
+export async function fetchFibaGame(matchId: number, startsAt?: string | null): Promise<FibaGame | null> {
   const res = await fetch(`${BASE}/data/${matchId}/data.json`, { cache: "no-store" });
   if (!res.ok) return null;
   const g = (await res.json().catch(() => null)) as RawGame | null;
   if (!g?.tm?.["1"] || !g.tm["2"]) return null;
   return {
     id: matchId,
-    state: stateOf(g),
+    state: stateOf(g) === "live" && startsAt && Date.now() - Date.parse(startsAt) > LIVE_MAX_MS ? "finished" : stateOf(g),
     period: g.period,
     clock: g.clock,
     attendance: g.attendance || null,
@@ -294,9 +294,34 @@ export async function fetchFibaGame(matchId: number): Promise<FibaGame | null> {
   };
 }
 
+/** Utakmica koja je "u toku" duže od ovoga je zapravo završena (zapisničar je nije zatvorio u LiveStats) */
+const LIVE_MAX_MS = 4 * 60 * 60 * 1000;
+
 /** Status iz feeda → stanje (FIBA: SCHEDULED, READY, IN_PROGRESS, COMPLETE, FINISHED…) */
-export function feedState(status: string, live: boolean): FibaGame["state"] {
-  if (live || status === "IN_PROGRESS") return "live";
+export function feedState(status: string, live: boolean, startsAt?: string | null): FibaGame["state"] {
   if (status === "COMPLETE" || status === "FINISHED" || status === "CONFIRMED") return "finished";
+  if (live || status === "IN_PROGRESS") return startsAt && Date.now() - Date.parse(startsAt) > LIVE_MAX_MS ? "finished" : "live";
   return "scheduled";
+}
+
+/** Lige i kategorije na stranici FIBA uživo, redom za filter (seniori po takmičenju, omladinska liga KS po kategoriji) */
+export const FIBA_CATEGORIES = [
+  { key: "plbih", label: "Premijer liga" },
+  { key: "plbih_z", label: "Premijer liga Ž" },
+  { key: "a1", label: "A1 liga" },
+  { key: "a2", label: "A2 liga" },
+  { key: "pioniri", label: "Pioniri" },
+  { key: "kadeti", label: "Kadeti" },
+  { key: "juniori", label: "Juniori" },
+  { key: "pionirke", label: "Pionirke" },
+  { key: "kadetkinje", label: "Kadetkinje" },
+] as const;
+
+const SENIOR_CATEGORIES = new Set(["plbih", "plbih_z", "a1", "a2"]);
+
+/** "Premijer liga" ili "Omladinska liga KS, Kadeti" (naslov FIBA utakmice) */
+export function fibaCategoryLabel(category: string | null | undefined) {
+  const label = FIBA_CATEGORIES.find((c) => c.key === category)?.label;
+  if (category && SENIOR_CATEGORIES.has(category)) return label!;
+  return label ? `Omladinska liga KS, ${label}` : "Omladinska liga KS";
 }
