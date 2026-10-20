@@ -5,6 +5,46 @@ export type Database = {
   
   "public": {
           Tables: {
+            "fiba_competitions": {
+                  Row: {
+                    "active": boolean,"id": number,"name": string,"sort": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"id": number,"name": string,"sort"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"id"?: number,"name"?: string,"sort"?: number
+                  }
+                  Relationships: []
+                }
+            "fiba_games": {
+                  Row: {
+                    "away_logo": string | null,"away_name": string,"away_score": number | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"match_id": string | null,"starts_at": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"match_id"?: string | null,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"match_id"?: string | null,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fiba_games_competition_id_fkey"
+      columns: ["competition_id"]
+isOneToOne: false
+      referencedRelation: "fiba_competitions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fiba_games_match_id_fkey"
+      columns: ["match_id"]
+isOneToOne: true
+      referencedRelation: "matches"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
             "assignment_declines": {
                   Row: {
                     "declined_at": string,"id": string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string | null

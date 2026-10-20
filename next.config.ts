@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "fxdzcncfoutxunfwcyhi.supabase.co", port: "", pathname: "/storage/v1/object/public/club-logos/**", search: "" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "fxdzcncfoutxunfwcyhi.supabase.co", port: "", pathname: "/storage/v1/object/public/club-logos/**", search: "" },
+      // FIBA LiveStats: grbovi ekipa
+      { protocol: "https", hostname: "images.statsengine.playbyplay.api.geniussports.com", port: "", pathname: "/**", search: "" },
+    ],
   },
   experimental: {
     // Klijent čuva posjećenu stranicu 60 s: povratak na nju se ne učitava ponovo.
