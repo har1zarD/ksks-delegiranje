@@ -43,8 +43,8 @@ function allowList() {
  * pošalje (preko SMTP servisa sanduče pošiljaoca inače ne vidi poslano).
  */
 const ALWAYS_COPY = ["ksksarajevo@bih.net.ba", "ksksdelegiranje@gmail.com"];
-/** Bez kopije: link za novu šifru (sigurnost) i odbijanje, koje ionako ide svim adminima pa i ovim adresama */
-const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined"];
+/** Bez kopije: link za novu šifru (sigurnost), odbijanje (ionako ide svim adminima) i odsustvo (ide samo delegiranju) */
+const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined", "absence"];
 
 /** Dodaje adrese saveza u skrivene primaoce, osim onih koje su već primaoci ili koje test način ne propušta */
 function withOfficeCopy(email: Email, allow: Set<string> | null): Email {
@@ -61,7 +61,7 @@ export type Email = {
   subject: string;
   text: string;
   html?: string;
-  kind: "nomination" | "nomination_list" | "pending_reminder" | "cancellation" | "accepted" | "declined" | "password_reset" | "schedule_clubs" | "match_changed";
+  kind: "nomination" | "nomination_list" | "pending_reminder" | "cancellation" | "accepted" | "declined" | "password_reset" | "schedule_clubs" | "match_changed" | "absence";
   profileId?: string;
   assignmentId?: string;
 };

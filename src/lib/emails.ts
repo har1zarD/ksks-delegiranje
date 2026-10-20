@@ -1,6 +1,7 @@
-import { formatDayMonth, formatTime, formatWeekday, matchNo, positionName, type Position } from "@/lib/format";
-import { siteUrl } from "@/lib/email";
-import { withdrawnEmail } from "@/lib/nomination-email";
+import { absenceParts, formatDayMonth, formatTime, formatWeekday, matchNo, positionName, type Position } from "@/lib/format";
+import { sendEmail, siteUrl } from "@/lib/email";
+import { absenceEmail, withdrawnEmail } from "@/lib/nomination-email";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type MatchInfo = {
   number?: number;
@@ -74,4 +75,29 @@ Link važi kratko vrijeme i može se iskoristiti samo jednom. Ako nisi ti traži
 
 Košarkaški savez Kantona Sarajevo`,
   };
+}
+
+/** Ko dobija obavijest o najavljenom odsustvu: nalog delegiranja i Alden Košarić (delegiranje) */
+const ABSENCE_RECIPIENTS = ["ksksdelegiranje@gmail.com", "alden.kosaric14@gmail.com"];
+
+/** Obavijest savezu da je službeno lice najavilo odsustvo (poziva se nakon upisa, kroz after()) */
+export async function notifyAbsence(absence: { profileId: string; startsAt: string; endsAt: string; reason: string | null }) {
+  const { data: p } = await createAdminClient()
+    .from("profiles")
+    .select("full_name, is_referee, is_table, is_commissioner")
+    .eq("id", absence.profileId)
+    .single();
+  if (!p) return;
+  const roles = [p.is_referee && "Sudija", p.is_table && "Zapisnički sto", p.is_commissioner && "Komesar"].filter((r): r is string => Boolean(r));
+  const { allDay, ...period } = absenceParts(absence.startsAt, absence.endsAt);
+  // Cijeli dani: broj dana; s vremenom se trajanje vidi iz perioda
+  const days = allDay ? Math.round((Date.parse(absence.endsAt) - Date.parse(absence.startsAt)) / 86_400_000) : null;
+  const email = absenceEmail(
+    { name: p.full_name, roles },
+    { ...period, days, reason: absence.reason },
+    siteUrl("/admin/ljudi?prikaz=odsustva"),
+    siteUrl("/icons/icon-192.png"),
+  );
+  const [to, ...bcc] = ABSENCE_RECIPIENTS;
+  await sendEmail({ to, bcc, kind: "absence", profileId: absence.profileId, ...email });
 }
