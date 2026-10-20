@@ -22,6 +22,7 @@ export const TAG = {
   reports: "reports", // bilten (match_reports)
   payments: "payments", // kotizacije (fee_payments)
   licenses: "licenses", // licence igrača i službenih lica
+  fiba: "fiba", // FIBA LiveStats: takmičenja i utakmice (fiba_competitions, fiba_games)
 } as const;
 
 /** Tag jedne utakmice: stranica utakmice, ekipa i bilten ne moraju padati kad se mijenja druga utakmica */
@@ -42,6 +43,8 @@ export const LIFE = {
   people: ONE_MINUTE,
   /** Utakmice, delegiranja, rezultati, odsustva, finansije */
   live: ONE_MINUTE,
+  /** FIBA LiveStats uživo (FIBA sama kešira 30 s) */
+  fiba: { stale: 10, revalidate: 15, expire: 30 },
 } as const;
 
 /**
@@ -62,6 +65,7 @@ const WRITES = {
   fee_payments: [TAG.payments],
   licenses: [TAG.licenses],
   license_folders: [TAG.licenses],
+  fiba_games: [TAG.fiba],
 } as const;
 
 type Table = keyof typeof WRITES;

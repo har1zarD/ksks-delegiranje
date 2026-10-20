@@ -29,7 +29,8 @@ const FIELDS: { key: keyof FeeRules; label: string; unit: string }[] = [
     unit: "po sudiji",
   },
   { key: "fee_table_km", label: "Zapisnički sto", unit: "po osobi" },
-  { key: "fee_digital_km", label: "Digitalni zapisnik", unit: "zapisničar, umjesto cijene stola" },
+  { key: "fee_scorer_km", label: "Zapisničar", unit: "umjesto cijene stola, prazno = kao sto" },
+  { key: "fee_digital_km", label: "Digitalni zapisnik", unit: "zapisničar, prazno = kao zapisničar" },
   { key: "fee_stats_km", label: "Statistika", unit: "po osobi" },
   { key: "fee_commissioner_km", label: "Komesar", unit: "po utakmici" },
 ];
@@ -64,6 +65,7 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
     fee_table_km: toNumber(values.fee_table_km),
     fee_stats_km: toNumber(values.fee_stats_km),
     fee_commissioner_km: toNumber(values.fee_commissioner_km),
+    fee_scorer_km: toNumber(values.fee_scorer_km),
     fee_digital_km: toNumber(values.fee_digital_km),
   };
   const cost = matchCost(rules, crew);
@@ -85,6 +87,7 @@ export function RulesForm({ competition }: { competition: CompetitionRules }) {
     : [
         c0.referees && `dvojka ${km(r.fee_referee_2_km)}, trojka ${km(r.fee_referee_3_km)}`,
         `sto ${km(r.fee_table_km)}`,
+        r.fee_scorer_km != null && `zapisničar ${km(r.fee_scorer_km)}`,
         r.fee_digital_km != null && `dig. zapisnik ${km(r.fee_digital_km)}`,
         c0.stats > 0 && `statistika ${km(r.fee_stats_km ?? null)}`,
         c0.commissioner && `komesar ${km(r.fee_commissioner_km)}`,

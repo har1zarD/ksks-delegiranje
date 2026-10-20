@@ -9,6 +9,7 @@ const PERSONAL: NavItem[] = [
   { href: "/nominacije", label: "Nominacije", icon: "nominations" },
   { href: "/utakmice", label: "Utakmice", icon: "matches" },
   { href: "/rezultati", label: "Rezultati", icon: "results" },
+  { href: "/fiba", label: "FIBA uživo", icon: "live" },
   { href: "/odsustva", label: "Odsustva", icon: "absences" },
   { href: "/moje-naknade", label: "Naknade", icon: "fees" },
 ];
@@ -18,6 +19,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/admin", label: "Pregled", icon: "overview", primary: true },
     { href: "/admin/utakmice", label: "Utakmice", icon: "matches", primary: true },
     { href: "/rezultati", label: "Rezultati", icon: "results", primary: true },
+    { href: "/fiba", label: "FIBA uživo", icon: "live" },
     { href: "/admin/naknade", label: "Naknade", icon: "fees" },
     { href: "/admin/statistika", label: "Statistika", icon: "stats" },
     { href: "/admin/kotizacije", label: "Kotizacije", icon: "registrations" },

@@ -5,6 +5,46 @@ export type Database = {
   
   "public": {
           Tables: {
+            "fiba_competitions": {
+                  Row: {
+                    "active": boolean,"id": number,"name": string,"sort": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"id": number,"name": string,"sort"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"id"?: number,"name"?: string,"sort"?: number
+                  }
+                  Relationships: []
+                }
+            "fiba_games": {
+                  Row: {
+                    "away_logo": string | null,"away_name": string,"away_score": number | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"match_id": string | null,"starts_at": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"match_id"?: string | null,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"match_id"?: string | null,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fiba_games_competition_id_fkey"
+      columns: ["competition_id"]
+isOneToOne: false
+      referencedRelation: "fiba_competitions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fiba_games_match_id_fkey"
+      columns: ["match_id"]
+isOneToOne: true
+      referencedRelation: "matches"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
             "assignment_declines": {
                   Row: {
                     "declined_at": string,"id": string,"match_id": string,"position": Database["public"]['Enums']["assignment_position"],"profile_id": string,"reason": string | null
@@ -117,14 +157,14 @@ isOneToOne: false
                   ]
                 },"competitions": {
                   Row: {
-                    "carry_over_h2h": boolean,"fee_referee_2_km": number | null,"referees_default": boolean,"commissioner_default": boolean,"scorer_default": boolean,"assistant_scorer_default": boolean,"assistant_timer_default": boolean,"timer_default": boolean,"shot_clock_default": boolean,"timer_shot_clock_default": boolean,"stats_default": number,"digital_default": boolean,"fee_stats_km": number | null,"split_nominations": boolean,"fee_referee_3_km": number | null,"fee_table_km": number | null,"fee_commissioner_km": number | null,"fee_digital_km": number | null,"referee_count_default": number,"table_count_default": number,"category": string,"fee_due_on": string | null,"fee_first_km": number | null,"fee_km": number | null,"format": string | null,"gender": string,"id": string,"name": string,"parent_id": string | null,"period_min": number,"periods": number,"season_id": string,"short_name": string | null,"sort": number,"starts_on": string | null
+                    "carry_over_h2h": boolean,"fee_referee_2_km": number | null,"referees_default": boolean,"commissioner_default": boolean,"scorer_default": boolean,"assistant_scorer_default": boolean,"assistant_timer_default": boolean,"timer_default": boolean,"shot_clock_default": boolean,"timer_shot_clock_default": boolean,"stats_default": number,"digital_default": boolean,"fee_stats_km": number | null,"split_nominations": boolean,"fee_referee_3_km": number | null,"fee_table_km": number | null,"fee_commissioner_km": number | null,"fee_scorer_km": number | null,"fee_digital_km": number | null,"referee_count_default": number,"table_count_default": number,"category": string,"fee_due_on": string | null,"fee_first_km": number | null,"fee_km": number | null,"format": string | null,"gender": string,"id": string,"name": string,"parent_id": string | null,"period_min": number,"periods": number,"season_id": string,"short_name": string | null,"sort": number,"starts_on": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"assistant_timer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"timer_shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"fee_digital_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category": string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name": string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id": string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
+                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"assistant_timer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"timer_shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"fee_scorer_km"?: number | null,"fee_digital_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category": string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name": string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id": string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
                   }
                   Update: {
-                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"assistant_timer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"timer_shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"fee_digital_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category"?: string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name"?: string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id"?: string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
+                    "carry_over_h2h"?: boolean,"fee_referee_2_km"?: number | null,"referees_default"?: boolean,"commissioner_default"?: boolean,"scorer_default"?: boolean,"assistant_scorer_default"?: boolean,"assistant_timer_default"?: boolean,"timer_default"?: boolean,"shot_clock_default"?: boolean,"timer_shot_clock_default"?: boolean,"stats_default"?: number,"digital_default"?: boolean,"fee_stats_km"?: number | null,"split_nominations"?: boolean,"fee_referee_3_km"?: number | null,"fee_table_km"?: number | null,"fee_commissioner_km"?: number | null,"fee_scorer_km"?: number | null,"fee_digital_km"?: number | null,"referee_count_default"?: number,"table_count_default"?: number,"category"?: string,"fee_due_on"?: string | null,"fee_first_km"?: number | null,"fee_km"?: number | null,"format"?: string | null,"gender"?: string,"id"?: string,"name"?: string,"parent_id"?: string | null,"period_min"?: number,"periods"?: number,"season_id"?: string,"short_name"?: string | null,"sort"?: number,"starts_on"?: string | null
                   }
                   Relationships: [
                     {

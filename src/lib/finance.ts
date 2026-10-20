@@ -88,17 +88,20 @@ export type FeeRules = {
   /** Statistika po osobi (null = nije određeno) */
   fee_stats_km?: number | null;
   fee_commissioner_km: number | null;
-  /** Zapisničar kad je digitalni zapisnik (null = kao sto) */
+  /** Zapisničar (null = kao sto) */
+  fee_scorer_km?: number | null;
+  /** Zapisničar kad je digitalni zapisnik (null = kao zapisničar) */
   fee_digital_km?: number | null;
 };
 
 const TABLE: Position[] = ["scorer", "assistant_scorer", "timer", "assistant_timer", "shot_clock", "timer_shot_clock"];
 const STATS: Position[] = ["statistician_1", "statistician_2", "statistician_3"];
 
-/** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica; zapisničar s digitalnim zapisnikom ima svoju cijenu */
+/** Naknada jedne osobe na utakmici: sudija zavisi od toga sude li dvojica ili trojica; zapisničar (i digitalni zapisnik) može imati svoju cijenu */
 export function feeFor(position: Position, refereeCount: number, rules: FeeRules | null, digital = false): number | null {
   if (!rules) return null;
   if (position === "scorer" && digital && rules.fee_digital_km != null) return Number(rules.fee_digital_km);
+  if (position === "scorer" && rules.fee_scorer_km != null) return Number(rules.fee_scorer_km);
   const v =
     position === "commissioner"
       ? rules.fee_commissioner_km
@@ -117,9 +120,9 @@ export type CostLine = { label: string; count: number; unit: number | null; tota
 /** Trošak utakmice po pravilima takmičenja i sastavu: sudije, sto, statistika, komesar */
 export function matchCost(rules: FeeRules | null, crew: Crew) {
   const refereeCount = crew.refereeCount;
-  // Digitalni zapisnik sa svojom cijenom ide kao poseban red, ostatak stola po cijeni stola
-  const digitalScorer = crew.scorer && crew.digital && rules?.fee_digital_km != null;
-  const tableCount = [crew.scorer && !digitalScorer, crew.assistantScorer, crew.timer, crew.assistantTimer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
+  // Zapisničar sa svojom cijenom (običan ili digitalni zapisnik) ide kao poseban red, ostatak stola po cijeni stola
+  const ownScorer = crew.scorer && ((crew.digital && rules?.fee_digital_km != null) || rules?.fee_scorer_km != null);
+  const tableCount = [crew.scorer && !ownScorer, crew.assistantScorer, crew.timer, crew.assistantTimer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
   const line = (label: string, count: number, unit: number | null): CostLine => ({
     label,
     count,
@@ -128,7 +131,7 @@ export function matchCost(rules: FeeRules | null, crew: Crew) {
   });
   const lines = [
     crew.referees && line(refereeCount === 3 ? "Sudije (trojka)" : "Sudije (dvojka)", refereeCount, feeFor("referee_1", refereeCount, rules)),
-    digitalScorer && line("Dig. zapisnik", 1, feeFor("scorer", refereeCount, rules, true)),
+    ownScorer && line(crew.digital ? "Dig. zapisnik" : "Zapisničar", 1, feeFor("scorer", refereeCount, rules, crew.digital)),
     tableCount > 0 && line("Zapisnički sto", tableCount, feeFor("timer", refereeCount, rules)),
     crew.stats > 0 && line("Statistika", crew.stats, feeFor("statistician_1", refereeCount, rules)),
     crew.commissioner && line("Komesar", 1, feeFor("commissioner", refereeCount, rules)),
