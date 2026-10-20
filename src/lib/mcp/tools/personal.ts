@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { z } from "zod";
 import { invalidateFromRoute } from "@/lib/cache";
 import { MY_ASSIGNMENT_SELECT } from "@/lib/data/selects";
+import { notifyAbsence } from "@/lib/emails";
 import { respondToNomination as respond } from "@/lib/delegation";
 import { absenceRange, ASSIGNMENT_STATUS_LABEL, formatAbsence } from "@/lib/format";
 import { dateSchema, defineTool, must, timeSchema, ToolError, uuidSchema } from "../define";
@@ -129,6 +131,7 @@ export const addUnavailability = defineTool({
         .single(),
     );
     invalidateFromRoute("unavailability");
+    after(() => notifyAbsence({ profileId: profile.id, startsAt: created.starts_at, endsAt: created.ends_at, reason: created.reason }));
     return absenceView(created);
   },
 });

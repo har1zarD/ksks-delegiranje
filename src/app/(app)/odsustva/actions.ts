@@ -1,7 +1,9 @@
 "use server";
 
+import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { notifyAbsence } from "@/lib/emails";
 import { absenceRange } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,6 +23,7 @@ export async function addAbsence(prev: AbsenceState, formData: FormData): Promis
   if (error) return { error: "Odsustvo nije sačuvano. Pokušaj ponovo." };
 
   invalidate("unavailability");
+  after(() => notifyAbsence({ profileId: user.id, startsAt: range.startsAt, endsAt: range.endsAt, reason }));
   return { ok: (prev.ok ?? 0) + 1 };
 }
 

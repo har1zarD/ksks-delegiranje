@@ -501,3 +501,75 @@ export function matchChangedEmail(match: CardMatch & { digital_scoresheet: boole
 
   return { subject, text, html };
 }
+
+// ───────── Najavljeno odsustvo ─────────
+
+/**
+ * Savezu (delegiranje): službeno lice je najavilo odsustvo. Ime, uloge, period i razlog u istom okviru kao nominacija.
+ * Ne šalje se osobi koja je najavila odsustvo.
+ */
+export function absenceEmail(
+  person: { name: string; roles: string[] },
+  absence: { from: string; to: string | null; days: number | null; reason: string | null },
+  link: string,
+  logo: string,
+) {
+  const period = absence.to ? `${absence.from} – ${absence.to}` : absence.from;
+  const subject = `Odsustvo: ${person.name}, ${period}`;
+  const intro = `${person.name} nije dostupan za delegiranje u ovom periodu.`;
+  const rows = [
+    { label: absence.to ? "Od" : "Dan", value: absence.from },
+    ...(absence.to ? [{ label: "Do", value: absence.to }] : []),
+    ...(absence.days ? [{ label: "Trajanje", value: `${absence.days} ${absence.days % 10 === 1 && absence.days % 100 !== 11 ? "dan" : "dana"}` }] : []),
+    { label: "Razlog", value: absence.reason ?? "Nije naveden" },
+  ];
+
+  const text = [
+    "NAJAVLJENO ODSUSTVO",
+    "Košarkaški savez Kantona Sarajevo",
+    "",
+    intro,
+    "",
+    nominationName(person.name),
+    ...(person.roles.length ? [person.roles.join(" · ")] : []),
+    ...rows.map((r) => `  ${r.label}: ${r.value}`),
+    "",
+    `Sva odsustva: ${link}`,
+    "",
+    "Takmičarska komisija KSKS",
+  ].join("\n");
+
+  const body = `<tr><td style="padding:8px 0 4px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid ${C.line};border-radius:8px;border-collapse:separate;background:${C.panel};margin:0 0 12px">
+  <tr><td style="padding:12px 14px;border-bottom:1px solid ${C.line};background:${C.head};border-radius:8px 8px 0 0">
+    ${person.roles.length ? `<div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:${C.faint};text-transform:uppercase">${esc(person.roles.join(" · "))}</div>` : ""}
+    <div style="font-size:17px;font-weight:700;color:${C.ink};margin-top:2px">${esc(nominationName(person.name))}</div>
+  </td></tr>
+  <tr><td style="padding:4px 0">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${rows
+      .map(
+        (r, i) => `<tr>
+      <td style="padding:8px 14px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:13px;color:${C.muted};width:35%">${esc(r.label)}</td>
+      <td style="padding:8px 14px;border-top:${i ? `1px solid ${C.line}` : "0"};font-size:14px;font-weight:600;color:${r.label === "Razlog" && !absence.reason ? C.faint : C.ink}">${esc(r.value)}</td>
+    </tr>`,
+      )
+      .join("")}
+    </table>
+  </td></tr>
+</table>
+</td></tr>`;
+
+  const html = documentHtml({
+    subject,
+    title: "Najavljeno odsustvo",
+    subtitle: period,
+    intro: esc(intro),
+    body,
+    button: "Otvori odsustva",
+    link,
+    note: "Osoba se u ovom periodu ne nudi pri delegiranju.",
+    logo,
+  });
+
+  return { subject, text, html };
+}
