@@ -8,6 +8,7 @@ import { CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewToRow } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, sarajevoToISO } from "@/lib/format";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
+import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
 
 export type FormState = { error?: string; ok?: number };
 
@@ -274,6 +275,45 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
   return {};
 }
 
+/** Jedna utakmica iz rasporeda A2 lige jug (lib/a2-jug-raspored): termin, dvorana i broj upisuje admin */
+export async function createFixtureMatch(prev: FormState, f: FormData): Promise<FormState> {
+  await requireRole("admin");
+  const round = Number(text(f, "round"));
+  const homeId = text(f, "home_team_id");
+  const awayId = text(f, "away_team_id");
+  const date = text(f, "date");
+  const time = text(f, "time");
+  const number = text(f, "number");
+  if (!DATE.test(date) || !TIME.test(time)) return { error: "Upiši datum i vrijeme." };
+  if (number && (!Number.isInteger(Number(number)) || Number(number) < 1)) return { error: "Broj utakmice mora biti pozitivan broj." };
+
+  const supabase = await createClient();
+  const [{ data: competition }, { data: teams }, { count }] = await Promise.all([
+    supabase.from("competitions").select(CREW_DEFAULT_COLUMNS).eq("id", A2_JUG_ID).single(),
+    supabase.from("teams").select("id, name").eq("competition_id", A2_JUG_ID).in("id", [homeId, awayId]),
+    supabase.from("matches").select("id", { count: "exact", head: true }).eq("competition_id", A2_JUG_ID).eq("home_team_id", homeId).eq("away_team_id", awayId),
+  ]);
+  const name = (id: string) => teams?.find((t) => t.id === id)?.name;
+  if (!A2_JUG_FIXTURES.some((x) => x.round === round && x.home === name(homeId) && x.away === name(awayId))) return { error: "Utakmica nije u rasporedu." };
+  if (count) return { error: "Ova utakmica je već napravljena." };
+
+  const { error } = await supabase.from("matches").insert({
+    competition_id: A2_JUG_ID,
+    round,
+    home_team_id: homeId,
+    away_team_id: awayId,
+    hall_id: text(f, "hall_id") || null,
+    starts_at: sarajevoToISO(date, time),
+    ...(number ? { number: Number(number) } : {}),
+    // Sastav ekipe po pravilima takmičenja (Naknade)
+    ...(competition ? crewToRow(crewDefaultsOf(competition)) : {}),
+  });
+  if (error?.code === "23505") return { error: `Utakmica ${number} već postoji. Upiši drugi broj ili ostavi prazno.` };
+  if (error) return { error: "Utakmica nije napravljena. Pokušaj ponovo." };
+
+  invalidate("matches");
+  return { ok: (prev.ok ?? 0) + 1 };
+}
 
 /** Brisanje praznog takmičenja (bez ekipa i utakmica), npr. greškom napravljena liga */
 export async function deleteCompetition(_prev: FormState, f: FormData): Promise<FormState> {

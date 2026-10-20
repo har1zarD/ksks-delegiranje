@@ -46,6 +46,24 @@ export async function getHalls() {
   return hallRows();
 }
 
+async function competitionMatchRows(competitionId: string) {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.matches);
+  return rows(
+    await createAdminClient()
+      .from("matches")
+      .select("id, number, round, home_team_id, away_team_id, starts_at, hall_id")
+      .eq("competition_id", competitionId),
+  );
+}
+
+/** Utakmice jednog takmičenja (raspored A2 lige jug: koji parovi su već napravljeni) */
+export async function getCompetitionMatches(competitionId: string) {
+  await requireRole("admin");
+  return competitionMatchRows(competitionId);
+}
+
 /** Najveći broj utakmice po takmičenju tekuće sezone */
 async function maxMatchNumbers() {
   "use cache: remote";

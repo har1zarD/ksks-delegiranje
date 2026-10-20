@@ -13,6 +13,8 @@ import { ButtonLink, Field, Panel, SectionTitle, Textarea } from "@/components/u
 import { StandingsTable } from "@/app/(app)/rezultati/standings-table";
 import { ActionForm, Check } from "../action-form";
 import { addTeam, createPhase, deleteCompetition, generateSchedule, removeTeam, updateCompetition } from "../actions";
+import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
+import { A2JugRaspored } from "./a2-jug-raspored";
 
 export const metadata = { title: "Takmičenje — KSKS" };
 
@@ -118,7 +120,8 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         </Panel>
       </section>
 
-      {matchCount === 0 && teams.length >= 2 && (
+      {/* A2 liga jug ima raspored saveza (dno stranice) */}
+      {matchCount === 0 && teams.length >= 2 && c.id !== A2_JUG_ID && (
         <section>
           <SectionTitle icon={<CalendarDays />}>Raspored</SectionTitle>
           <Panel className="py-4 sm:py-6">
@@ -193,6 +196,12 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
             <input type="hidden" name="id" value={c.id} />
           </ActionForm>
         </section>
+      )}
+
+      {c.id === A2_JUG_ID && (
+        <Suspense>
+          <A2JugRaspored teams={teams} />
+        </Suspense>
       )}
     </div>
   );

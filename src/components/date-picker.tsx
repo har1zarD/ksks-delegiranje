@@ -20,10 +20,16 @@ type FieldProps = {
   disabled?: boolean;
   defaultValue?: string;
   placeholder?: string;
+  /** Javlja izabranu vrijednost (polje ostaje nekontrolisano) */
+  onChange?: (value: string) => void;
 };
 
-export function DateField({ min, max, defaultValue, placeholder = "Izaberi", ...props }: FieldProps & { min?: string; max?: string }) {
-  const [value, setValue] = useState(defaultValue ?? "");
+export function DateField({ min, max, defaultValue, placeholder = "Izaberi", onChange, ...props }: FieldProps & { min?: string; max?: string }) {
+  const [value, setDate] = useState(defaultValue ?? "");
+  const setValue = (v: string) => {
+    setDate(v);
+    onChange?.(v);
+  };
   return (
     <Picker
       {...props}
@@ -55,8 +61,12 @@ export function DateField({ min, max, defaultValue, placeholder = "Izaberi", ...
   );
 }
 
-export function TimeField({ step = 60, defaultValue, placeholder = "Izaberi", ...props }: FieldProps & { step?: number }) {
-  const [value, setValue] = useState(defaultValue ?? "");
+export function TimeField({ step = 60, defaultValue, placeholder = "Izaberi", onChange, ...props }: FieldProps & { step?: number }) {
+  const [value, setTime] = useState(defaultValue ?? "");
+  const setValue = (v: string) => {
+    setTime(v);
+    onChange?.(v);
+  };
   return (
     <Picker
       {...props}
