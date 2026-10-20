@@ -3,6 +3,7 @@
 //  * seniori: poseban dokument "NOMINACIJA – POMOĆNE SUDIJE" (samo sto)
 // Svako sa liste vidi cijelo kolo; svoje utakmice i odgovor su u aplikaciji (dugme na dnu).
 // Čista logika (bez baze). HTML je za email klijente: tabele i inline stilovi.
+import { fibaGameUrl } from "@/lib/fiba";
 import { formatDayMonth, formatTime, formatWeekday, MATCH_STATUS_LABEL, matchKindLabel, positionName, POSITION_ORDER, type MatchKind, type MatchStatus, type Position } from "@/lib/format";
 
 export type NominationMatch = {
@@ -17,6 +18,9 @@ export type NominationMatch = {
   home: { name: string } | null;
   away: { name: string } | null;
   hall: { name: string } | null;
+  /** FIBA LiveStats: utakmica i pristupni kod (Stream Key) za zapisničara; null = utakmica se ne vodi na FIBA LiveStats */
+  fiba_game_id?: number | null;
+  fiba_stream_key?: string | null;
   /** changed = novo u odnosu na prethodnu nominaciju (crveno); removed = precrtano (samo u obavijesti o otkazanoj nominaciji) */
   crew: { position: Position; name: string; profileId: string; email: string; changed?: boolean; removed?: boolean }[];
 };
@@ -104,7 +108,7 @@ const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial
 
 type Row = ReturnType<typeof crewRows>[number];
 /** Polja utakmice potrebna kartici (nominacija i otkazivanje) */
-type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind" | "kind_label" | "home" | "away" | "hall"> & {
+type CardMatch = Pick<NominationMatch, "number" | "starts_at" | "round" | "kind" | "kind_label" | "home" | "away" | "hall" | "fiba_game_id" | "fiba_stream_key"> & {
   competition: { name: string } | null;
 };
 
@@ -137,6 +141,13 @@ function matchCard(
         )
         .join("")
     : `<tr><td colspan="2" style="padding:8px 12px;font-size:13px;color:${C.faint}">Delegiranje u toku</td></tr>`;
+  // FIBA LiveStats: kod kojim zapisničar preuzima utakmicu i javni link statistike
+  const fiba =
+    m.fiba_stream_key || m.fiba_game_id
+      ? `<tr><td colspan="2" style="padding:8px 12px;border-top:1px solid ${C.line};font-size:13px;color:${C.muted}">FIBA LiveStats${
+          m.fiba_stream_key ? ` kod: <span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;font-weight:700;color:${C.ink}">${esc(m.fiba_stream_key)}</span>` : ""
+        }${m.fiba_game_id ? ` · <a href="${esc(fibaGameUrl(m.fiba_game_id))}" style="color:${C.ink};font-weight:600">statistika uživo</a>` : ""}</td></tr>`
+      : "";
 
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid ${C.line};border-radius:8px;border-collapse:separate;background:${C.panel};margin:0 0 12px">
   <tr>
@@ -147,7 +158,7 @@ function matchCard(
         <tr>
           <td colspan="2" style="padding:4px 12px 12px;border-bottom:1px solid ${C.line};font-size:15px;font-weight:700;color:${C.ink};text-transform:uppercase">${esc(m.home?.name ?? "?")} – ${esc(m.away?.name ?? "?")}</td>
         </tr>
-        ${crewless ? "" : `<tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}</table></td></tr>`}
+        ${crewless ? "" : `<tr><td colspan="2" style="padding:4px 0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${crew}${fiba}</table></td></tr>`}
       </table>
     </td>
   </tr>
@@ -220,6 +231,8 @@ export function nominationEmail(matches: NominationMatch[], link: string, logo: 
           textLine(m, kind === "youth"),
           textTeams(m),
           ...crewRows(m, kind).map((r) => `  ${r.label}: ${r.people.map((p) => (p.removed ? `${p.name} (skinuto)` : p.changed ? `${p.name} (novo)` : p.name)).join(", ")}`),
+          ...(m.fiba_stream_key ? [`  FIBA LiveStats kod: ${m.fiba_stream_key}`] : []),
+          ...(m.fiba_game_id ? [`  Statistika uživo: ${fibaGameUrl(m.fiba_game_id)}`] : []),
           "",
         ]),
       ]),

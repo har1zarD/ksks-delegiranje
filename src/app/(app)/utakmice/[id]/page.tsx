@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage, Wallet } from "lucide-react";
+import { CalendarDays, ChevronLeft, MapPin, Printer, Users, ClipboardList, FileImage, Radio, Wallet } from "lucide-react";
 import { getMatchPage } from "@/lib/data/report";
 import { listScoresheets } from "@/lib/scoresheets";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, MATCH_STATUS_LABEL, scoreUndoUntil, type MatchStatus } from "@/lib/format";
@@ -134,6 +134,16 @@ async function Match({ params }: { params: Params }) {
           {match.hall && (
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="size-4" /> {match.hall.name}
+            </span>
+          )}
+          {match.fiba_game_id && (
+            <Link href={`/fiba/${match.fiba_game_id}`} className="inline-flex items-center gap-1.5 font-semibold text-fg hover:underline">
+              <Radio className="size-4" /> FIBA statistika uživo
+            </Link>
+          )}
+          {match.fiba_stream_key && (
+            <span className="inline-flex items-center gap-1.5">
+              FIBA LiveStats kod: <span className="select-all font-mono font-semibold text-fg">{match.fiba_stream_key}</span>
             </span>
           )}
         </div>

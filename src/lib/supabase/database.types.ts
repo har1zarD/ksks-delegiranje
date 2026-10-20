@@ -20,14 +20,14 @@ export type Database = {
                 }
             "fiba_games": {
                   Row: {
-                    "away_logo": string | null,"away_name": string,"away_score": number | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"match_id": string | null,"starts_at": string | null,"status": string,"updated_at": string
+                    "away_logo": string | null,"away_name": string,"away_score": number | null,"category": string | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"starts_at": string | null,"status": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"match_id"?: string | null,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"match_id"?: string | null,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -35,12 +35,6 @@ export type Database = {
       columns: ["competition_id"]
 isOneToOne: false
       referencedRelation: "fiba_competitions"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "fiba_games_match_id_fkey"
-      columns: ["match_id"]
-isOneToOne: true
-      referencedRelation: "matches"
       referencedColumns: ["id"]
     }
                   ]
@@ -373,17 +367,23 @@ isOneToOne: true
                   ]
                 },"matches": {
                   Row: {
-                    "away_score": number | null,"table_count": number,"away_team_id": string,"clubs_notified_at": string | null,"competition_id": string,"created_at": string,"hall_id": string | null,"home_score": number | null,"home_team_id": string,"id": string,"notes": string | null,"number": number,"kind": Database["public"]["Enums"]["match_kind"],"kind_label": string | null,"has_referees": boolean,"published_at": string | null,"score_entered_at": string | null,"has_commissioner": boolean,"has_scorer": boolean,"has_assistant_scorer": boolean,"has_assistant_timer": boolean,"has_timer": boolean,"has_shot_clock": boolean,"has_timer_shot_clock": boolean,"stats_count": number,"digital_scoresheet": boolean,"finished_at": string | null,"finished_by": string | null,"referee_count": number,"round": number | null,"starts_at": string,"status": Database["public"]['Enums']["match_status"]
+                    "away_score": number | null,"table_count": number,"away_team_id": string,"clubs_notified_at": string | null,"competition_id": string,"created_at": string,"hall_id": string | null,"home_score": number | null,"home_team_id": string,"id": string,"notes": string | null,"number": number,"kind": Database["public"]["Enums"]["match_kind"],"kind_label": string | null,"has_referees": boolean,"published_at": string | null,"score_entered_at": string | null,"has_commissioner": boolean,"has_scorer": boolean,"has_assistant_scorer": boolean,"has_assistant_timer": boolean,"has_timer": boolean,"has_shot_clock": boolean,"has_timer_shot_clock": boolean,"stats_count": number,"digital_scoresheet": boolean,"fiba_game_id": number | null,"fiba_stream_key": string | null,"finished_at": string | null,"finished_by": string | null,"referee_count": number,"round": number | null,"starts_at": string,"status": Database["public"]['Enums']["match_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "away_score"?: number | null,"table_count"?: number,"away_team_id": string,"clubs_notified_at"?: string | null,"competition_id": string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id": string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_assistant_timer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"has_timer_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"finished_at"?: string | null,"finished_by"?: string | null,"referee_count"?: number,"round"?: number | null,"starts_at": string,"status"?: Database["public"]['Enums']["match_status"]
+                    "away_score"?: number | null,"table_count"?: number,"away_team_id": string,"clubs_notified_at"?: string | null,"competition_id": string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id": string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_assistant_timer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"has_timer_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"fiba_game_id"?: number | null,"fiba_stream_key"?: string | null,"finished_at"?: string | null,"finished_by"?: string | null,"referee_count"?: number,"round"?: number | null,"starts_at": string,"status"?: Database["public"]['Enums']["match_status"]
                   }
                   Update: {
-                    "away_score"?: number | null,"table_count"?: number,"away_team_id"?: string,"clubs_notified_at"?: string | null,"competition_id"?: string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id"?: string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_assistant_timer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"has_timer_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"finished_at"?: string | null,"finished_by"?: string | null,"referee_count"?: number,"round"?: number | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["match_status"]
+                    "away_score"?: number | null,"table_count"?: number,"away_team_id"?: string,"clubs_notified_at"?: string | null,"competition_id"?: string,"created_at"?: string,"hall_id"?: string | null,"home_score"?: number | null,"home_team_id"?: string,"id"?: string,"notes"?: string | null,"number"?: number,"kind"?: Database["public"]["Enums"]["match_kind"],"kind_label"?: string | null,"has_referees"?: boolean,"published_at"?: string | null,"score_entered_at"?: string | null,"has_commissioner"?: boolean,"has_scorer"?: boolean,"has_assistant_scorer"?: boolean,"has_assistant_timer"?: boolean,"has_timer"?: boolean,"has_shot_clock"?: boolean,"has_timer_shot_clock"?: boolean,"stats_count"?: number,"digital_scoresheet"?: boolean,"fiba_game_id"?: number | null,"fiba_stream_key"?: string | null,"finished_at"?: string | null,"finished_by"?: string | null,"referee_count"?: number,"round"?: number | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["match_status"]
                   }
                   Relationships: [
                     {
+      foreignKeyName: "matches_fiba_game_id_fkey"
+      columns: ["fiba_game_id"]
+isOneToOne: true
+      referencedRelation: "fiba_games"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "matches_away_team_id_fkey"
       columns: ["away_team_id"]
 isOneToOne: false

@@ -17,7 +17,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 type Db = ReturnType<typeof createAdminClient>;
 
 const PUBLISH_SELECT = `
-  id, number, starts_at, round, kind, kind_label, digital_scoresheet, published_at, clubs_notified_at,
+  id, number, starts_at, round, kind, kind_label, digital_scoresheet, published_at, clubs_notified_at, fiba_game_id, fiba_stream_key,
   competition:competitions!matches_competition_id_fkey ( name, sort, category ),
   home:teams!matches_home_team_id_fkey ( name ),
   away:teams!matches_away_team_id_fkey ( name ),
