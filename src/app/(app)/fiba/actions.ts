@@ -72,12 +72,13 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
 
   const db = createAdminClient();
   let key = streamKey;
+  let game: Awaited<ReturnType<typeof fetchFibaGame>> = null;
   if (fibaId) {
     const { data: known } = await db.from("fiba_games").select("id, stream_key").eq("id", fibaId).maybeSingle();
     // Pristupni kod iz tabele KSBiH (uvezen uz FIBA utakmicu) se preuzima kad ga admin nije upisao
     key ??= known?.stream_key ?? null;
     if (!known) {
-      const [game, { data: match }] = await Promise.all([
+      const [fetched, { data: match }] = await Promise.all([
         fetchFibaGame(fibaId),
         db
           .from("matches")
@@ -85,6 +86,7 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
           .eq("id", matchId)
           .maybeSingle(),
       ]);
+      game = fetched;
       // Utakmica kreirana u FIBA Organizer-u, a još nepokrenuta, nema podataka; tada ekipe i termin uzimamo s naše utakmice
       const category = categoryOf(match?.competition);
       const { error } = await db.from("fiba_games").insert({
@@ -107,6 +109,18 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
 
   const { error } = await db.from("matches").update({ fiba_game_id: fibaId, fiba_stream_key: key }).eq("id", matchId);
   if (error) return { error: error.code === "23505" ? "Ta FIBA utakmica je već povezana s drugom utakmicom." : error.message };
-  invalidate({ table: "matches", match: matchId }, "fiba_games");
+
+  // Rezultat odmah (i za već odigranu utakmicu); dalje ga svake minute prepisuje sync_fiba_periods
+  if (fibaId) {
+    game ??= await fetchFibaGame(fibaId);
+    if (game && game.state !== "scheduled") {
+      const periods = game.home.periods
+        .map((h, i) => ({ match_id: matchId, period: i + 1, home_points: h, away_points: game!.away.periods[i] ?? 0 }))
+        .filter((p) => p.period <= Math.max(game!.period, 1));
+      if (periods.length) await db.from("match_periods").upsert(periods);
+      if (game.state === "live") await db.from("matches").update({ status: "live" }).eq("id", matchId).eq("status", "scheduled");
+    }
+  }
+  invalidate({ table: "matches", match: matchId }, { table: "match_periods", match: matchId }, "fiba_games");
   return { saved: Date.now() };
 }

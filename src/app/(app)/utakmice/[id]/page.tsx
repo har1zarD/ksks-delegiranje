@@ -53,13 +53,15 @@ async function Match({ params }: { params: Params }) {
 
   const canScore = isCommissioner || isAdmin;
   const open = match.status !== "cancelled" && match.status !== "postponed";
+  // Povezana FIBA LiveStats utakmica: četvrtine se same prepisuju iz FIBA (pg_cron svake minute), niko ih ne unosi
+  const fiba = match.fiba_game_id != null;
   // Bez komesara (i bez četvrtina) vodi se samo konačni rezultat: upisuje ga pomoćni sudija sa zapisnika
-  const finalOnly = periods.length === 0 && (match.home_score != null || !match.has_commissioner);
+  const finalOnly = !fiba && periods.length === 0 && (match.home_score != null || !match.has_commissioner);
   // Pomoćni sudija smije ispraviti ili poništiti svoj rezultat još 24 sata nakon upisa
   const tableScores = isTable && !isAdmin && !match.has_commissioner;
   const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
   // Sto upisuje rezultat dok ga nema (i kad je sudija već označio utakmicu završenom) ili dok traje rok za ispravku
-  const canFinal = open && (isAdmin ? finalOnly : tableScores && (match.home_score == null || undoUntil !== null));
+  const canFinal = !fiba && open && (isAdmin ? finalOnly : tableScores && (match.home_score == null || undoUntil !== null));
   // Zaključavanje bez unosa rezultata: sudije i sto na svojoj stranici, savez uvijek; utakmicu u toku završava komesar
   const canLock = open && match.status !== "finished" && (isAdmin || ((isReferee || isTable) && match.status !== "live"));
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
@@ -96,13 +98,18 @@ async function Match({ params }: { params: Params }) {
               homeLogoUrl={match.home?.club?.logo_url ?? null}
               awayLogoUrl={match.away?.club?.logo_url ?? null}
               initial={periods}
-              canEdit={isAdmin ? open : isCommissioner && match.status === "live"}
+              canEdit={!fiba && (isAdmin ? open : isCommissioner && match.status === "live")}
             />
           )}
-          {isCommissioner && !isAdmin && match.status === "scheduled" && (
+          {fiba && (
+            <p className="pt-3 text-[14px] text-fg-muted">
+              Rezultat se automatski preuzima s FIBA LiveStats (svake minute), ne unosi se ručno.
+            </p>
+          )}
+          {!fiba && isCommissioner && !isAdmin && match.status === "scheduled" && (
             <p className="pt-3 text-[14px] text-fg-muted">Rezultat se unosi kad započneš utakmicu.</p>
           )}
-          {isCommissioner && !isAdmin && match.status === "finished" && (
+          {!fiba && isCommissioner && !isAdmin && match.status === "finished" && (
             <p className="pt-3 text-[14px] text-fg-muted">Utakmica je završena. Za ispravku rezultata javi se savezu.</p>
           )}
           {canScore && !finalOnly && (match.status === "scheduled" || match.status === "live") && (
@@ -175,7 +182,7 @@ async function Match({ params }: { params: Params }) {
                 />
               </div>
             )}
-            {tableScores && open && !canFinal && (
+            {!fiba && tableScores && open && !canFinal && (
               <p className="text-[14px] text-fg-muted">Rezultat je upisan i utakmica je završena. Za ispravku se javi savezu.</p>
             )}
             <div className={cx(canFinal && "border-t border-line pt-5")}>
