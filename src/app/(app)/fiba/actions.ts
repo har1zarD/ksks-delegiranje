@@ -41,8 +41,15 @@ export async function addFibaGame(prev: AddFibaState, formData: FormData): Promi
 
 export type FibaLinkState = { error?: string; saved?: number };
 
-/** Kategorija iz naziva takmičenja naše utakmice (pioniri, kadeti, juniori; ženske varijante) */
-function categoryOf(category: string | null | undefined, gender: string | null | undefined) {
+/** FIBA takmičenje po kategoriji (seniori); omladinska liga KS je 47625 */
+const FIBA_COMPETITION: Record<string, number> = { plbih: 50128, plbih_z: 50228, a1: 50201 };
+
+/** FIBA kategorija naše utakmice: seniorska liga po nazivu takmičenja, omladinska liga po kategoriji (ženske varijante) */
+function categoryOf(competition: { name: string; category: string; gender: string } | null | undefined) {
+  const { name = "", category, gender } = competition ?? {};
+  if (name.startsWith("Premijer liga BiH")) return gender === "Ž" ? "plbih_z" : "plbih";
+  if (name.startsWith("A1 liga")) return "a1";
+  if (name.startsWith("A2 liga")) return "a2";
   if (category === "pioniri") return gender === "Ž" ? "pionirke" : "pioniri";
   if (category === "kadeti") return gender === "Ž" ? "kadetkinje" : "kadeti";
   if (category === "juniori") return "juniori";
@@ -64,22 +71,26 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
   if (rawLink && !fibaId) return { error: "Zalijepi FIBA LiveStats link utakmice (…/u/BIH/2939998/) ili njen broj." };
 
   const db = createAdminClient();
+  let key = streamKey;
   if (fibaId) {
-    const { data: known } = await db.from("fiba_games").select("id").eq("id", fibaId).maybeSingle();
+    const { data: known } = await db.from("fiba_games").select("id, stream_key").eq("id", fibaId).maybeSingle();
+    // Pristupni kod iz tabele KSBiH (uvezen uz FIBA utakmicu) se preuzima kad ga admin nije upisao
+    key ??= known?.stream_key ?? null;
     if (!known) {
       const [game, { data: match }] = await Promise.all([
         fetchFibaGame(fibaId),
         db
           .from("matches")
-          .select("starts_at, competition:competitions!matches_competition_id_fkey ( category, gender ), home:teams!matches_home_team_id_fkey ( name ), away:teams!matches_away_team_id_fkey ( name )")
+          .select("starts_at, competition:competitions!matches_competition_id_fkey ( name, category, gender ), home:teams!matches_home_team_id_fkey ( name ), away:teams!matches_away_team_id_fkey ( name )")
           .eq("id", matchId)
           .maybeSingle(),
       ]);
       // Utakmica kreirana u FIBA Organizer-u, a još nepokrenuta, nema podataka; tada ekipe i termin uzimamo s naše utakmice
+      const category = categoryOf(match?.competition);
       const { error } = await db.from("fiba_games").insert({
         id: fibaId,
-        competition_id: 47625,
-        category: categoryOf(match?.competition?.category, match?.competition?.gender),
+        competition_id: FIBA_COMPETITION[category ?? ""] ?? 47625,
+        category,
         starts_at: match?.starts_at ?? null,
         status: game ? STATUS[game.state] : "SCHEDULED",
         live: game?.state === "live",
@@ -94,7 +105,7 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
     }
   }
 
-  const { error } = await db.from("matches").update({ fiba_game_id: fibaId, fiba_stream_key: streamKey }).eq("id", matchId);
+  const { error } = await db.from("matches").update({ fiba_game_id: fibaId, fiba_stream_key: key }).eq("id", matchId);
   if (error) return { error: error.code === "23505" ? "Ta FIBA utakmica je već povezana s drugom utakmicom." : error.message };
   invalidate({ table: "matches", match: matchId }, "fiba_games");
   return { saved: Date.now() };

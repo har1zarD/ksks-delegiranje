@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Radio } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getFibaCompetitions, getFibaGames, type FibaGameRow } from "@/lib/data/fiba";
-import { FIBA_CATEGORIES, feedState } from "@/lib/fiba";
+import { FIBA_CATEGORIES, feedState, fibaCategoryLabel } from "@/lib/fiba";
 import { matchNo } from "@/lib/format";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { MatchLine, type MatchSummary } from "@/components/match-line";
@@ -19,7 +19,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default function FibaPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader icon={<Radio />} title="FIBA uživo" subtitle="Omladinska liga KS na FIBA LiveStats: rezultat uživo, box score i statistika igrača." />
+      <PageHeader icon={<Radio />} title="FIBA uživo" subtitle="Premijer liga BiH, A1 liga i omladinska liga KS na FIBA LiveStats: rezultat uživo, box score i statistika igrača." />
       <Suspense fallback={<FibaSkeleton />}>
         <FibaGames searchParams={searchParams} />
       </Suspense>
@@ -28,13 +28,13 @@ export default function FibaPage({ searchParams }: { searchParams: SearchParams 
 }
 
 /** FIBA utakmica kao naša u listi (MatchLine) */
-function fibaSummary(g: FibaGameRow, category: string | undefined): MatchSummary {
+function fibaSummary(g: FibaGameRow): MatchSummary {
   return {
     starts_at: g.starts_at ?? "",
     round: null,
     home_score: g.home_score,
     away_score: g.away_score,
-    competition: { name: category ?? "Omladinska liga KS", short_name: null },
+    competition: { name: fibaCategoryLabel(g.category), short_name: null },
     home: { name: g.home_name, club: { logo_url: g.home_logo } },
     away: { name: g.away_name, club: { logo_url: g.away_logo } },
     hall: null,
@@ -60,7 +60,7 @@ async function FibaGames({ searchParams }: { searchParams: SearchParams }) {
         <li key={g.id}>
           <Link href={`/fiba/${g.id}`} className="-mx-4 flex px-4 py-3.5 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
             <MatchLine
-              match={fibaSummary(g, FIBA_CATEGORIES.find((c) => c.key === g.category)?.label)}
+              match={fibaSummary(g)}
               hideDate={!g.starts_at}
               showScore
               badge={badge}

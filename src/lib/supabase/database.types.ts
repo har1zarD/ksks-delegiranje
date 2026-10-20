@@ -7,27 +7,27 @@ export type Database = {
           Tables: {
             "fiba_competitions": {
                   Row: {
-                    "active": boolean,"id": number,"name": string,"sort": number
+                    "active": boolean,"category": string | null,"id": number,"name": string,"sort": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"id": number,"name": string,"sort"?: number
+                    "active"?: boolean,"category"?: string | null,"id": number,"name": string,"sort"?: number
                   }
                   Update: {
-                    "active"?: boolean,"id"?: number,"name"?: string,"sort"?: number
+                    "active"?: boolean,"category"?: string | null,"id"?: number,"name"?: string,"sort"?: number
                   }
                   Relationships: []
                 }
             "fiba_games": {
                   Row: {
-                    "away_logo": string | null,"away_name": string,"away_score": number | null,"category": string | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"starts_at": string | null,"status": string,"updated_at": string
+                    "away_logo": string | null,"away_name": string,"away_score": number | null,"category": string | null,"competition_id": number | null,"home_logo": string | null,"home_name": string,"home_score": number | null,"id": number,"live": boolean,"starts_at": string | null,"status": string,"stream_key": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                    "away_logo"?: string | null,"away_name": string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name": string,"home_score"?: number | null,"id": number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"stream_key"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"updated_at"?: string
+                    "away_logo"?: string | null,"away_name"?: string,"away_score"?: number | null,"category"?: string | null,"competition_id"?: number | null,"home_logo"?: string | null,"home_name"?: string,"home_score"?: number | null,"id"?: number,"live"?: boolean,"starts_at"?: string | null,"status"?: string,"stream_key"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {

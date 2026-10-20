@@ -11,7 +11,7 @@ import { row, rows } from "./db";
 // Keširani čitači koriste servisni klijent; izvezene funkcije prvo provjere prijavu (vidi svaki prijavljeni korisnik).
 
 const GAME_COLUMNS =
-  "id, competition_id, category, starts_at, status, live, home_name, away_name, home_logo, away_logo, home_score, away_score" as const;
+  "id, competition_id, category, starts_at, status, live, home_name, away_name, home_logo, away_logo, home_score, away_score, stream_key" as const;
 
 const LINKED_MATCH = "id, number, starts_at, fiba_game_id, fiba_stream_key, competition:competitions!matches_competition_id_fkey ( name, short_name )" as const;
 
@@ -19,21 +19,25 @@ export type FibaGameRow = Omit<FibaFeedGame, "starts_at" | "competition_id"> & {
   starts_at: string | null;
   competition_id: number | null;
   category: string | null;
+  stream_key?: string | null;
 };
 
 async function competitionRows() {
   "use cache: remote";
   cacheLife(LIFE.reference);
   cacheTag(TAG.fiba);
-  return rows(await createAdminClient().from("fiba_competitions").select("id, name, sort, active").eq("active", true).order("sort"));
+  return rows(await createAdminClient().from("fiba_competitions").select("id, name, sort, active, category").eq("active", true).order("sort"));
 }
 
-/** Svježi feed svih aktivnih takmičenja (FIBA vraća samo zadnji/trenutni krug) */
+/** Svježi feed svih aktivnih takmičenja (FIBA vraća samo zadnji/trenutni krug); seniorske lige nose kategoriju takmičenja */
 async function feedGames() {
   "use cache: remote";
   cacheLife(LIFE.fiba);
   cacheTag(TAG.fiba);
-  const feeds = await Promise.all((await competitionRows()).map((c) => fetchCompetitionFeed(c.id).catch(() => [])));
+  const competitions = await competitionRows();
+  const feeds = await Promise.all(
+    competitions.map(async (c) => (await fetchCompetitionFeed(c.id).catch(() => [])).map((g) => ({ ...g, ...(c.category ? { category: c.category } : {}) }))),
+  );
   return feeds.flat();
 }
 
@@ -54,8 +58,8 @@ async function linkedMatches() {
   return rows(await createAdminClient().from("matches").select(LINKED_MATCH).not("fiba_game_id", "is", null));
 }
 
-/** Pamti utakmice iz feeda (kategorija i veza se ne diraju) */
-async function storeFeed(games: FibaFeedGame[]) {
+/** Pamti utakmice iz feeda (kategorija omladinske lige, pristupni kod i veza se ne diraju) */
+async function storeFeed(games: (FibaFeedGame & { category?: string })[]) {
   if (games.length === 0) return;
   const now = new Date().toISOString();
   const { error } = await createAdminClient()
@@ -75,7 +79,7 @@ export async function getFibaGames() {
   const [feed, stored, linked] = await Promise.all([feedGames(), storedGames(), linkedMatches()]);
   after(() => storeFeed(feed));
   const byId = new Map<number, FibaGameRow>(stored.map((g) => [g.id, g]));
-  for (const g of feed) byId.set(g.id, { ...g, category: byId.get(g.id)?.category ?? null });
+  for (const g of feed) byId.set(g.id, { ...g, category: g.category ?? byId.get(g.id)?.category ?? null, stream_key: byId.get(g.id)?.stream_key ?? null });
   const matchOf = new Map(linked.map((m) => [m.fiba_game_id!, m]));
   return [...byId.values()].map((g) => ({ ...g, match: matchOf.get(g.id) ?? null }));
 }

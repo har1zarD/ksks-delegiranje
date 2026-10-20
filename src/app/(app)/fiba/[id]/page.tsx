@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, Radio } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getFibaGame, getLinkCandidates } from "@/lib/data/fiba";
-import { FIBA_CATEGORIES, fibaGameUrl, type FibaGame, type FibaLine, type FibaTeam } from "@/lib/fiba";
+import { fibaCategoryLabel, fibaGameUrl, type FibaGame, type FibaLine, type FibaTeam } from "@/lib/fiba";
 import { formatDayHeading, formatTime, isoToSarajevo, matchNo, periodShort } from "@/lib/format";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BoxScore } from "@/components/match-line";
@@ -40,7 +40,6 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
   if (!Number.isInteger(matchId) || matchId <= 0) notFound();
   const [{ game, stored, match }, user] = await Promise.all([getFibaGame(matchId), getCurrentUser()]);
   if (!game && !stored) notFound();
-  const category = FIBA_CATEGORIES.find((c) => c.key === stored?.category)?.label;
   const candidates = user.role === "admin" && !match ? await getLinkCandidates(stored?.starts_at ?? null) : [];
 
   const state = game?.state ?? "scheduled";
@@ -62,7 +61,7 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
       <section className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
           <span className="text-[13px] font-semibold text-fg-muted">
-            <span className="text-fg">Omladinska liga KS{category ? `, ${category}` : ""}</span>
+            <span className="text-fg">{fibaCategoryLabel(stored?.category)}</span>
             {startsAt && ", "}
             {startsAt && `${formatDayHeading(isoToSarajevo(startsAt).date)}, ${formatTime(startsAt)}`}
           </span>

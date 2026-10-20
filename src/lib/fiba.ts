@@ -304,11 +304,24 @@ export function feedState(status: string, live: boolean, startsAt?: string | nul
   return "scheduled";
 }
 
-/** Kategorije omladinske lige KS na FIBA LiveStats, redom za filter */
+/** Lige i kategorije na stranici FIBA uživo, redom za filter (seniori po takmičenju, omladinska liga KS po kategoriji) */
 export const FIBA_CATEGORIES = [
+  { key: "plbih", label: "Premijer liga" },
+  { key: "plbih_z", label: "Premijer liga Ž" },
+  { key: "a1", label: "A1 liga" },
+  { key: "a2", label: "A2 liga" },
   { key: "pioniri", label: "Pioniri" },
   { key: "kadeti", label: "Kadeti" },
   { key: "juniori", label: "Juniori" },
   { key: "pionirke", label: "Pionirke" },
   { key: "kadetkinje", label: "Kadetkinje" },
 ] as const;
+
+const SENIOR_CATEGORIES = new Set(["plbih", "plbih_z", "a1", "a2"]);
+
+/** "Premijer liga" ili "Omladinska liga KS, Kadeti" (naslov FIBA utakmice) */
+export function fibaCategoryLabel(category: string | null | undefined) {
+  const label = FIBA_CATEGORIES.find((c) => c.key === category)?.label;
+  if (category && SENIOR_CATEGORIES.has(category)) return label!;
+  return label ? `Omladinska liga KS, ${label}` : "Omladinska liga KS";
+}
