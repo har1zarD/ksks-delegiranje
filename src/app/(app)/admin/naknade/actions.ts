@@ -25,6 +25,7 @@ export async function saveFeeRules(prev: RulesState, formData: FormData): Promis
     fee_table_km: amount(formData.get("fee_table_km")),
     fee_stats_km: amount(formData.get("fee_stats_km")),
     fee_commissioner_km: amount(formData.get("fee_commissioner_km")),
+    fee_scorer_km: amount(formData.get("fee_scorer_km")),
     fee_digital_km: amount(formData.get("fee_digital_km")),
   };
   if (Object.values(fees).includes("invalid")) return { error: "Iznosi moraju biti brojevi od 0 do 10.000 KM." };

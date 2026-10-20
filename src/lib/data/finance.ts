@@ -15,7 +15,7 @@ const FEE_COMPETITION_SELECT = `
     fee_payments ( id, amount_km, paid_on, note ) )
 ` as const;
 
-const FEE_RULES = "fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, fee_digital_km" as const;
+const FEE_RULES = "fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, fee_scorer_km, fee_digital_km" as const;
 
 const RULES_COMPETITION_SELECT =
   `id, name, short_name, ${CREW_DEFAULT_COLUMNS}, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
@@ -131,6 +131,7 @@ export async function getFeeRules() {
       fee_table_km: num(c.fee_table_km),
       fee_stats_km: num(c.fee_stats_km),
       fee_commissioner_km: num(c.fee_commissioner_km),
+      fee_scorer_km: num(c.fee_scorer_km),
       fee_digital_km: num(c.fee_digital_km),
     },
   }));
