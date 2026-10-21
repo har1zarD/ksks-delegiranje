@@ -1,0 +1,61 @@
+{
+  "status": "imported_and_verified",
+  "club": "KK Bugojno",
+  "competition": "A1 liga žene",
+  "season": "2026/27",
+  "club_id": "03d4df12-f427-4cda-91a3-201fd805f45c",
+  "source": "Email \"BHN\" from bugojnobhn@gmail.com, 2026-10-21 12:01, forwarded by KSKS",
+  "photos": [
+    {
+      "index": 1,
+      "license_id": "344978f1-5a64-4b94-ad82-f44ff5f6fd37",
+      "person": "Tajra Jašarević",
+      "source": "/Users/tarikvelic/Downloads/Bugojno-dopuna/TAJRA Jašarević.jpg",
+      "previous_photo_path": null,
+      "sha256": "1517dfffdc9476fd6a1c244f33aa3b9b4f5a6d54d2395168182aa3ea205182e8",
+      "size": 441075,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-66298e7a-a2c8-4375-a4db-b49fec52cd45.jpg"
+    },
+    {
+      "index": 2,
+      "license_id": "e22729fc-a640-4ee1-9a56-699a7fa31c13",
+      "person": "Amelisa Karagić",
+      "source": "/Users/tarikvelic/Downloads/Bugojno-dopuna/AMELISA Karagić.jpg",
+      "previous_photo_path": null,
+      "sha256": "064334e90179125a5a1bff65d8c8658bf5ea20b19d4df3d99d5bafb1299800b4",
+      "size": 1064904,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-5293ddca-d86f-4154-b8b6-e3996c2acb4c.jpg"
+    },
+    {
+      "index": 3,
+      "license_id": "5fa3bbe5-d17b-4cc7-9864-3f886efb3d7b",
+      "person": "Ajla Čatić",
+      "source": "/Users/tarikvelic/Downloads/Bugojno-dopuna/AJLA Ćurić.jpg",
+      "previous_photo_path": null,
+      "sha256": "bca308d4e357d23964298be55156fcc442b1e5fa7242b1ed0888facfb7386510",
+      "size": 226565,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-6501d205-fd06-4cca-b17b-8fc0a8746043.jpg"
+    },
+    {
+      "index": 4,
+      "license_id": "410aa0b4-df50-4ba6-bc9e-77d8993bfe0a",
+      "person": "Amina Ajkić",
+      "source": "/Users/tarikvelic/Downloads/Bugojno-dopuna/AMINA Ajkić.jpg",
+      "previous_photo_path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-84742bd5-5b38-4e4c-8db5-fd1c32fc0fbc.jpg",
+      "sha256": "0a625dad512444a566bacf70136e66691586f0596b8c78b2424964a0d7968362",
+      "size": 263035,
+      "content_type": "image/jpeg",
+      "path": "03d4df12-f427-4cda-91a3-201fd805f45c/bugojno-2026-27-0cb81855-827e-4142-8950-23dbc9979cd5.jpg"
+    }
+  ],
+  "notes": [
+    "Missing photos added for Tajra Jašarević, Amelisa Karagić and Ajla Čatić.",
+    "Amina Ajkić photo replaced with a newer one at the club's request; the old storage object is kept.",
+    "Photo AJLA Ćurić.jpg mapped to Ajla Čatić, the only Ajla on the roster (roster prints Ćatić).",
+    "AJRA Karagić.jpg not used: she is a new player (no. 22) whose updated roster and medical were not attached.",
+    "Enes Trapo (Fizioterapeut) still has no photograph."
+  ]
+}

@@ -1,0 +1,19 @@
+[
+  {
+    "id": "ffd852be-fe99-4df8-ac00-1368d701f00c",
+    "competition_id": "443667aa-44cf-4c3c-9934-5b3d426c8de4",
+    "club_id": "dbbb7b49-39cd-4f90-8ef7-f745dc97dcca",
+    "kind": "player",
+    "role": null,
+    "last_name": "Mihmić",
+    "first_name": "Ajla",
+    "birth_date": "2001-06-30",
+    "birth_place": "Brčko",
+    "height_cm": 169,
+    "position": null,
+    "license_no": null,
+    "photo_path": "dbbb7b49-39cd-4f90-8ef7-f745dc97dcca/brcko-a1-2026-27-83153f59-6149-4293-98f8-6dc78acfa83f.jpg",
+    "sort": 16,
+    "created_at": "2026-10-21T10:14:18.769297+00:00"
+  }
+]
