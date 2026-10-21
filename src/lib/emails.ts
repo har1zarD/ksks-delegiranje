@@ -64,8 +64,8 @@ Košarkaški savez Kantona Sarajevo`,
   };
 }
 
-/** Ko dobija obavijest o najavljenom odsustvu: nalog delegiranja i Alden Košarić (delegiranje) */
-const ABSENCE_RECIPIENTS = ["ksksdelegiranje@gmail.com", "alden.kosaric14@gmail.com"];
+/** Ko dobija obavijest o odbijenoj nominaciji i najavljenom odsustvu: nalog delegiranja i Alden Košarić (delegiranje). Ništa drugo im ne ide. */
+export const DELEGATION_INBOX = ["ksksdelegiranje@gmail.com", "alden.kosaric14@gmail.com"];
 
 /** Obavijest savezu da je službeno lice najavilo odsustvo (poziva se nakon upisa, kroz after()) */
 export async function notifyAbsence(absence: { profileId: string; startsAt: string; endsAt: string; reason: string | null }) {
@@ -85,6 +85,6 @@ export async function notifyAbsence(absence: { profileId: string; startsAt: stri
     siteUrl("/admin/ljudi?prikaz=odsustva"),
     siteUrl("/icons/icon-192.png"),
   );
-  const [to, ...bcc] = ABSENCE_RECIPIENTS;
+  const [to, ...bcc] = DELEGATION_INBOX;
   await sendEmail({ to, bcc, kind: "absence", profileId: absence.profileId, ...email });
 }

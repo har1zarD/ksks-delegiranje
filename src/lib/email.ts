@@ -1,10 +1,11 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Slanje emaila preko SMTP servisa (Brevo): SMTP_HOST, SMTP_PORT (587 ili 465), SMTP_USER, SMTP_PASS; EMAIL_FROM = verifikovani pošiljalac.
-// Gmail put (GMAIL_USER + GMAIL_APP_PASSWORD) je isključen (2026-10-16): nov Gmail nalog uz masovni bcc tiho ne isporučuje
-// i ima dnevni limit od 500 adresa. Kod je ostavljen zakomentarisan ispod ako ikad zatreba.
-// Kancelarija saveza i nalog delegiranja (ALWAYS_COPY) dobijaju skrivenu kopiju svakog emaila osim linka za novu šifru i odbijanja.
+// Slanje emaila preko Gmail SMTP-a (od 2026-10-21): GMAIL_USER + GMAIL_APP_PASSWORD (app šifra, potvrda u 2 koraka).
+// Gmail limiti: ~500 primalaca dnevno i do 100 po poruci, pa se veliki bcc šalje u dijelovima (BCC_CHUNK).
+// Brevo put (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) je ostavljen zakomentarisan ispod ako ikad zatreba.
+// Kancelarija saveza (ALWAYS_COPY) dobija skrivenu kopiju svakog emaila osim linka za novu šifru, odbijanja i odsustva.
+// Nalog delegiranja (pošiljalac) prima SAMO odbijanja i odsustva (DELEGATION_INBOX u emails.ts); sve ostalo ima u "Poslano".
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 /**
  * PREKIDAČ: true = nijedan email ne ide nikome (upisuje se u email_log kao preskočen), za testiranje.
@@ -15,21 +16,24 @@ const EMAILS_OFF = false;
 let transport: Transporter | null = null;
 
 function getTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  const port = Number(SMTP_PORT) || 587;
-  transport ??= nodemailer.createTransport({ host: SMTP_HOST, port, secure: port === 465, auth: { user: SMTP_USER, pass: SMTP_PASS } });
+  const { GMAIL_USER, GMAIL_APP_PASSWORD } = process.env;
+  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
+  transport ??= nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } });
   return transport;
-  // Gmail (isključeno, vidi zaglavlje):
-  // const { GMAIL_USER, GMAIL_APP_PASSWORD } = process.env;
-  // if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
-  // transport ??= nodemailer.createTransport({ service: "gmail", auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } });
+  // Brevo (isključeno, vidi zaglavlje):
+  // const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  // if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  // const port = Number(SMTP_PORT) || 587;
+  // transport ??= nodemailer.createTransport({ host: SMTP_HOST, port, secure: port === 465, auth: { user: SMTP_USER, pass: SMTP_PASS } });
   // return transport;
 }
 
+/** Najviše skrivenih primalaca u jednoj poruci (Gmail prima do 100 po poruci, uključujući "to") */
+const BCC_CHUNK = 90;
+
 /** Adresa pošiljaoca */
 export function senderAddress() {
-  return process.env.EMAIL_FROM ?? process.env.GMAIL_USER ?? "ksksdelegiranje@gmail.com";
+  return process.env.GMAIL_USER ?? "ksksdelegiranje@gmail.com";
 }
 
 /** Test način: dozvoljene adrese (null = šalje se svima) */
@@ -39,10 +43,10 @@ function allowList() {
 }
 
 /**
- * Skrivena kopija SVAKOG emaila: kancelarija saveza i nalog delegiranja, da savez ima evidenciju svega što aplikacija
- * pošalje (preko SMTP servisa sanduče pošiljaoca inače ne vidi poslano).
+ * Skrivena kopija SVAKOG emaila: kancelarija saveza, da ima evidenciju svega što aplikacija pošalje.
+ * Nalog delegiranja nije tu: on je pošiljalac, pa sve ima u "Poslano" u Gmailu.
  */
-const ALWAYS_COPY = ["ksksarajevo@bih.net.ba", "ksksdelegiranje@gmail.com"];
+const ALWAYS_COPY = ["ksksarajevo@bih.net.ba"];
 /** Bez kopije: link za novu šifru (sigurnost), odbijanje (ionako ide svim adminima) i odsustvo (ide samo delegiranju) */
 const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined", "absence"];
 
@@ -93,21 +97,30 @@ export async function sendEmail(email: Email): Promise<boolean> {
   email = withOfficeCopy(email, allow);
 
   if (!t) {
-    error = "Email nije podešen (SMTP_HOST + SMTP_USER + SMTP_PASS)";
+    error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD)";
   } else {
+    // Veliki bcc ide u više poruka istog sadržaja; poslano je samo ako su prošli svi dijelovi
+    const chunks = email.bcc?.length ? Array.from({ length: Math.ceil(email.bcc.length / BCC_CHUNK) }, (_, i) => email.bcc!.slice(i * BCC_CHUNK, (i + 1) * BCC_CHUNK)) : [undefined];
+    // Masovni mail (to = pošiljalac, svi u bcc) ide bez "to", da ga sanduče delegiranja ne primi u Inbox
+    const to = email.bcc?.length && email.to.toLowerCase() === senderAddress().toLowerCase() ? undefined : email.to;
+    const rejected: string[] = [];
+    let accepted = 0;
     try {
-      const info = await t.sendMail({
-        from: { name: "KSKS Nominacije", address: senderAddress() },
-        to: email.to,
-        bcc: email.bcc,
-        subject: email.subject,
-        text: email.text,
-        html: email.html,
-      });
-      providerId = info.messageId;
+      for (const bcc of chunks) {
+        const info = await t.sendMail({
+          from: { name: "KSKS Nominacije", address: senderAddress() },
+          to,
+          bcc,
+          subject: email.subject,
+          text: email.text,
+          html: email.html,
+        });
+        providerId ??= info.messageId;
+        rejected.push(...(info.rejected ?? []).map(String));
+        accepted += (info.accepted ?? []).length;
+      }
       // Adrese koje je server odbio već pri slanju (ostalima je poslano); kasnije odbijene stižu kao bounce u sanduče pošiljaoca
-      const rejected = (info.rejected ?? []).map(String);
-      if (rejected.length) note = `Server odbio ${rejected.length} od ${rejected.length + (info.accepted ?? []).length} adresa: ${rejected.join(", ")}`;
+      if (rejected.length) note = `Server odbio ${rejected.length} od ${rejected.length + accepted} adresa: ${rejected.join(", ")}`;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }

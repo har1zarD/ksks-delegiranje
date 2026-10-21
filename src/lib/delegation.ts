@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
 import { sendEmail } from "@/lib/email";
 import { publishMatches } from "@/lib/publish";
-import { cancellationEmail, declinedEmail } from "@/lib/emails";
+import { cancellationEmail, declinedEmail, DELEGATION_INBOX } from "@/lib/emails";
 import { CREW_COLUMNS, crewOf, crewPositions, skillsFor } from "@/lib/crew";
 import { formatAbsence, matchWindow, type MatchStatus, type Position } from "@/lib/format";
 import type { Database } from "@/lib/supabase/database.types";
@@ -203,11 +203,11 @@ export async function respondToNomination(
     if (accept) return;
     const { data: match } = await db.from("matches").select(MATCH_SELECT).eq("id", row.match_id).single();
     if (!match) return;
-    const { data: admins } = await db.from("profiles").select("id, email").eq("role", "admin").eq("active", true);
+    // Nalog delegiranja i Alden, plus ostali aktivni admini (jedan email, bez duplikata)
+    const { data: admins } = await db.from("profiles").select("email").eq("role", "admin").eq("active", true);
+    const [to, ...bcc] = [...new Set([...DELEGATION_INBOX, ...(admins ?? []).map((a) => a.email)].map((e) => e.toLowerCase()))];
     const email = declinedEmail(row.profile?.full_name ?? "", row.position, why!, match);
-    for (const admin of admins ?? []) {
-      await sendEmail({ to: admin.email, kind: "declined", profileId: admin.id, assignmentId: row.id, ...email });
-    }
+    await sendEmail({ to, bcc, kind: "declined", assignmentId: row.id, ...email });
   };
 
   return { status: row.status, matchId: row.match_id, notifyAdmins };
