@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addDays, sarajevoToISO } from "@/lib/format";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
 import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
+import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 
 export type FormState = { error?: string; ok?: number };
 
@@ -236,6 +237,7 @@ export async function createSystemA(_prev: FormState, f: FormData): Promise<Form
 export async function generateSchedule(_prev: FormState, f: FormData): Promise<FormState> {
   await requireRole("admin");
   const competitionId = text(f, "competition_id");
+  if (competitionId === A2_JUG_ID || competitionId === A1_ZENE_ID) return { error: "Koristi raspored saveza na stranici takmičenja." };
   const start = text(f, "start_date");
   const time = text(f, "time") || "18:00";
   const double = f.get("double") === "on";
@@ -275,9 +277,12 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
   return {};
 }
 
-/** Jedna utakmica iz rasporeda A2 lige jug (lib/a2-jug-raspored): termin, dvorana i broj upisuje admin */
+/** Jedna utakmica iz rasporeda saveza: termin, dvorana i broj upisuje admin */
 export async function createFixtureMatch(prev: FormState, f: FormData): Promise<FormState> {
   await requireRole("admin");
+  const competitionId = text(f, "competition_id");
+  const fixtures = competitionId === A2_JUG_ID ? A2_JUG_FIXTURES : competitionId === A1_ZENE_ID ? A1_ZENE_FIXTURES : null;
+  if (!fixtures) return { error: "Takmičenje nema ovaj raspored." };
   const round = Number(text(f, "round"));
   const homeId = text(f, "home_team_id");
   const awayId = text(f, "away_team_id");
@@ -289,16 +294,16 @@ export async function createFixtureMatch(prev: FormState, f: FormData): Promise<
 
   const supabase = await createClient();
   const [{ data: competition }, { data: teams }, { count }] = await Promise.all([
-    supabase.from("competitions").select(CREW_DEFAULT_COLUMNS).eq("id", A2_JUG_ID).single(),
-    supabase.from("teams").select("id, name").eq("competition_id", A2_JUG_ID).in("id", [homeId, awayId]),
-    supabase.from("matches").select("id", { count: "exact", head: true }).eq("competition_id", A2_JUG_ID).eq("home_team_id", homeId).eq("away_team_id", awayId),
+    supabase.from("competitions").select(CREW_DEFAULT_COLUMNS).eq("id", competitionId).single(),
+    supabase.from("teams").select("id, name").eq("competition_id", competitionId).in("id", [homeId, awayId]),
+    supabase.from("matches").select("id", { count: "exact", head: true }).eq("competition_id", competitionId).eq("home_team_id", homeId).eq("away_team_id", awayId),
   ]);
   const name = (id: string) => teams?.find((t) => t.id === id)?.name;
-  if (!A2_JUG_FIXTURES.some((x) => x.round === round && x.home === name(homeId) && x.away === name(awayId))) return { error: "Utakmica nije u rasporedu." };
+  if (!fixtures.some((x) => x.round === round && x.home === name(homeId) && x.away === name(awayId))) return { error: "Utakmica nije u rasporedu." };
   if (count) return { error: "Ova utakmica je već napravljena." };
 
   const { error } = await supabase.from("matches").insert({
-    competition_id: A2_JUG_ID,
+    competition_id: competitionId,
     round,
     home_team_id: homeId,
     away_team_id: awayId,

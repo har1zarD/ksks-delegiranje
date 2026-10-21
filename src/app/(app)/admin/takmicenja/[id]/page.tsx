@@ -5,7 +5,7 @@ import Link from "next/link";
 import { crewDefaultsOf, crewSummary } from "@/lib/crew";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, Trophy, Users, CalendarDays } from "lucide-react";
+import { ChevronDown, ChevronLeft, Trophy, Users, CalendarDays, Images } from "lucide-react";
 import { getCompetitionAdmin } from "@/lib/data/results";
 import { Bone, ButtonSkeleton, FieldSkeleton, Skeleton, StandingsSkeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
 import { DateField, TimeField } from "@/components/date-picker";
@@ -15,6 +15,9 @@ import { ActionForm, Check } from "../action-form";
 import { addTeam, createPhase, deleteCompetition, generateSchedule, removeTeam, updateCompetition } from "../actions";
 import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { A2JugRaspored } from "./a2-jug-raspored";
+import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
+import { A1ZeneRaspored } from "./a1-zene-objava";
+import { SocialBuilderSkeleton } from "../../utakmice/objave/skeleton";
 
 export const metadata = { title: "Takmičenje — KSKS" };
 
@@ -37,6 +40,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
   if (!data) notFound();
   const { competition: c, teams, clubs, matchCount, standings, children } = data;
   const half = Math.ceil(teams.length / 2);
+  const isA1Women = c.id === A1_ZENE_ID;
 
   return (
     <div className="flex flex-col gap-10">
@@ -71,6 +75,11 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           <ButtonLink href={`/admin/utakmice?takmicenje=${c.id}`} variant="secondary">
             Utakmice
           </ButtonLink>
+          {isA1Women && (
+            <ButtonLink href="#slike-za-objavu" variant="secondary">
+              <Images className="size-4" aria-hidden="true" /> Slike za objavu
+            </ButtonLink>
+          )}
         </div>
       </header>
 
@@ -120,8 +129,8 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         </Panel>
       </section>
 
-      {/* A2 liga jug ima raspored saveza (dno stranice) */}
-      {matchCount === 0 && teams.length >= 2 && c.id !== A2_JUG_ID && (
+      {/* A2 jug i A1 žene imaju raspored saveza (dno stranice) */}
+      {matchCount === 0 && teams.length >= 2 && c.id !== A2_JUG_ID && !isA1Women && (
         <section>
           <SectionTitle icon={<CalendarDays />}>Raspored</SectionTitle>
           <Panel className="py-4 sm:py-6">
@@ -202,6 +211,13 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         <Suspense>
           <A2JugRaspored teams={teams} />
         </Suspense>
+      )}
+      {isA1Women && (
+        <section id="slike-za-objavu" className="scroll-mt-6">
+          <Suspense fallback={<SocialBuilderSkeleton />}>
+            <A1ZeneRaspored teams={teams} />
+          </Suspense>
+        </section>
       )}
     </div>
   );

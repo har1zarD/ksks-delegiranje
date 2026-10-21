@@ -1,23 +1,31 @@
 import Link from "next/link";
 import { CalendarDays, ChevronDown } from "lucide-react";
-import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
+import { A2_JUG_FIXTURES, A2_JUG_ID, type Fixture } from "@/lib/a2-jug-raspored";
 import { getCompetitionMatches, getHalls } from "@/lib/data/admin";
 import { getSocialSchedules } from "@/lib/data/social";
 import { formatDate, formatTime, formatWeekday, isoToSarajevo, matchNo } from "@/lib/format";
 import { SectionTitle } from "@/components/ui";
-import { A2JugObjava } from "./a2-jug-objava";
+import { ScheduleObjava } from "./a2-jug-objava";
 import { DraftsProvider, FixtureForm, type Draft } from "./a2-jug-nacrti";
 
-/**
- * Poseban slučaj A2 lige jug: parovi iz PDF rasporeda po kolima. Nenapravljena utakmica dobija termin, dvoranu i broj
- * i postaje prava utakmica; do tada se nigdje ne prikazuje. Desno se od napravljenih utakmica pravi slika za objavu.
- */
-export async function A2JugRaspored({ teams }: { teams: { id: string; name: string; club: { logo_url: string | null } | null }[] }) {
-  const [matches, halls, schedules] = await Promise.all([getCompetitionMatches(A2_JUG_ID), getHalls(), getSocialSchedules()]);
+type ScheduleTeam = { id: string; name: string; club: { logo_url: string | null } | null };
+
+export function A2JugRaspored({ teams }: { teams: ScheduleTeam[] }) {
+  return <CompetitionRaspored teams={teams} competitionId={A2_JUG_ID} competitionName="A2 liga jug" fixtures={A2_JUG_FIXTURES} defaultPerPage={5} />;
+}
+
+export async function CompetitionRaspored({ teams, competitionId, competitionName, fixtures: sourceFixtures, defaultPerPage = 7 }: {
+  teams: ScheduleTeam[];
+  competitionId: string;
+  competitionName: string;
+  fixtures: Fixture[];
+  defaultPerPage?: number;
+}) {
+  const [matches, halls, schedules] = await Promise.all([getCompetitionMatches(competitionId), getHalls(), getSocialSchedules()]);
   const teamId = new Map(teams.map((t) => [t.name, t.id]));
   const hallName = new Map(halls.map((h) => [h.id, h.name]));
   const taken = new Set(matches.map((m) => m.number));
-  const fixtures = A2_JUG_FIXTURES.map((f) => {
+  const fixtures = sourceFixtures.map((f) => {
     const homeId = teamId.get(f.home);
     const awayId = teamId.get(f.away);
     return {
@@ -36,7 +44,7 @@ export async function A2JugRaspored({ teams }: { teams: { id: string; name: stri
   // Utakmica napravljena bez kola (npr. ručno) dobija kolo iz rasporeda, da je filter kola nađe
   const roundOf = new Map(fixtures.map((f) => [`${f.home}|${f.away}`, f.round]));
   const social = schedules.matches
-    .filter((m) => m.competitionId === A2_JUG_ID)
+    .filter((m) => m.competitionId === competitionId)
     .map((m) => ({ ...m, round: m.round ?? roundOf.get(`${m.home}|${m.away}`) ?? null }));
   // Otvoreno je prvo kolo u kojem ima nenapravljenih utakmica
   const firstOpen = rounds.find((r) => r.some((f) => !f.match))?.[0].round;
@@ -44,10 +52,10 @@ export async function A2JugRaspored({ teams }: { teams: { id: string; name: stri
   return (
     <section>
       <SectionTitle icon={<CalendarDays />} count={made}>
-        Raspored A2 lige jug
+        Raspored — {competitionName}
       </SectionTitle>
       <p className="mb-4 max-w-prose text-[14px] text-fg-muted">
-        Parovi iz rasporeda saveza ({fixtures.length} utakmica, 18 kola). Upiši datum, vrijeme i dvoranu i napravi utakmicu;
+        Parovi iz rasporeda saveza ({fixtures.length} utakmica, {rounds.length} kola). Upiši datum, vrijeme i dvoranu i napravi utakmicu;
         do tada se ne vidi nigdje drugo. Na sliku za objavu možeš staviti i nenapravljene, s terminom iz forme.
       </p>
       <DraftsProvider initial={drafts}>
@@ -86,6 +94,7 @@ export async function A2JugRaspored({ teams }: { teams: { id: string; name: stri
                           <p className="mt-1 text-[14px] text-crest">Ekipa nije u takmičenju pod ovim nazivom.</p>
                         ) : (
                           <FixtureForm
+                            competitionId={competitionId}
                             number={f.number}
                             round={f.round}
                             homeId={f.homeId}
@@ -101,7 +110,10 @@ export async function A2JugRaspored({ teams }: { teams: { id: string; name: stri
               );
             })}
           </div>
-          <A2JugObjava
+          <ScheduleObjava
+            competitionId={competitionId}
+            competitionName={competitionName}
+            defaultPerPage={defaultPerPage}
             matches={social}
             fixtures={open.map((f) => ({ number: f.number, round: f.round, home: f.home, away: f.away, homeLogo: logo.get(f.home) ?? null, awayLogo: logo.get(f.away) ?? null }))}
             halls={halls}

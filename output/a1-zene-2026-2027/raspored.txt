@@ -1,0 +1,84 @@
+                                                                A1 LIGA ZA KOŠARKAŠICE - SEZONA 2026-2027
+
+                   1.kolo       24. 10. 2026.                                 2.kolo       31. 10. 2026.                                 3.kolo       07. 11. 2026.
+1           STARTz          :        G-STARS          10   10         G-STARS          :        ZENICA           6    2           KONJIC          :        G-STARS          10
+2           KONJIC          :        RMU BANOVIĆI      9    7           FAZE           :        BUGOJNO          5    3    BRČKO DISTRIKT         :        STARTz            1
+3    BRČKO DISTRIKT         :        PLAY OFF          8    8        PLAY OFF          :        ČELIK            4    4             ČELIK         :        RMU BANOVIĆI      9
+4             ČELIK         :        FAZE              7    9    RMU BANOVIĆI          :        BRČKO DISTRIKT   3    5         BUGOJNO           :        PLAY OFF          8
+5         BUGOJNO           :        ZENICA            6    1          STARTz          :        KONJIC           2    6           ZENICA          :        FAZE              7
+
+
+
+                   4.kolo       14. 11. 2026.                                 5.kolo       21. 11. 2026.                                 6.kolo       28. 11. 2026.
+10        G-STARS           :        FAZE             7    3    BRČKO DISTRIKT         :        G-STARS          10   10         G-STARS          :        PLAY OFF         8
+ 8       PLAY OFF           :        ZENICA           6    4             ČELIK         :        KONJIC            2    9    RMU BANOVIĆI          :        FAZE             7
+ 9   RMU BANOVIĆI           :        BUGOJNO          5    5         BUGOJNO           :        STARTz            1    1          STARTz          :        ZENICA           6
+ 1         STARTz           :        ČELIK            4    6           ZENICA          :        RMU BANOVIĆI      9    2          KONJIC          :        BUGOJNO          5
+ 2         KONJIC           :        BRČKO DISTRIKT   3    7             FAZE          :        PLAY OFF          8    3   BRČKO DISTRIKT         :        ČELIK            4
+
+
+
+                   7.kolo       05. 12. 2026.                                 8.kolo       12. 12. 2026.                                 9.kolo       19. 12. 2026.
+4              ČELIK        :        G-STARS          10   10         G-STARS          :        RMU BANOVIĆI     9    5        BUGOJNO            :        G-STARS          10
+5         BUGOJNO           :        BRČKO DISTRIKT    3    1          STARTz          :        PLAY OFF         8    6           ZENICA          :        ČELIK             4
+6            ZENICA         :        KONJIC            2    2          KONJIC          :        FAZE             7    7            FAZE           :        BRČKO DISTRIKT    3
+7             FAZE          :        STARTz            1    3   BRČKO DISTRIKT         :        ZENICA           6    8         PLAY OFF          :        KONJIC            2
+8          PLAY OFF         :        RMU BANOVIĆI      9    4            ČELIK         :        BUGOJNO          5    9    RMU BANOVIĆI           :        STARTz            1
+
+
+
+                  10.kolo       30. 01. 2027.                                11.kolo       06. 02. 2027.                                12.kolo       13. 02. 2027.
+10        G-STARS           :        STARTz           1    6           ZENICA          :        G-STARS          10   10        G-STARS           :        KONJIC           2
+ 9   RMU BANOVIĆI           :        KONJIC           2    5         BUGOJNO           :        FAZE              7    1         STARTz           :        BRČKO DISTRIKT   3
+ 8       PLAY OFF           :        BRČKO DISTRIKT   3    4             ČELIK         :        PLAY OFF          8    9   RMU BANOVIĆI           :        ČELIK            4
+ 7          FAZE            :        ČELIK            4    3    BRČKO DISTRIKT         :        RMU BANOVIĆI      9    8       PLAY OFF           :        BUGOJNO          5
+ 6         ZENICA           :        BUGOJNO          5    2           KONJIC          :        STARTz            1    7          FAZE            :        ZENICA           6
+
+
+
+                  13.kolo       20. 02. 2027.                                14.kolo       27. 02. 2027.                                15.kolo       06. 03. 2027.
+7             FAZE          :        G-STARS          10   10         G-STARS          :        BRČKO DISTRIKT   3    8          PLAY OFF         :        G-STARS          10
+6           ZENICA          :        PLAY OFF          8    2          KONJIC          :        ČELIK            4    7             FAZE          :        RMU BANOVIĆI      9
+5         BUGOJNO           :        RMU BANOVIĆI      9    1          STARTz          :        BUGOJNO          5    6            ZENICA         :        STARTz            1
+4             ČELIK         :        STARTz            1    9    RMU BANOVIĆI          :        ZENICA           6    5         BUGOJNO           :        KONJIC            2
+3    BRČKO DISTRIKT         :        KONJIC            2    8        PLAY OFF          :        FAZE             7    4              ČELIK        :        BRČKO DISTRIKT    3
+                 16.kolo       13. 03. 2027.                      17.kolo       20. 03. 2027.                               18.kolo       27. 03. 2027.
+10         G-STARS         :        ČELIK      4   9   RMU BANOVIĆI         :        G-STARS          10   10         G-STARS         :        BUGOJNO        5
+ 3   BRČKO DISTRIKT        :        BUGOJNO    5   8        PLAY OFF        :        STARTz            1    4            ČELIK        :        ZENICA         6
+ 2          KONJIC         :        ZENICA     6   7           FAZE         :        KONJIC            2    3   BRČKO DISTRIKT        :        FAZE           7
+ 1          STARTz         :        FAZE       7   6          ZENICA        :        BRČKO DISTRIKT    3    2          KONJIC         :        PLAY OFF       8
+ 9    RMU BANOVIĆI         :        PLAY OFF   8   5       BUGOJNO          :        ČELIK             4    1          STARTz         :        RMU BANOVIĆI   9
+            takmičarski brojevi
+rb                 ekipa
+ 1     STARTz
+ 2     KONJIC
+ 3     BRČKO DISTRIKT
+ 4     ČELIK
+ 5     BUGOJNO
+ 6     ZENICA
+ 7     FAZE
+ 8     PLAY OFF
+ 9     RMU BANOVIĆI
+10     G-STARS
+
+             termini odigravanja
+kolo               datum
+ 1     24. 10. 2026.
+ 2     31. 10. 2026.
+ 3     07. 11. 2026.
+ 4     14. 11. 2026.
+ 5     21. 11. 2026.
+ 6     28. 11. 2026.
+ 7     05. 12. 2026.
+ 8     12. 12. 2026.
+ 9     19. 12. 2026.
+ 10    30. 01. 2027.
+ 11    06. 02. 2027.
+ 12    13. 02. 2027.
+ 13    20. 02. 2027.
+ 14    27. 02. 2027.
+ 15    06. 03. 2027.
+ 16    13. 03. 2027.
+ 17    20. 03. 2027.
+ 18    27. 03. 2027.
+

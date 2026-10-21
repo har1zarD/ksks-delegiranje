@@ -5,35 +5,49 @@ import { ChevronDown, Images } from "lucide-react";
 import { CARD, cx } from "@/components/ui";
 import { Select } from "@/components/select";
 import type { SocialMatch } from "@/lib/data/social";
-import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { formatDate, formatTime, sarajevoToISO } from "@/lib/format";
 import type { SocialOptions } from "@/lib/social-image";
 import { DEFAULT_SOCIAL_OPTIONS, SocialDesign, SocialPreview, SocialText } from "../../utakmice/objave/builder";
-import { useDrafts } from "./a2-jug-nacrti";
+import { useDrafts, type Draft } from "./a2-jug-nacrti";
 
 /** Nenapravljena utakmica iz rasporeda (termin dolazi iz forme lijevo) */
 type Fixture = { number: number; round: number; home: string; away: string; homeLogo: string | null; awayLogo: string | null };
 
-const subtitleOf = (round: string) => (round ? `A2 liga jug · ${round}. kolo` : "A2 liga jug");
+const subtitleOf = (competition: string, round: string) => (round ? `${competition} · ${round}. kolo` : competition);
 
-/**
- * Slika za objavu iz rasporeda A2 lige jug: biraš kolo i termine, ostalo kao u Slikama za objavu.
- * Uz napravljene utakmice tu su i nenapravljene, s terminom kako je upisan u formi rasporeda (bez vremena ne mogu na sliku).
- * Pamte se isključene utakmice, pa nova utakmica izabranog kola odmah ide na sliku.
- */
-export function A2JugObjava({
-  matches: initialMatches,
-  fixtures,
-  halls,
-  now: initialNow,
-}: {
+type AnnouncementProps = {
   matches: SocialMatch[];
   fixtures: Fixture[];
   halls: { id: string; name: string }[];
   now: number;
+};
+
+/**
+ * Slika za objavu iz rasporeda: biraš kolo i termine, ostalo kao u Slikama za objavu.
+ * Uz napravljene utakmice tu su i nenapravljene, s terminom kako je upisan u formi rasporeda (bez vremena ne mogu na sliku).
+ * Pamte se isključene utakmice, pa nova utakmica izabranog kola odmah ide na sliku.
+ */
+export function ScheduleObjava(props: AnnouncementProps & { competitionId: string; competitionName: string; defaultPerPage?: number }) {
+  const drafts = useDrafts();
+  return <CompetitionObjava {...props} drafts={drafts} />;
+}
+
+function CompetitionObjava({
+  competitionId,
+  competitionName,
+  matches: initialMatches,
+  fixtures,
+  halls,
+  drafts,
+  now: initialNow,
+  defaultPerPage = 7,
+}: AnnouncementProps & {
+  competitionId: string;
+  competitionName: string;
+  drafts: Record<number, Draft>;
+  defaultPerPage?: number;
 }) {
   const [now, setNow] = useState(initialNow);
-  const drafts = useDrafts();
   const planned = useMemo(
     () =>
       fixtures.map((f) => {
@@ -45,8 +59,8 @@ export function A2JugObjava({
           status: "scheduled",
           date: d.date,
           round: f.round,
-          competitionId: A2_JUG_ID,
-          competition: "A2 liga jug",
+          competitionId,
+          competition: competitionName,
           home: f.home,
           away: f.away,
           homeLogo: f.homeLogo,
@@ -55,7 +69,7 @@ export function A2JugObjava({
         };
         return { match, ready: startsAt !== null };
       }),
-    [fixtures, drafts, halls],
+    [fixtures, drafts, halls, competitionId, competitionName],
   );
   const draftIds = useMemo(() => new Set(planned.map((p) => p.match.id)), [planned]);
   const notReady = useMemo(() => new Set(planned.filter((p) => !p.ready).map((p) => p.match.id)), [planned]);
@@ -70,8 +84,8 @@ export function A2JugObjava({
   const [round, setRound] = useState(() => (rounds[0] == null ? "" : String(rounds[0])));
   const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
   const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(5);
-  const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, subtitle: subtitleOf(round) }));
+  const [perPage, setPerPage] = useState(defaultPerPage);
+  const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, subtitle: subtitleOf(competitionName, round) }));
   const visible = useMemo(() => matches.filter((m) => !round || String(m.round) === round), [matches, round]);
   const chosen = useMemo(() => visible.filter((m) => !excluded.has(m.id) && !notReady.has(m.id)), [visible, excluded, notReady]);
 
@@ -83,7 +97,7 @@ export function A2JugObjava({
   function pickRound(value: string) {
     setRound(value);
     setExcluded(new Set());
-    setOptions((old) => ({ ...old, subtitle: subtitleOf(value) }));
+    setOptions((old) => ({ ...old, subtitle: subtitleOf(competitionName, value) }));
     setPage(0);
   }
 
@@ -107,7 +121,7 @@ export function A2JugObjava({
           <span className="text-[12px] font-semibold text-fg-muted">{chosen.length} odabrano</span>
         </div>
         {matches.length === 0 ? (
-          <p className="text-[14px] text-fg-muted">Kad napraviš utakmice, ovdje biraš termine za sliku.</p>
+          <p className="text-[14px] text-fg-muted">Dodaj parove ili napravi utakmice da ovdje izabereš termine za sliku.</p>
         ) : (
           <>
             <Select label="Kolo" value={round} onChange={(event) => pickRound(event.target.value)}>

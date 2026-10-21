@@ -28,6 +28,7 @@ export function useDrafts() {
 
 /** Forma jedne nenapravljene utakmice; svaka izmjena termina ide i na sliku za objavu */
 export function FixtureForm({
+  competitionId,
   number,
   round,
   homeId,
@@ -35,6 +36,7 @@ export function FixtureForm({
   suggestedNumber,
   halls,
 }: {
+  competitionId: string;
   number: number;
   round: number;
   homeId: string;
@@ -46,6 +48,7 @@ export function FixtureForm({
   const draft = ctx.drafts[number];
   return (
     <ActionForm action={createFixtureMatch} submit="Napravi utakmicu" pendingLabel="Pravim…" className="mt-3">
+      <input type="hidden" name="competition_id" value={competitionId} />
       <input type="hidden" name="round" value={round} />
       <input type="hidden" name="home_team_id" value={homeId} />
       <input type="hidden" name="away_team_id" value={awayId} />
