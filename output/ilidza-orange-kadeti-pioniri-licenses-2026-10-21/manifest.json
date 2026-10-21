@@ -1,0 +1,354 @@
+{
+  "status": "imported_and_verified",
+  "club": "KK Ilidža",
+  "team": "Ilidža Orange",
+  "season": "2026/27",
+  "club_id": "370294d2-5ab0-4ac7-9ebb-fc1637027a82",
+  "teams": [
+    {
+      "slug": "kadeti",
+      "competition_id": "e5da2f34-3891-40b5-b946-9484f3750e34",
+      "competition": "Kadeti — Grupa 1"
+    },
+    {
+      "slug": "pioniri",
+      "competition_id": "ad3e34d0-8393-46ec-a464-e0db6a898cb9",
+      "competition": "Pioniri — Grupa 1"
+    }
+  ],
+  "source": [
+    "/Users/tarikvelic/Downloads/Ilidza Orange/KK ILIDŽA ORANGE - KADETI - LISTA ZA Licenciranje takmičarska sezona 2026-2027.doc",
+    "/Users/tarikvelic/Downloads/Ilidza Orange/KK ILIDŽA ORANGE - PIONIRI - LISTA ZA Licenciranje takmičarska sezona 2026-2027.doc",
+    "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje.zip"
+  ],
+  "photos": [
+    {
+      "index": 1,
+      "person": "Rejhan Polimac",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Rejhan Polimac 2010..jpg",
+      "sha256": "7266e3aa8c9279d5d14a9dbc58a579b9005d730a1b3ed0a3de075f79e56489f5",
+      "size": 56005,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-b167ff19-028b-472c-bc74-9f590b4a76ec.jpg"
+    },
+    {
+      "index": 2,
+      "person": "Džan Krupalija",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/KSKS/ksks-delegiranje/output/ilidza-orange-kadeti-pioniri-licenses-2026-10-21/converted/Džan Krupalija 2011..jpg",
+      "sha256": "54cfafd18edd508eeaf00aa5ac86ab1eccee12e8e7599d24c3f6f58c0846dcd6",
+      "size": 202294,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-b0211d5e-a6fc-4e83-8dbd-2cf6fbbd44cc.jpg"
+    },
+    {
+      "index": 3,
+      "person": "Zlatan Valjevac",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Zlatan Valjevac 2011..JPG",
+      "sha256": "c92847b68b068989426a85d42ad99df09b8683ebf52d3066af7415455112085e",
+      "size": 228152,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-f3842f73-5b84-429d-b98d-bfe2b56b3db1.jpg"
+    },
+    {
+      "index": 4,
+      "person": "Marko Kostić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Marko Kostić 2012..JPG",
+      "sha256": "3ad4ad62135abe6e814667c8817a6d686e1e7f36d8a19ea8d446d47a2ace17f7",
+      "size": 89882,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-9a3e8b4d-dde0-477c-8097-3c1a8e2fd354.jpg"
+    },
+    {
+      "index": 5,
+      "person": "Benjamin Kadrić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Benjamin Kadrić 2011..jpg",
+      "sha256": "e9159a31470d3ed4787f31a3331bea30ad1d7157bd47d88c97908701820e209c",
+      "size": 256682,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-8c6fe9d9-fe00-4ab6-b17e-de9044f07a94.jpg"
+    },
+    {
+      "index": 6,
+      "person": "Hamza Hamzić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Hamza Hamzić 2012..JPG",
+      "sha256": "e7f34978db007249ead45d6796b7d0efb6dc86ddaa8f2887fff0962070f17233",
+      "size": 276574,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-31e54930-7d2a-4bbc-a4ab-2e987b88952d.jpg"
+    },
+    {
+      "index": 7,
+      "person": "Ahmed Čehić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Ahmed Čehić 2012..jpg",
+      "sha256": "b0dec809f4e1c948cc7640a66ee13531332819538a1ea6e03af52ff8e961fdd0",
+      "size": 208335,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-744fea7b-7288-477c-8840-e1a72c8cad58.jpg"
+    },
+    {
+      "index": 8,
+      "person": "Ali Sakoč",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Ali Sakoč 2013..JPG",
+      "sha256": "09b43e4873ba4b48c75121de8e5fbef1307ce17f33463fd450290a707d7ab2ac",
+      "size": 207203,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-cb6ee1dc-9335-407d-8529-25e025fab62d.jpg"
+    },
+    {
+      "index": 9,
+      "person": "Fejsal Bajrović",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Fejsal Bajrović 2013..JPG",
+      "sha256": "28a15e78d5c5b23510d343855ea0c6886349ff8a8fc44b2b581bb035284fb79d",
+      "size": 294887,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-e54269bc-0f2e-4655-9d3b-090360dbb9b5.jpg"
+    },
+    {
+      "index": 10,
+      "person": "Haris Numanović",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Haris Numanović 2012..JPG",
+      "sha256": "1ab156c933f98648046de974200f997cd6af95d139250107993a99974ffb083c",
+      "size": 52227,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-0556ccc3-a415-4c04-b234-e728316afdd0.jpg"
+    },
+    {
+      "index": 11,
+      "person": "Zlatan Karić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Zlatan Karić 2012..JPG",
+      "sha256": "f1c2cb0c6d7386ffbb7ff853e1dfe37976ea4c9e575e3cd230f75195242f0551",
+      "size": 302136,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-d348b00d-2c79-4507-98c2-1ad9c044e5c9.jpg"
+    },
+    {
+      "index": 12,
+      "person": "Dani Fazlić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Dani Fazlić 2011..JPG",
+      "sha256": "770f584f2b134fc7e1664e045b350ce267b2c9d1b3d26edd8cb42f4473e1d0ce",
+      "size": 297418,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-33dd396e-2282-4d90-93c1-4384c6d1582a.jpg"
+    },
+    {
+      "index": 13,
+      "person": "Sami Jamaković",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Sami Jamaković 2011..JPG",
+      "sha256": "ceab8e3ce1f52987aae55c5257bd65f312a574e13c5fb4fdaf777b9527e91e8e",
+      "size": 186932,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-b5bd4f1d-591c-40c6-b2d2-44813943cf0d.jpg"
+    },
+    {
+      "index": 14,
+      "person": "Damir Mihaljević",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Damir Mihaljević 2012..JPG",
+      "sha256": "81a8a4e212ea11b4e3675ee862237eaadd23ed044e704804d18b2af52c60f21e",
+      "size": 280631,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-ff4ee97a-59ee-4337-92db-9a1206c76c86.jpg"
+    },
+    {
+      "index": 15,
+      "person": "Enes Numanović",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Enes Numanović (trener).jpg",
+      "sha256": "d35920b3378bded5fa3539426e19e2e4af6ea7160e9fe38c28bdce1e9505890b",
+      "size": 172080,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-0efdcf4f-8a8b-45f6-836c-f1a8cdde07dc.jpg"
+    },
+    {
+      "index": 16,
+      "person": "Nedim Fejzić",
+      "team": "kadeti",
+      "source": "/Users/tarikvelic/KSKS/ksks-delegiranje/output/ilidza-orange-kadeti-pioniri-licenses-2026-10-21/converted/Nedim Fejzić (trener).jpg",
+      "sha256": "b715294d753363fb9d063e14842c7d967bdf8927597059b6a441c524c269ba8a",
+      "size": 967184,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-kadeti-2026-27-f1f30414-30ee-4d52-b4c2-c9af863cf9c2.jpg"
+    },
+    {
+      "index": 17,
+      "person": "Hamza Hamzić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Hamza Hamzić 2012..JPG",
+      "sha256": "e7f34978db007249ead45d6796b7d0efb6dc86ddaa8f2887fff0962070f17233",
+      "size": 276574,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-fea5dad4-1309-478e-8370-18ae69f4c0eb.jpg"
+    },
+    {
+      "index": 18,
+      "person": "Ahmed Čehić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Ahmed Čehić 2012..jpg",
+      "sha256": "b0dec809f4e1c948cc7640a66ee13531332819538a1ea6e03af52ff8e961fdd0",
+      "size": 208335,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-41da3ecc-2ae9-4ba2-a52f-750febee612f.jpg"
+    },
+    {
+      "index": 19,
+      "person": "Ali Sakoč",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Ali Sakoč 2013..JPG",
+      "sha256": "09b43e4873ba4b48c75121de8e5fbef1307ce17f33463fd450290a707d7ab2ac",
+      "size": 207203,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-136a3b15-beba-4f9a-a816-bae936297da8.jpg"
+    },
+    {
+      "index": 20,
+      "person": "Haris Numanović",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Haris Numanović 2012..JPG",
+      "sha256": "1ab156c933f98648046de974200f997cd6af95d139250107993a99974ffb083c",
+      "size": 52227,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-041201c5-069f-488a-b3e4-7e0d18c36799.jpg"
+    },
+    {
+      "index": 21,
+      "person": "Fejsal Bajrović",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Fejsal Bajrović 2013..JPG",
+      "sha256": "28a15e78d5c5b23510d343855ea0c6886349ff8a8fc44b2b581bb035284fb79d",
+      "size": 294887,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-65f6486b-67f2-4861-abb8-665a8fcb3d92.jpg"
+    },
+    {
+      "index": 22,
+      "person": "Zlatan Karić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Zlatan Karić 2012..JPG",
+      "sha256": "f1c2cb0c6d7386ffbb7ff853e1dfe37976ea4c9e575e3cd230f75195242f0551",
+      "size": 302136,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-a33bd66f-5953-4030-a1a2-37aa84844744.jpg"
+    },
+    {
+      "index": 23,
+      "person": "Damir Mihaljević",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Damir Mihaljević 2012..JPG",
+      "sha256": "81a8a4e212ea11b4e3675ee862237eaadd23ed044e704804d18b2af52c60f21e",
+      "size": 280631,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-0359996c-a3a8-4cd5-b5d4-4eb18a057921.jpg"
+    },
+    {
+      "index": 24,
+      "person": "Abdulhadi Karić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Abdulhadi Karić 2012..JPG",
+      "sha256": "b7e5bb350cbe830748b41ae41860bb97519e61af20ca0b796468c7a0d00007af",
+      "size": 311089,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-49190030-0028-4141-9b4d-ce7143e53188.jpg"
+    },
+    {
+      "index": 25,
+      "person": "Adi Čerkez",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Adi Čerkez 2012..JPG",
+      "sha256": "9749a3179e5a4f4a27fb6f38b45102805fe28ea560b3f20524d912f44fd6d638",
+      "size": 244787,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-7df0afc8-63e9-421a-bbdb-87ca7a336a9d.jpg"
+    },
+    {
+      "index": 26,
+      "person": "Alen Curo",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Alen Curo 2012..JPG",
+      "sha256": "4fcbe40e7a5ddc8ea507749a9f73568ec92ccf3970a3443e842757228449f7a9",
+      "size": 185718,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-6d44b642-2998-46b0-a550-4f42f7983d80.jpg"
+    },
+    {
+      "index": 27,
+      "person": "Sandon Dizdarević",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Sandon Dizdarević 2012..JPG",
+      "sha256": "a75fb146f6d822e77fb25c31084b116581cc55dca772cbb820d0537acb54e37d",
+      "size": 227696,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-ad5613d1-911e-44ff-b42f-babdecb0a184.jpg"
+    },
+    {
+      "index": 28,
+      "person": "Benjamin Milić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Benjamin Milić 2012..JPG",
+      "sha256": "553c7a74fa78b9eb0fd64f5320f44554a553720bfc690aab575d821eeda657d9",
+      "size": 120379,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-54396fdb-b0bb-41bd-8088-4d3819930ee3.jpg"
+    },
+    {
+      "index": 29,
+      "person": "Davud Ajanović",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Davud Ajanović 2012..JPG",
+      "sha256": "e70392bae2b4fc5ad51001f47a10d5f7b9b2d348bb9ef830bad784ba32ed326b",
+      "size": 131186,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-96e81b9a-62b9-49f3-9e33-206480c16f0d.jpg"
+    },
+    {
+      "index": 30,
+      "person": "Adrian Karajić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Adrian Karajić 2013..JPG",
+      "sha256": "7f6407cb4d5cf405a99f8bd93064c6a4c1d2b224e161fdd9d84343303fa38579",
+      "size": 150591,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-63b45dbb-337d-4bcc-8c02-d1f54e06de49.jpg"
+    },
+    {
+      "index": 31,
+      "person": "Enes Numanović",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/Downloads/Ilidza Orange/Licenciranje/Licenciranje/Enes Numanović (trener).jpg",
+      "sha256": "d35920b3378bded5fa3539426e19e2e4af6ea7160e9fe38c28bdce1e9505890b",
+      "size": 172080,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-4ed2e779-ba0a-417e-aedd-14ed46a75019.jpg"
+    },
+    {
+      "index": 32,
+      "person": "Nedim Fejzić",
+      "team": "pioniri",
+      "source": "/Users/tarikvelic/KSKS/ksks-delegiranje/output/ilidza-orange-kadeti-pioniri-licenses-2026-10-21/converted/Nedim Fejzić (trener).jpg",
+      "sha256": "b715294d753363fb9d063e14842c7d967bdf8927597059b6a441c524c269ba8a",
+      "size": 967184,
+      "content_type": "image/jpeg",
+      "path": "370294d2-5ab0-4ac7-9ebb-fc1637027a82/ilidza-orange-pioniri-2026-27-eb958717-03e4-443b-9061-9c272da90575.jpg"
+    }
+  ],
+  "notes": [
+    "Email 21.10.2026 (Nedim Fejzić via KSKS): Kadeti G1 14 players, Pioniri G1 14 players (7 on both), 2 coaches on both lists.",
+    "Heights, positions and license numbers not provided. Coaches' birth dates and places taken from the lists.",
+    "HEIC photos (Džan Krupalija, Nedim Fejzić) converted to JPEG with sips; other photos uploaded unchanged.",
+    "Each license gets its own storage object, so players on both lists have two copies of the same photo.",
+    "Marko Kostić photo filename says 2012; list says 21.07.2011 — list used. Birth place kept as written: I. Sarajevo.",
+    "Youth folders come from the Ilidža Orange teams in both competitions; no license_folders rows needed."
+  ]
+}

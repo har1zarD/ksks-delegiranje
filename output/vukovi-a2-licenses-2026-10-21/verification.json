@@ -1,0 +1,20 @@
+{
+  "verified_at": "2026-10-21T09:01:11.545Z",
+  "club": "KK Vukovi",
+  "competition": "A2 liga jug KSBiH",
+  "season": "2026/27",
+  "players": 18,
+  "official_licenses": 7,
+  "unique_photos_verified": 18,
+  "records_with_photos": 18,
+  "missing_photos": [
+    "Dino Duranović (Trener)",
+    "Harun Čolić (Trener)",
+    "Aldin Berbić (Trener)",
+    "Boris Ćuković (Fizioterapeut)",
+    "Faruk Čolić (Službeno lice)",
+    "Amir Zukić (Službeno lice)",
+    "Harun Čolić (Službeno lice)"
+  ],
+  "all_fields_match": true
+}
