@@ -76,9 +76,9 @@ async function Overview() {
             count={activatedList.length}
             action={
               sent > 0 && (
-                <div className="flex items-center gap-3 self-center">
-                  <span className="whitespace-nowrap text-[12px] text-fg-muted sm:text-[13px]" title="Prihvaćene nominacije od svih poslanih na aktiviranim utakmicama">
-                    <span className={cx("scoreboard text-[14px] font-semibold sm:text-[16px]", confirmed === sent ? "text-mint" : "text-fg")}>
+                <div className="flex shrink-0 items-center gap-3 self-center">
+                  <span className="hidden whitespace-nowrap text-[13px] text-fg-muted sm:inline" title="Prihvaćene nominacije od svih poslanih na aktiviranim utakmicama">
+                    <span className={cx("scoreboard text-[16px] font-semibold", confirmed === sent ? "text-mint" : "text-fg")}>
                       {confirmed}/{sent}
                     </span>{" "}
                     potvrđeno
@@ -88,8 +88,21 @@ async function Overview() {
               )
             }
           >
-            <span className="whitespace-nowrap text-[15px] sm:text-[17px]">Aktivirane utakmice</span>
+            <span className="truncate text-[16px] sm:text-[17px]">Aktivirane utakmice</span>
           </SectionTitle>
+          {sent > 0 && (
+            <div className="-mt-1 mb-4 flex items-center gap-3 sm:hidden" title="Prihvaćene nominacije od svih poslanih na aktiviranim utakmicama">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-panel-2">
+                <div className={cx("h-full rounded-full", confirmed === sent ? "bg-mint" : "bg-fg")} style={{ width: `${(confirmed / sent) * 100}%` }} />
+              </div>
+              <span className="whitespace-nowrap text-[12px] text-fg-muted">
+                <span className={cx("scoreboard text-[14px] font-semibold", confirmed === sent ? "text-mint" : "text-fg")}>
+                  {confirmed}/{sent}
+                </span>{" "}
+                potvrđeno
+              </span>
+            </div>
+          )}
           <div className="flex flex-col gap-6">
             {activated.map(([key, list]) => (
               <div key={key}>
