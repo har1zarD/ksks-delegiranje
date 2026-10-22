@@ -7,19 +7,26 @@ import { Button, CARD, cx, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import type { SocialMatch } from "@/lib/data/social";
 import { addDays, formatDate, formatTime, slug } from "@/lib/format";
-import { KSKS_LOGO, renderSocialImage, SOCIAL_FORMATS, SOCIAL_TEMPLATES, type SocialOptions } from "@/lib/social-image";
+import { renderSocialImage, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_TEMPLATES, type SocialOptions } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
 
 export const DEFAULT_SOCIAL_OPTIONS: SocialOptions = {
-  template: "arena", format: "portrait", title: "Raspored utakmica",
+  brand: "ksks", template: "arena", format: "portrait", title: "Raspored utakmica",
   subtitle: "", footer: "Košarkaški savez Kantona Sarajevo",
   showHall: true, showCompetition: true, showLogos: true,
 };
 
-export function SocialBuilder({ matches: initialMatches, today, now: initialNow }: { matches: SocialMatch[]; today: string; now: number }) {
+/** `initialOptions` npr. podnaslov s nazivom takmičenja kad se builder otvara na stranici takmičenja */
+export function SocialBuilder({ matches: initialMatches, today, now: initialNow, initialOptions }: { matches: SocialMatch[]; today: string; now: number; initialOptions?: Partial<SocialOptions> }) {
   const [now, setNow] = useState(initialNow);
   const matches = useMemo(() => initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), [initialMatches, now]);
-  const [selected, setSelected] = useState(() => new Set(matches.filter((m) => m.date >= today && m.date <= addDays(today, 6)).map((m) => m.id)));
+  // Početni izbor: narednih 7 dana; ako tada nema utakmica (npr. na stranici takmičenja), 7 dana od prve naredne
+  const [selected, setSelected] = useState(() => {
+    const week = (start: string) => matches.filter((m) => m.date >= start && m.date <= addDays(start, 6)).map((m) => m.id);
+    const first = matches.find((m) => m.status === "scheduled")?.date;
+    const ids = week(today);
+    return new Set(ids.length || !first ? ids : week(first));
+  });
   const [competition, setCompetition] = useState("");
   const [round, setRound] = useState("");
   const [search, setSearch] = useState("");
@@ -27,7 +34,7 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow 
   const [to, setTo] = useState("");
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(7);
-  const [options, setOptions] = useState<SocialOptions>(DEFAULT_SOCIAL_OPTIONS);
+  const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, ...initialOptions }));
   const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
   const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
   const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
@@ -136,7 +143,7 @@ export function SocialDesign({ options, onChange: change, perPage, onPerPage }: 
         {SOCIAL_TEMPLATES.map((template) => (
           <button key={template.id} type="button" aria-pressed={options.template === template.id} title={template.description} onClick={() => change("template", template.id)} className={cx("min-w-0 rounded-lg border p-2 text-left transition-colors", options.template === template.id ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-hover")}>
             <span aria-hidden="true" className="relative mb-2 flex aspect-[4/5] flex-col gap-2 overflow-hidden rounded-md bg-cover bg-center p-2.5 sm:p-3" style={{ backgroundColor: template.bg, backgroundImage: template.background ? `linear-gradient(${template.overlay}, ${template.overlay}), url("${template.background}")` : undefined }}>
-              <span className="flex items-center gap-1.5"><span className="rounded bg-white p-0.5"><Image src={KSKS_LOGO} alt="" width={20} height={20} /></span><span className="text-[9px] font-extrabold" style={{ color: template.headerInk }}>KSKS</span></span>
+              <span className="flex items-center gap-1.5"><span className="overflow-hidden rounded bg-white p-0.5"><Image src={SOCIAL_BRANDS[options.brand].logo} alt="" width={20} height={20} className={cx("size-5 object-contain", options.brand === "ksbih" && "scale-[1.6]")} /></span><span className="text-[9px] font-extrabold" style={{ color: template.headerInk }}>{SOCIAL_BRANDS[options.brand].name}</span></span>
               <span className="text-[9px] font-extrabold leading-tight sm:text-[12px]" style={{ color: template.headerInk }}>RASPORED<br />UTAKMICA</span>
               {[0, 1].map((n) => <span key={n} className="flex flex-1 items-center justify-around gap-1 rounded p-1.5" style={{ backgroundColor: template.panel }}><span className="size-5 rounded bg-white/95" /><span className="text-[8px] font-extrabold" style={{ color: template.accent }}>{["12:30", "18:00"][n]}</span><span className="size-5 rounded bg-white/95" /></span>)}
               {options.template === template.id && <span className="absolute right-1.5 top-1.5 rounded-full bg-white p-0.5 text-black"><Check className="size-3" /></span>}
@@ -165,7 +172,7 @@ export function SocialText({ options, onChange: change }: { options: SocialOptio
       <div className="flex flex-wrap gap-x-5 gap-y-3">
         {([{ key: "showLogos", label: "Grbovi ekipa" }, { key: "showCompetition", label: "Takmičenje i kolo" }, { key: "showHall", label: "Dvorana" }] as const).map(({ key, label }) => <label key={key} className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={options[key]} onChange={(event) => change(key, event.target.checked)} className="size-4 accent-brand" />{label}</label>)}
       </div>
-      <p className="text-[12px] text-fg-faint">KSKS logo je uvijek prikazan. Termini su po sarajevskom vremenu; za odgođene utakmice piše „ODGOĐENO“ umjesto termina.</p>
+      <p className="text-[12px] text-fg-faint">{SOCIAL_BRANDS[options.brand].name} logo je uvijek prikazan. Termini su po sarajevskom vremenu; za odgođene utakmice piše „ODGOĐENO“ umjesto termina.</p>
     </>
   );
 }

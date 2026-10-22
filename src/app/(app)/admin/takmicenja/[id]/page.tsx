@@ -9,7 +9,9 @@ import { ChevronDown, ChevronLeft, Trophy, Users, CalendarDays, Images } from "l
 import { getCompetitionAdmin } from "@/lib/data/results";
 import { Bone, ButtonSkeleton, FieldSkeleton, Skeleton, StandingsSkeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
 import { DateField, TimeField } from "@/components/date-picker";
-import { ButtonLink, Field, Panel, SectionTitle, Textarea } from "@/components/ui";
+import { ButtonLink, Empty, Field, Panel, SectionTitle, Textarea } from "@/components/ui";
+import { getSocialSchedules } from "@/lib/data/social";
+import { SocialBuilder } from "../../utakmice/objave/builder";
 import { StandingsTable } from "@/app/(app)/rezultati/standings-table";
 import { ActionForm, Check } from "../action-form";
 import { addTeam, createPhase, deleteCompetition, generateSchedule, removeTeam, updateCompetition } from "../actions";
@@ -41,6 +43,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
   const { competition: c, teams, clubs, matchCount, standings, children } = data;
   const half = Math.ceil(teams.length / 2);
   const isA1Women = c.id === A1_ZENE_ID;
+  const isA2South = c.id === A2_JUG_ID;
 
   return (
     <div className="flex flex-col gap-10">
@@ -75,11 +78,9 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           <ButtonLink href={`/admin/utakmice?takmicenje=${c.id}`} variant="secondary">
             Utakmice
           </ButtonLink>
-          {isA1Women && (
-            <ButtonLink href="#slike-za-objavu" variant="secondary">
-              <Images className="size-4" aria-hidden="true" /> Slike za objavu
-            </ButtonLink>
-          )}
+          <ButtonLink href="#slike-za-objavu" variant="secondary">
+            <Images className="size-4" aria-hidden="true" /> Slike za objavu
+          </ButtonLink>
         </div>
       </header>
 
@@ -207,20 +208,34 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         </section>
       )}
 
-      {c.id === A2_JUG_ID && (
-        <Suspense>
-          <A2JugRaspored teams={teams} />
-        </Suspense>
-      )}
-      {isA1Women && (
-        <section id="slike-za-objavu" className="scroll-mt-6">
+      <section id="slike-za-objavu" className="scroll-mt-6">
+        {isA2South ? (
+          <Suspense fallback={<SocialBuilderSkeleton />}>
+            <A2JugRaspored teams={teams} />
+          </Suspense>
+        ) : isA1Women ? (
           <Suspense fallback={<SocialBuilderSkeleton />}>
             <A1ZeneRaspored teams={teams} />
           </Suspense>
-        </section>
-      )}
+        ) : (
+          <>
+            <SectionTitle icon={<Images />}>Slike za objavu</SectionTitle>
+            <Suspense fallback={<SocialBuilderSkeleton />}>
+              <CompetitionSocial ids={[c.id, ...children.map((ch) => ch.id)]} name={c.short_name ?? c.name} />
+            </Suspense>
+          </>
+        )}
+      </section>
     </div>
   );
+}
+
+/** Slike za objavu samo s utakmicama ovog takmičenja (i njegovih faza) */
+async function CompetitionSocial({ ids, name }: { ids: string[]; name: string }) {
+  const data = await getSocialSchedules();
+  const matches = data.matches.filter((m) => ids.includes(m.competitionId));
+  if (!matches.length) return <Empty icon={<Images />} title="Nema utakmica za objavu">Ovdje se nude buduće zakazane i odgođene utakmice ovog takmičenja.</Empty>;
+  return <SocialBuilder {...data} matches={matches} initialOptions={{ subtitle: name }} />;
 }
 
 function Fact({ value, label }: { value: number; label: string }) {

@@ -6,7 +6,7 @@ import { CARD, cx } from "@/components/ui";
 import { Select } from "@/components/select";
 import type { SocialMatch } from "@/lib/data/social";
 import { formatDate, formatTime, sarajevoToISO } from "@/lib/format";
-import type { SocialOptions } from "@/lib/social-image";
+import { SOCIAL_BRANDS, type SocialOptions } from "@/lib/social-image";
 import { DEFAULT_SOCIAL_OPTIONS, SocialDesign, SocialPreview, SocialText } from "../../utakmice/objave/builder";
 import { useDrafts, type Draft } from "./a2-jug-nacrti";
 
@@ -85,7 +85,8 @@ function CompetitionObjava({
   const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(defaultPerPage);
-  const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, subtitle: subtitleOf(competitionName, round) }));
+  // Rasporedi saveza (A2 jug, A1 žene) su KSBIH takmičenja: logo KSBIH u zaglavlju i iza utakmica
+  const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, brand: "ksbih", footer: SOCIAL_BRANDS.ksbih.footer, subtitle: subtitleOf(competitionName, round) }));
   const visible = useMemo(() => matches.filter((m) => !round || String(m.round) === round), [matches, round]);
   const chosen = useMemo(() => visible.filter((m) => !excluded.has(m.id) && !notReady.has(m.id)), [visible, excluded, notReady]);
 

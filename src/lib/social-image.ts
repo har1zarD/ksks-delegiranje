@@ -9,6 +9,12 @@ export const SOCIAL_FORMATS = [
 ] as const;
 
 export const KSKS_LOGO = "/brand/ksks-logo-512.png";
+
+/** Savez u zaglavlju slike; KSBIH lige (A1 žene, A2 jug) imaju i grb saveza kao vodeni žig iza utakmica */
+export const SOCIAL_BRANDS = {
+  ksks: { logo: KSKS_LOGO, name: "KSKS", lines: ["KOŠARKAŠKI SAVEZ", "KANTONA SARAJEVO"], footer: "Košarkaški savez Kantona Sarajevo", watermark: false },
+  ksbih: { logo: "/competitions/ksbih.png", name: "KSBIH", lines: ["KOŠARKAŠKI SAVEZ", "BOSNE I HERCEGOVINE"], footer: "Košarkaški savez Bosne i Hercegovine", watermark: true },
+} as const;
 const ARENA = "/social/arena-background-v1.png";
 const PARQUET = "/social/parquet-background-v1.png";
 
@@ -25,7 +31,9 @@ export const SOCIAL_TEMPLATES = [
 
 export type SocialFormat = (typeof SOCIAL_FORMATS)[number]["id"];
 export type SocialTemplate = (typeof SOCIAL_TEMPLATES)[number]["id"];
+export type SocialBrand = keyof typeof SOCIAL_BRANDS;
 export type SocialOptions = {
+  brand: SocialBrand;
   format: SocialFormat;
   template: SocialTemplate;
   title: string;
@@ -95,17 +103,18 @@ function loadImage(url: string) {
 export async function renderSocialImage(matches: SocialMatch[], options: SocialOptions, page: number, pages: number) {
   const format = SOCIAL_FORMATS.find((f) => f.id === options.format)!;
   const theme = SOCIAL_TEMPLATES.find((t) => t.id === options.template)!;
+  const brand = SOCIAL_BRANDS[options.brand];
   const font = getComputedStyle(document.body).fontFamily;
   const postponedFont = getComputedStyle(document.body).getPropertyValue("--font-geist-mono").trim() || "monospace";
   const urls = options.showLogos ? [...new Set(matches.flatMap((m) => [m.homeLogo, m.awayLogo]).filter((url): url is string => Boolean(url)))] : [];
   const [loaded, brandLogo, background] = await Promise.all([
     Promise.all(urls.map(async (url) => [url, await loadImage(url)] as const)),
-    loadImage(KSKS_LOGO),
+    loadImage(brand.logo),
     theme.background ? loadImage(theme.background) : Promise.resolve(null),
     document.fonts.load(`700 36px ${font}`, "ČĆŠĐŽčćšđž"),
     matches.some((match) => match.status === "postponed") ? document.fonts.load(`700 36px ${postponedFont}`, "ODGOĐENO") : Promise.resolve(),
   ]);
-  if (!brandLogo) throw new Error("KSKS logo nije učitan. Osvježi stranicu i pokušaj ponovo.");
+  if (!brandLogo) throw new Error(`${brand.name} logo nije učitan. Osvježi stranicu i pokušaj ponovo.`);
   if (theme.background && !background) throw new Error("Pozadina predloška nije učitana. Osvježi stranicu i pokušaj ponovo.");
   const logos = new Map(loaded);
   const canvas = document.createElement("canvas");
@@ -171,19 +180,22 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
     ctx!.drawImage(image, x + (size - width) / 2, y + (size - height) / 2, width, height);
   }
 
+  /** Crta samo vidljivi (neprovidni) dio slike, centriran u kvadratu */
+  function containVisible(image: HTMLImageElement, x: number, y: number, size: number, padding = 0) {
+    const bounds = visibleBounds(image);
+    const scale = (size - padding * 2) / Math.max(bounds.width, bounds.height);
+    const width = bounds.width * scale;
+    const height = bounds.height * scale;
+    ctx!.drawImage(image, bounds.x, bounds.y, bounds.width, bounds.height, x + (size - width) / 2, y + (size - height) / 2, width, height);
+  }
+
   function crest(name: string, url: string | null, centerX: number, centerY: number, size: number) {
     if (!options.showLogos) return;
     const x = centerX - size / 2;
     const y = centerY - size / 2;
     box(x, y, size, size, "#ffffff", size * 0.17);
     const logo = url ? logos.get(url) : null;
-    if (logo) {
-      const bounds = visibleBounds(logo);
-      const scale = (size - 8) / Math.max(bounds.width, bounds.height);
-      const width = bounds.width * scale;
-      const height = bounds.height * scale;
-      ctx!.drawImage(logo, bounds.x, bounds.y, bounds.width, bounds.height, x + (size - width) / 2, y + (size - height) / 2, width, height);
-    }
+    if (logo) containVisible(logo, x, y, size, 4);
     else text(name.trim().split(/\s+/).map((word) => word[0]).slice(0, 2).join(""), centerX, centerY, size * 0.30, "#25354b", size - 16, 800, "center");
   }
 
@@ -229,11 +241,13 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
 
   const brandSize = wide || dense ? 82 : 98;
   box(margin, top, brandSize, brandSize, "#ffffff", 18);
-  contain(brandLogo, margin, top, brandSize, 6);
+  // KSBIH grb ima mnogo praznog prostora oko sebe, pa se crta samo vidljivi dio
+  if (options.brand === "ksbih") containVisible(brandLogo, margin, top, brandSize, 6);
+  else contain(brandLogo, margin, top, brandSize, 6);
   const brandX = margin + brandSize + 22;
-  text("KSKS", brandX, top + brandSize * 0.33, wide ? 25 : 30, theme.headerInk, 160, 800);
-  text("KOŠARKAŠKI SAVEZ", brandX, top + brandSize * 0.65, 16, theme.headerMuted, 380, 700);
-  text("KANTONA SARAJEVO", brandX, top + brandSize * 0.85, 16, theme.headerMuted, 380, 700);
+  text(brand.name, brandX, top + brandSize * 0.33, wide ? 25 : 30, theme.headerInk, 160, 800);
+  text(brand.lines[0], brandX, top + brandSize * 0.65, 16, theme.headerMuted, 380, 700);
+  text(brand.lines[1], brandX, top + brandSize * 0.85, 16, theme.headerMuted, 380, 700);
   if (wide) {
     text(options.title.trim() || "Raspored utakmica", 490, top + 35, 43, theme.headerInk, w - 490 - margin, 800);
     if (options.subtitle.trim()) text(options.subtitle.trim(), 490, top + 77, 21, theme.headerMuted, w - 490 - margin, 500);
@@ -253,13 +267,26 @@ export async function renderSocialImage(matches: SocialMatch[], options: SocialO
   const rowHeight = (available - (rowCount - 1) * gap) / Math.max(1, rowCount);
   const cardWidth = (w - margin * 2 - (columns - 1) * gap) / columns;
 
+  // Vodeni žig: veliki grb saveza iza utakmica; kartice su tada providnije da se vidi
+  if (brand.watermark) {
+    const size = Math.min(w - margin * 2, available) * 0.92;
+    ctx.save();
+    ctx.globalAlpha = theme.background ? 0.3 : 0.16;
+    containVisible(brandLogo, (w - size) / 2, contentTop + (available - size) / 2, size);
+    ctx.restore();
+  }
+  const cardAlpha = brand.watermark ? (theme.background ? 0.62 : 0.72) : 1;
+
   matches.forEach((m, index) => {
     const postponed = m.status === "postponed";
     const dateLabel = postponed ? "Novi termin naknadno" : `${formatWeekday(m.startsAt).toUpperCase()} · ${formatDate(m.date)}`;
     const y = contentTop + Math.floor(index / columns) * (rowHeight + gap);
     const x = margin + (index % columns) * (cardWidth + gap);
     const center = x + cardWidth / 2;
+    ctx.save();
+    ctx.globalAlpha = cardAlpha;
     box(x, y, cardWidth, rowHeight, theme.panel, rowHeight < 160 ? 14 : 24);
+    ctx.restore();
     if (rowHeight < 300 || columns > 1) {
       const badgeSize = Math.min(180, rowHeight * 0.84, cardWidth * 0.13);
       const middle = y + rowHeight * 0.51;
