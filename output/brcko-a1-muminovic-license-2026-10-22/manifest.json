@@ -1,0 +1,26 @@
+{
+  "status": "imported_and_verified",
+  "club": "Brčko Distrikt",
+  "competition": "A1 liga žene",
+  "season": "2026/27",
+  "club_id": "dbbb7b49-39cd-4f90-8ef7-f745dc97dcca",
+  "competition_id": "443667aa-44cf-4c3c-9934-5b3d426c8de4",
+  "source": "Email „FW: Adna Muminović“ (KK Brčko Distrikt 21.10.2026 23:10, forwarded by KSKS 22.10.2026); inline photo 25868.jpg",
+  "photos": [
+    {
+      "index": 1,
+      "person": "Adna Muminović",
+      "original": "/Users/tarikvelic/Downloads/25868.jpg",
+      "source": "/Users/tarikvelic/KSKS/ksks-delegiranje/output/brcko-a1-muminovic-license-2026-10-22/adna-muminovic.jpg",
+      "original_sha256": "b793a4b401f75a2847f9773ee4369019c3037ac1987221bc455f85ced90281fa",
+      "sha256": "b793a4b401f75a2847f9773ee4369019c3037ac1987221bc455f85ced90281fa",
+      "size": 136928,
+      "content_type": "image/jpeg",
+      "path": "dbbb7b49-39cd-4f90-8ef7-f745dc97dcca/brcko-a1-2026-27-aa740fa2-46c5-4f03-b460-fc89263085ea.jpg"
+    }
+  ],
+  "notes": [
+    "Email body gives only name, birth date 13.06.2010 and height 180 cm; birth place not provided, left empty.",
+    "Added as player 17 after the 16 existing Brčko A1 licenses. Photo uploaded unchanged."
+  ]
+}
