@@ -1,0 +1,49 @@
+[
+  {
+    "id": "e1e8e4e9-00c1-4cbb-a9ed-56d4861e6b20",
+    "name": "Adi Muhedinović",
+    "birth_date": "2009-02-21"
+  },
+  {
+    "id": "a68c90c0-ee62-4631-9abd-fefb0170787b",
+    "name": "Bakir Čatal",
+    "birth_date": "2008-01-12"
+  },
+  {
+    "id": "4a4367ad-f581-4405-91b9-1d6c9de9762b",
+    "name": "Emin Pešto",
+    "birth_date": "2009-09-11",
+    "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-c5912cf0-24aa-455a-9372-1ab5c2dd4175.jpg"
+  },
+  {
+    "id": "671664fe-078a-4848-910a-254cd18e6418",
+    "name": "Vedad Duranović",
+    "birth_date": "2009-01-05",
+    "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-cd56920d-fa66-4b8a-8bcc-70cf8aa254a3.jpg"
+  },
+  {
+    "id": "c073f5a9-9b88-485c-9646-063efefad120",
+    "name": "Andrej Popić",
+    "birth_date": "2008-12-17",
+    "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-f06bb351-2e09-4820-b5bd-f6bc9c40a471.jpg"
+  },
+  {
+    "id": "77b26bda-7ab8-48c6-bf81-42b54a8e20df",
+    "name": "Amar Musić",
+    "birth_date": "2007-09-19",
+    "first_name": "Ammar",
+    "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-a215dd2f-fad9-41a5-8d0c-e25f388f5af7.jpg"
+  },
+  {
+    "id": "d32405fc-80e9-4239-8640-0732ca7aad44",
+    "name": "Kenan Nurkić",
+    "birth_date": "2007-08-08",
+    "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-3722d12d-a582-49bf-92d4-5384ba44fa37.jpg"
+  },
+  {
+    "id": "9e5a2a1e-4360-4d2b-b97d-3bef85dc394c",
+    "name": "Adrijan Varaga",
+    "birth_date": "2009-11-03",
+    "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-bcc061a3-882a-4640-9fb7-80fb8cccecd6.jpg"
+  }
+]

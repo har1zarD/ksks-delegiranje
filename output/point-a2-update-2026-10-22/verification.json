@@ -1,0 +1,25 @@
+{
+  "verified_at": "2026-10-22T15:47:35.475Z",
+  "club": "KK Point",
+  "competition": "A2 liga jug KSBiH",
+  "birth_dates_added": 8,
+  "birth_dates_confirmed": 9,
+  "renamed": "Amar → Ammar Musić",
+  "photos_added": 6,
+  "players_with_birth_date": 17,
+  "players_with_photo": 17,
+  "without_photo": [
+    "Mirnes Muminović",
+    "Adis Mujezinović",
+    "Hermin Kapetanović"
+  ],
+  "notes": [
+    "Source: „spisak za licenciranje A2 JUG - 2026-2027 FINAL.doc“ (KK Point, 22.10.2026 17:16) and 33 attachments (Point A2 v2).",
+    "All 9 passport-based dates entered earlier match the new list.",
+    "Ammar: spelled so in both Musić passports (BiH and HR MRZ) and the signature; the list says Amar.",
+    "Musić sent no portrait; face cropped from the HR passport (issued 2024-05-24) and upscaled. Popić cropped to head and shoulders; the other 4 photos unchanged.",
+    "Lukavica birth place stays Bengazi (passport); the new list still says Tuzla. List spelling Brakalović/Hadzić/Dzanan/Muhedinovic kept as previously corrected from passports."
+  ],
+  "all_fields_match": true,
+  "photos_verified": true
+}
