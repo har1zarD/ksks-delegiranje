@@ -1,0 +1,63 @@
+{
+  "verified_at": "2026-10-22T15:58:09.816Z",
+  "competition": "A2 liga jug KSBiH",
+  "total": 216,
+  "unique": true,
+  "ranges": [
+    {
+      "team": "Čelik",
+      "licenses": 28,
+      "from": "001",
+      "to": "028"
+    },
+    {
+      "team": "Ilidža",
+      "licenses": 24,
+      "from": "029",
+      "to": "052"
+    },
+    {
+      "team": "Lokomotiva",
+      "licenses": 24,
+      "from": "053",
+      "to": "076"
+    },
+    {
+      "team": "Mladost",
+      "licenses": 27,
+      "from": "077",
+      "to": "103"
+    },
+    {
+      "team": "Never Stop",
+      "licenses": 23,
+      "from": "104",
+      "to": "126"
+    },
+    {
+      "team": "Point",
+      "licenses": 19,
+      "from": "127",
+      "to": "145"
+    },
+    {
+      "team": "Realway",
+      "licenses": 24,
+      "from": "146",
+      "to": "169"
+    },
+    {
+      "team": "Star Fojnica",
+      "licenses": 22,
+      "from": "170",
+      "to": "191"
+    },
+    {
+      "team": "Vukovi",
+      "licenses": 25,
+      "from": "192",
+      "to": "216"
+    }
+  ],
+  "replaced": []
+}

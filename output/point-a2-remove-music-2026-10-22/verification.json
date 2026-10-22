@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-10-22T15:56:21.066Z",
+  "club": "KK Point",
+  "competition": "A2 liga jug KSBiH",
+  "deleted": "Ammar Musić (player, sort 9)",
+  "photo_removed_from_storage": true,
+  "backup": [
+    "license-deleted.json",
+    "photo-backup.jpg"
+  ],
+  "remaining": {
+    "players": 16,
+    "officials": 3
+  }
+}
