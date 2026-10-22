@@ -18,3 +18,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Club identity and logos
 
 - Before reusing a club or replacing its logo, inspect all linked competitions and their genders. Clubs from the same city can be separate men's and women's clubs; match the actual club identity and preserve license-folder associations when correcting links.
+- Club logos must also work in license PDFs: `src/lib/license-pdf.ts` embeds only PNG and JPEG. Keep shared logo assets in those formats unless PDF decoding is updated; browser support for WebP alone is insufficient.
