@@ -20,31 +20,28 @@ export const DEFAULT_SOCIAL_OPTIONS: SocialOptions = {
 export function SocialBuilder({ matches: initialMatches, today, now: initialNow, initialOptions }: { matches: SocialMatch[]; today: string; now: number; initialOptions?: Partial<SocialOptions> }) {
   const [now, setNow] = useState(initialNow);
   const matches = useMemo(() => initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), [initialMatches, now]);
-  // Početni izbor: narednih 7 dana; ako tada nema utakmica (npr. na stranici takmičenja), 7 dana od prve naredne
-  const [selected, setSelected] = useState(() => {
-    const week = (start: string) => matches.filter((m) => m.date >= start && m.date <= addDays(start, 6)).map((m) => m.id);
+  // Početni filter: narednih 7 dana; ako tada nema utakmica (npr. na stranici takmičenja), 7 dana od prve naredne
+  const [filters, setFilters] = useState<Filters>(() => {
     const first = matches.find((m) => m.status === "scheduled")?.date;
-    const ids = week(today);
-    return new Set(ids.length || !first ? ids : week(first));
+    const start = !first || matches.some((m) => m.date >= today && m.date <= addDays(today, 6)) ? today : first;
+    return { ...NO_FILTERS, from: start, to: addDays(start, 6) };
   });
-  const [competition, setCompetition] = useState("");
-  const [round, setRound] = useState("");
-  const [search, setSearch] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const { competition, round, search, from, to } = filters;
+  // Takmičenje i kolo brišu datume (inače početnih 7 dana sakrije dio kola). Izbor prati filtere: svaka promjena filtera označi upravo prikazane utakmice, pa se i pregled odmah mijenja
+  const [selected, setSelected] = useState(() => new Set(filterMatches(matches, filters).map((m) => m.id)));
+  function filter(patch: Partial<Filters>) {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    setSelected(new Set(filterMatches(matches, next).map((m) => m.id)));
+    setPage(0);
+  }
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(7);
   const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, ...initialOptions }));
   const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
   const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
   const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
-  const query = fold(search.trim());
-  const visible = matches.filter((m) =>
-    (!competition || m.competitionId === competition) &&
-    (!round || (round === "none" ? m.round == null : String(m.round) === round)) &&
-    (!from || m.date >= from) && (!to || m.date <= to) &&
-    (!query || fold(`${m.home} ${m.away} ${m.competition} ${m.hall ?? ""} ${m.status === "postponed" ? "Odgođeno" : ""}`).includes(query)),
-  );
+  const visible = filterMatches(matches, filters);
   const hiddenSelected = chosen.length - visible.filter((m) => selected.has(m.id)).length;
 
   useEffect(() => {
@@ -81,22 +78,22 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow,
       <div className="flex min-w-0 flex-col gap-6">
         <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Select label="Takmičenje" value={competition} onChange={(event) => { setCompetition(event.target.value); setRound(""); }}>
+            <Select label="Takmičenje" value={competition} onChange={(event) => filter({ competition: event.target.value, round: "", from: "", to: "" })}>
               <option value="">Sva takmičenja</option>
               {competitions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             </Select>
-            <Select label="Kolo" value={round} onChange={(event) => setRound(event.target.value)}>
+            <Select label="Kolo" value={round} onChange={(event) => filter({ round: event.target.value, from: "", to: "" })}>
               <option value="">Sva kola</option>
               <option value="none">Bez kola</option>
               {rounds.map((n) => <option key={n} value={String(n)}>{n}. kolo</option>)}
             </Select>
-            <Field label="Od datuma" type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
-            <Field label="Do datuma" type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} />
+            <Field label="Od datuma" type="date" value={from} max={to || undefined} onChange={(event) => filter({ from: event.target.value })} />
+            <Field label="Do datuma" type="date" value={to} min={from || undefined} onChange={(event) => filter({ to: event.target.value })} />
           </div>
-          <Field label="Pretraži utakmice" placeholder="Ekipa, takmičenje ili dvorana…" icon={<Search className="size-4" />} value={search} onChange={(event) => setSearch(event.target.value)} />
+          <Field label="Pretraži utakmice" placeholder="Ekipa, takmičenje ili dvorana…" icon={<Search className="size-4" />} value={search} onChange={(event) => filter({ search: event.target.value })} />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
-            <button type="button" className="font-semibold hover:underline" onClick={() => { setFrom(today); setTo(addDays(today, 6)); }}>Narednih 7 dana</button>
-            <button type="button" className="text-fg-muted hover:underline" onClick={() => { setCompetition(""); setRound(""); setFrom(""); setTo(""); setSearch(""); }}>Očisti filtere</button>
+            <button type="button" className="font-semibold hover:underline" onClick={() => filter({ from: today, to: addDays(today, 6) })}>Narednih 7 dana</button>
+            <button type="button" className="text-fg-muted hover:underline" onClick={() => filter(NO_FILTERS)}>Očisti filtere</button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">
             <button type="button" disabled={!visible.length} className="font-semibold hover:underline disabled:opacity-40" onClick={() => { setSelected((old) => new Set([...old, ...visible.map((m) => m.id)])); setPage(0); }}>Označi prikazane ({visible.length})</button>
@@ -116,7 +113,7 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow,
               </label>
             )) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
           </div>
-          <p className="text-[12px] text-fg-faint">Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum. Početni izbor: narednih 7 dana.</p>
+          <p className="text-[12px] text-fg-faint">Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum. Izbor prati filtere; pojedinačne utakmice možeš odznačiti.</p>
         </Step>
 
         <Step number={2} title="Predložak i format">
@@ -258,6 +255,19 @@ export function SocialPreview({ matches: chosen, options, perPage, page, onPage:
 
 function Step({ number, title, aside, children }: { number: number; title: string; aside?: string; children: ReactNode }) {
   return <section className={cx(CARD, "flex flex-col gap-4 p-4 sm:p-5")}><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="flex items-center gap-2.5 text-[17px] font-semibold"><span className="grid size-7 place-items-center rounded-full bg-panel-2 text-[12px] text-fg-muted">{number}</span>{title}</h2>{aside && <span className="text-[12px] font-semibold text-fg-muted">{aside}</span>}</div>{children}</section>;
+}
+
+type Filters = { competition: string; round: string; search: string; from: string; to: string };
+const NO_FILTERS: Filters = { competition: "", round: "", search: "", from: "", to: "" };
+
+function filterMatches(matches: SocialMatch[], { competition, round, search, from, to }: Filters) {
+  const query = fold(search.trim());
+  return matches.filter((m) =>
+    (!competition || m.competitionId === competition) &&
+    (!round || (round === "none" ? m.round == null : String(m.round) === round)) &&
+    (!from || m.date >= from) && (!to || m.date <= to) &&
+    (!query || fold(`${m.home} ${m.away} ${m.competition} ${m.hall ?? ""} ${m.status === "postponed" ? "Odgođeno" : ""}`).includes(query)),
+  );
 }
 
 function fold(value: string) {
