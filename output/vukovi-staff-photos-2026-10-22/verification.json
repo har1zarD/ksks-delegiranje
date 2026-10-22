@@ -1,0 +1,21 @@
+{
+  "verified_at": "2026-10-22T21:09:40.324Z",
+  "club": "KK Vukovi",
+  "competition": "A2 liga jug KSBiH",
+  "photos_added": [
+    "Faruk Čolić (Službeno lice)",
+    "Harun Čolić (Trener)",
+    "Harun Čolić (Službeno lice)",
+    "Aldin Berbić (Trener)",
+    "Boris Ćuković (Fizioterapeut)",
+    "Dino Duranović (Trener)",
+    "Amir Zukić (Službeno lice)"
+  ],
+  "licenses_without_photo": [],
+  "notes": [
+    "Photo order mapped to the name list in the user's screenshot.",
+    "All crops 4:5 head and shoulders; Amir Zukić upscaled from 470x588 to 640x800, the rest kept at crop size."
+  ],
+  "photos_verified": true,
+  "other_fields_preserved": true
+}
