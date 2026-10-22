@@ -6,6 +6,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { clip, endPath, PDFDocument, popGraphicsState, pushGraphicsState, rectangle, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import type { ClubLicenses, License } from "@/lib/data/licenses";
 import { formatDate } from "@/lib/format";
+import { logoOf } from "@/components/competition-logo";
 
 const A4 = { w: 595.28, h: 841.89 };
 const M = 36; // margina
@@ -30,9 +31,15 @@ const C = {
 };
 
 type Fonts = { regular: PDFFont; bold: PDFFont };
-type Images = { ksks: PDFImage; club: PDFImage | null; photos: Map<string, PDFImage> };
+type Images = { federation: PDFImage; club: PDFImage | null; photos: Map<string, PDFImage> };
 
-/** Prozirnost KSKS grba iza kartica (isti grb je i u zaglavlju strane i kartice) */
+/** Grb saveza na licencama: A1 ligu za žene i A2 ligu vodi KSBiH, ostalo KSKS */
+function federationLogo(competition: ClubLicenses["competition"]) {
+  const logo = logoOf(competition.name, competition.category);
+  return logo === "ksbih-a1-zene" || logo === "ksbih-a2" ? "public/competitions/ksbih.png" : "public/brand/ksks-logo-1024.png";
+}
+
+/** Prozirnost grba saveza iza kartica (isti grb je i u zaglavlju strane i kartice) */
 const WATERMARK_OPACITY = 0.06;
 
 const asset = (p: string) => readFile(path.join(process.cwd(), p));
@@ -61,16 +68,16 @@ export async function licensesPdf({ competition, club, players, officials }: Clu
   doc.setAuthor("Košarkaški savez Kantona Sarajevo");
 
   const all = [...players, ...officials];
-  const [regular, bold, ksks, clubImg, ...photos] = await Promise.all([
+  const [regular, bold, federation, clubImg, ...photos] = await Promise.all([
     asset("src/app/_og/Geist-500.woff").then((b) => doc.embedFont(b, { subset: true })),
     asset("src/app/_og/Geist-700.woff").then((b) => doc.embedFont(b, { subset: true })),
-    asset("public/brand/ksks-logo-1024.png").then((b) => doc.embedPng(b)),
+    asset(federationLogo(competition)).then((b) => doc.embedPng(b)),
     club.logoUrl ? fetchBytes(club.logoUrl).then((b) => embedImage(doc, b)) : null,
     ...all.map((l) => (l.photoUrl ? fetchBytes(l.photoUrl).then((b) => embedImage(doc, b)) : null)),
   ]);
   const fonts = { regular, bold };
   const images: Images = {
-    ksks,
+    federation,
     club: clubImg,
     photos: new Map(all.flatMap((l, i) => (photos[i] ? [[l.id, photos[i]] as const] : []))),
   };
@@ -85,7 +92,7 @@ export async function licensesPdf({ competition, club, players, officials }: Clu
     for (let i = 0; i < section.list.length; i += COLS * ROWS) {
       const page = doc.addPage([A4.w, A4.h]);
       // Grb saveza preko cijele strane, prvi da bude iza svega
-      drawContained(page, ksks, M, M, A4.w - 2 * M, A4.h - 2 * M, WATERMARK_OPACITY);
+      drawContained(page, federation, M, M, A4.w - 2 * M, A4.h - 2 * M, WATERMARK_OPACITY);
       const top = drawPageHeader(page, fonts, images, { competition, club }, `${section.title} (${section.list.length})`);
       section.list.slice(i, i + COLS * ROWS).forEach((l, j) => {
         const x = M + (j % COLS) * (CARD_W + GAP);
@@ -116,7 +123,7 @@ function drawPageHeader(page: PDFPage, f: Fonts, img: Images, { competition, clu
   page.drawText(club.name, { x, y: top - 17, size: 17, font: f.bold, color: C.fg });
   const sub = ["Lista licenciranih igrača i službenih lica", competition.name, competition.season && `sezona ${competition.season}`].filter(Boolean).join("  ·  ");
   page.drawText(sub, { x, y: top - 32, size: 8.5, font: f.regular, color: C.muted });
-  drawContained(page, img.ksks, A4.w - M - 54, top - 36, 54, 36);
+  drawContained(page, img.federation, A4.w - M - 54, top - 36, 54, 36);
 
   page.drawLine({ start: { x: M, y: top - 48 }, end: { x: A4.w - M, y: top - 48 }, thickness: 0.75, color: C.line });
   page.drawText(section, { x: M, y: top - 68, size: 11, font: f.bold, color: C.fg });
@@ -131,7 +138,7 @@ function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: P
   // Zaglavlje: grb saveza, takmičenje i sezona
   page.drawRectangle({ x, y: y - HEAD_H, width: CARD_W, height: HEAD_H, color: C.panel2, opacity: 0.7 });
   page.drawLine({ start: { x, y: y - HEAD_H }, end: { x: x + CARD_W, y: y - HEAD_H }, thickness: 0.6, color: C.divider });
-  drawContained(page, img.ksks, x + 8, y - HEAD_H + 3, 24, 16);
+  drawContained(page, img.federation, x + 8, y - HEAD_H + 3, 24, 16);
   const hx = x + 38;
   const season = competition.season ?? "";
   const seasonW = f.regular.widthOfTextAtSize(season, 7.5);
