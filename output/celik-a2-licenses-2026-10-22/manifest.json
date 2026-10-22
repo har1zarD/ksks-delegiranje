@@ -1,0 +1,20 @@
+{
+  "status": "imported_and_verified",
+  "club": "KK Čelik (OKK Čelik 2 Zenica)",
+  "team": "Čelik",
+  "competition": "A2 liga jug KSBiH",
+  "season": "2026/27",
+  "club_id": "484c9753-58c1-4760-b30a-f886b4838b74",
+  "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+  "source": "/Users/tarikvelic/Downloads/Celik/Spisak_za_licenciranje_A2_2026-27.pdf",
+  "notes": [
+    "Roster from the signed, stamped PDF (OKK \"Čelik 2\" Zenica, verified by KS ZDK); DOC copy matches.",
+    "Stored under KK Čelik, the club whose team plays A2 liga jug; its license folder already existed.",
+    "Armin Dedić appears twice (rows 6 and 14, same birth date 29.11.2008, heights 188 and 191); one license created with row 6.",
+    "Edvin Šišić: roster says 02.10.2004, the club's dual-license letter says born 2007; roster date used.",
+    "Dual licenses per club letter 05-45/26: Ivan Jurić and Edvin Šišić (OKK Čelik), Afan Busuladžić (protected age), Novak Đerić (from OKK Čelik).",
+    "Positions normalized: Bek → SG, Krilo → SF, Krilni centar → PF, Centar → C.",
+    "Photos are in a Google Drive folder none of the user's accounts can access; licenses created without photos.",
+    "No doctor or physiotherapist listed; license numbers blank."
+  ]
+}

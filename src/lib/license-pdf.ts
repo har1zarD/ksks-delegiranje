@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { clip, endPath, PDFDocument, popGraphicsState, pushGraphicsState, rectangle, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
+import sharp from "sharp";
 import type { ClubLicenses, License } from "@/lib/data/licenses";
 import { formatDate } from "@/lib/format";
 import { logoOf } from "@/components/competition-logo";
@@ -53,12 +54,36 @@ async function fetchBytes(url: string) {
   }
 }
 
-/** PNG ili JPEG po potpisu fajla; ostalo (SVG, WebP) PDF ne može ugraditi */
-async function embedImage(doc: PDFDocument, bytes: Uint8Array | null) {
+// Slike se smanjuju prije ugradnje: original (fotografija i do 5 MB) bi napuhao PDF na desetine MB.
+// 4 px po pt ≈ 290 dpi, dovoljno za štampu. sharp čita i WebP/SVG, a rotate() poštuje EXIF orijentaciju kao preglednik.
+const PX_PER_PT = 4;
+
+/** Fotografija za okvir: JPEG koji (bez izobličenja) pokriva cijeli okvir, višak odsijeca drawCover */
+async function embedPhoto(doc: PDFDocument, bytes: Uint8Array | null) {
   if (!bytes) return null;
-  if (bytes[0] === 0x89 && bytes[1] === 0x50) return doc.embedPng(bytes);
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) return doc.embedJpg(bytes);
-  return null;
+  try {
+    const jpg = await sharp(bytes)
+      .rotate()
+      .resize({ width: PHOTO.w * PX_PER_PT, height: PHOTO.h * PX_PER_PT, fit: "outside", withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 80, mozjpeg: true })
+      .toBuffer();
+    return await doc.embedJpg(jpg);
+  } catch {
+    return null;
+  }
+}
+
+/** Grb kluba: PNG (zadržava prozirnost), najviše za zaglavlje strane (36 pt) */
+async function embedLogo(doc: PDFDocument, bytes: Uint8Array | null) {
+  if (!bytes) return null;
+  try {
+    const size = 36 * PX_PER_PT;
+    const png = await sharp(bytes).resize({ width: size, height: size, fit: "inside", withoutEnlargement: true }).png().toBuffer();
+    return await doc.embedPng(png);
+  } catch {
+    return null;
+  }
 }
 
 export async function licensesPdf({ competition, club, players, officials }: ClubLicenses) {
@@ -72,8 +97,8 @@ export async function licensesPdf({ competition, club, players, officials }: Clu
     asset("src/app/_og/Geist-500.woff").then((b) => doc.embedFont(b, { subset: true })),
     asset("src/app/_og/Geist-700.woff").then((b) => doc.embedFont(b, { subset: true })),
     asset(federationLogo(competition)).then((b) => doc.embedPng(b)),
-    club.logoUrl ? fetchBytes(club.logoUrl).then((b) => embedImage(doc, b)) : null,
-    ...all.map((l) => (l.photoUrl ? fetchBytes(l.photoUrl).then((b) => embedImage(doc, b)) : null)),
+    club.logoUrl ? fetchBytes(club.logoUrl).then((b) => embedLogo(doc, b)) : null,
+    ...all.map((l) => (l.photoUrl ? fetchBytes(l.photoUrl).then((b) => embedPhoto(doc, b)) : null)),
   ]);
   const fonts = { regular, bold };
   const images: Images = {
