@@ -24,6 +24,9 @@ const C = {
   faint: rgb(0.42, 0.447, 0.502),
   line: rgb(0.886, 0.898, 0.914),
   panel2: rgb(0.945, 0.953, 0.961),
+  // Za štampu: ivica kartice je linija za rezanje, unutrašnje linije moraju ostati vidljive na papiru
+  cut: rgb(0.2, 0.2, 0.22),
+  divider: rgb(0.66, 0.68, 0.71),
 };
 
 type Fonts = { regular: PDFFont; bold: PDFFont };
@@ -123,12 +126,11 @@ function drawPageHeader(page: PDFPage, f: Fonts, img: Images, { competition, clu
 /** Kartica licence; (x, y) = gornji lijevi ugao */
 function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: Pick<ClubLicenses, "competition" | "club">, l: License, x: number, y: number) {
   const bottom = y - CARD_H;
-  // Bez bijele podloge (strana je bijela), da se grb iza vidi
-  page.drawRectangle({ x, y: bottom, width: CARD_W, height: CARD_H, borderColor: C.line, borderWidth: 0.75 });
+  // Bez bijele podloge (strana je bijela), da se grb iza vidi; ivica se crta na kraju, preko svega
 
   // Zaglavlje: grb saveza, takmičenje i sezona
-  page.drawRectangle({ x: x + 0.375, y: y - HEAD_H, width: CARD_W - 0.75, height: HEAD_H - 0.375, color: C.panel2, opacity: 0.7 });
-  page.drawLine({ start: { x, y: y - HEAD_H }, end: { x: x + CARD_W, y: y - HEAD_H }, thickness: 0.75, color: C.line });
+  page.drawRectangle({ x, y: y - HEAD_H, width: CARD_W, height: HEAD_H, color: C.panel2, opacity: 0.7 });
+  page.drawLine({ start: { x, y: y - HEAD_H }, end: { x: x + CARD_W, y: y - HEAD_H }, thickness: 0.6, color: C.divider });
   drawContained(page, img.ksks, x + 8, y - HEAD_H + 3, 24, 16);
   const hx = x + 38;
   const season = competition.season ?? "";
@@ -140,9 +142,10 @@ function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: P
   const px = x + 10;
   const py = y - HEAD_H - 10 - PHOTO.h;
   const photo = img.photos.get(l.id);
-  page.drawRectangle({ x: px, y: py, width: PHOTO.w, height: PHOTO.h, color: C.panel2, borderColor: C.line, borderWidth: 0.75 });
+  page.drawRectangle({ x: px, y: py, width: PHOTO.w, height: PHOTO.h, color: C.panel2 });
   if (photo) drawCover(page, photo, px, py, PHOTO.w, PHOTO.h);
   else page.drawText("bez fotografije", { x: px + (PHOTO.w - f.regular.widthOfTextAtSize("bez fotografije", 6.5)) / 2, y: py + PHOTO.h / 2 - 2, size: 6.5, font: f.regular, color: C.faint });
+  page.drawRectangle({ x: px, y: py, width: PHOTO.w, height: PHOTO.h, borderColor: C.divider, borderWidth: 0.6 });
 
   // Podaci
   const tx = px + PHOTO.w + 12;
@@ -172,7 +175,7 @@ function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: P
   }
 
   // Podnožje: klub i broj licence
-  page.drawLine({ start: { x, y: bottom + FOOT_H }, end: { x: x + CARD_W, y: bottom + FOOT_H }, thickness: 0.75, color: C.line });
+  page.drawLine({ start: { x, y: bottom + FOOT_H }, end: { x: x + CARD_W, y: bottom + FOOT_H }, thickness: 0.6, color: C.divider });
   let fx = x + 8;
   if (img.club) {
     drawContained(page, img.club, fx, bottom + 5, 24, 16);
@@ -185,6 +188,9 @@ function drawCard(page: PDFPage, f: Fonts, img: Images, { competition, club }: P
   page.drawText(no, { x: x + CARD_W - 8 - noW, y: bottom + 10, size: 8, font: f.bold, color: C.fg });
   page.drawText(noLabel, { x: x + CARD_W - 8 - noW - noLabelW, y: bottom + 10, size: 7.5, font: f.regular, color: C.muted });
   page.drawText(fit(club.name, f.bold, 8, x + CARD_W - 16 - noW - noLabelW - fx), { x: fx, y: bottom + 10, size: 8, font: f.bold, color: C.fg });
+
+  // Ivica kartice (linija za rezanje)
+  page.drawRectangle({ x, y: bottom, width: CARD_W, height: CARD_H, borderColor: C.cut, borderWidth: 1 });
 }
 
 /** Slika unutar okvira, cijela vidljiva, centrirana */
