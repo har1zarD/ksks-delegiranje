@@ -1,0 +1,19 @@
+[
+  {
+    "id": "12152db7-cc84-4ecf-b00b-7481fd8ed3dd",
+    "competition_id": "443667aa-44cf-4c3c-9934-5b3d426c8de4",
+    "club_id": "dbbb7b49-39cd-4f90-8ef7-f745dc97dcca",
+    "kind": "official",
+    "role": "Trener",
+    "last_name": "Velagić",
+    "first_name": "Adem",
+    "birth_date": null,
+    "birth_place": null,
+    "height_cm": null,
+    "position": null,
+    "license_no": null,
+    "photo_path": "dbbb7b49-39cd-4f90-8ef7-f745dc97dcca/brcko-a1-2026-27-3cecde2c-0409-4067-ae33-14f946cd21be.jpg",
+    "sort": 1,
+    "created_at": "2026-10-20T11:00:45.825741+00:00"
+  }
+]

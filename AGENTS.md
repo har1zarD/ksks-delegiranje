@@ -14,3 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Use the official KSKS logo from `public/brand/` and keep club crests prominent in exported graphics.
 - Size club crests by their visible, non-transparent bounds, not the padded source canvas. Let users choose 1–12 matches per image (default 7), independently of the output format.
 - Render “ODGOĐENO” in exported graphics as red text in a distinct bold monospace font with subtle letter spacing. No background or border; use a lighter red on dark templates.
+
+## Club identity and logos
+
+- Before reusing a club or replacing its logo, inspect all linked competitions and their genders. Clubs from the same city can be separate men's and women's clubs; match the actual club identity and preserve license-folder associations when correcting links.
