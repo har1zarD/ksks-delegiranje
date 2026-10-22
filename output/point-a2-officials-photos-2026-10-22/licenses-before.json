@@ -1,0 +1,53 @@
+[
+  {
+    "id": "36c964e9-b742-4451-8999-38ca7b04cdea",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "436f8af2-7691-4a1b-8666-71057277d861",
+    "kind": "official",
+    "role": "Trener",
+    "last_name": "Muminović",
+    "first_name": "Mirnes",
+    "birth_date": null,
+    "birth_place": null,
+    "height_cm": null,
+    "position": null,
+    "license_no": null,
+    "photo_path": null,
+    "sort": 1,
+    "created_at": "2026-10-22T14:30:55.107519+00:00"
+  },
+  {
+    "id": "d9bcacbd-d753-4264-8518-6975f929d75f",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "436f8af2-7691-4a1b-8666-71057277d861",
+    "kind": "official",
+    "role": "Službeno lice",
+    "last_name": "Mujezinović",
+    "first_name": "Adis",
+    "birth_date": null,
+    "birth_place": null,
+    "height_cm": null,
+    "position": null,
+    "license_no": null,
+    "photo_path": null,
+    "sort": 2,
+    "created_at": "2026-10-22T14:30:55.107519+00:00"
+  },
+  {
+    "id": "ffc04edd-416a-43c3-a04d-003fb57f2ab4",
+    "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+    "club_id": "436f8af2-7691-4a1b-8666-71057277d861",
+    "kind": "official",
+    "role": "Službeno lice",
+    "last_name": "Kapetanović",
+    "first_name": "Hermin",
+    "birth_date": null,
+    "birth_place": null,
+    "height_cm": null,
+    "position": null,
+    "license_no": null,
+    "photo_path": null,
+    "sort": 3,
+    "created_at": "2026-10-22T14:30:55.107519+00:00"
+  }
+]
