@@ -16,6 +16,7 @@ import { LockMatchButton } from "@/components/lock-match-button";
 import { MatchPaidButton } from "@/components/match-paid-button";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
+import { FibaMatchForm } from "@/app/(app)/fiba/link-match";
 
 export const metadata = { title: "Utakmica — KSKS" };
 
@@ -67,6 +68,8 @@ async function Match({ params }: { params: Params }) {
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
+  // FIBA LiveStats link i pristupni kod: delegirani upisuju ono čega nema (savez ih mijenja na admin stranici utakmice)
+  const canFiba = open && !isAdmin && scoresheetAccess && (match.fiba_game_id == null || !match.fiba_stream_key);
   // Isplata: prvi sudija (ili savez) označava; bez sudija (samo sto) bilo ko s utakmice. Isplaćena = sva prihvaćena delegiranja isplaćena
   const canPay = isAdmin || isFirstReferee || (!match.has_referees && (isTable || isCommissioner));
   const accepted = crew.filter((c) => c.status === "accepted");
@@ -156,6 +159,16 @@ async function Match({ params }: { params: Params }) {
         </div>
         {match.notes && <p className="border-t border-line py-3 text-[14px]">{match.notes}</p>}
       </section>
+
+      {canFiba && (
+        <section>
+          <SectionTitle icon={<Radio />}>FIBA LiveStats</SectionTitle>
+          <div className="rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
+            <p className="mb-4 text-[14px] text-fg-muted">Ako utakmica ide na FIBA LiveStats, upiši link utakmice i pristupni kod. Rezultat se onda preuzima automatski.</p>
+            <FibaMatchForm matchId={match.id} fibaGameId={match.fiba_game_id} streamKey={match.fiba_stream_key} fillOnly />
+          </div>
+        </section>
+      )}
 
       {scoresheetAccess && (
         <section>

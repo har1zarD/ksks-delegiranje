@@ -1,8 +1,9 @@
 "use server";
 
-import { requireRole } from "@/lib/auth";
+import { getCurrentUser, requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { fetchFibaGame, parseFibaMatchId } from "@/lib/fiba";
+import { matchRoleOf } from "@/lib/scoresheets";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AddFibaState = { error?: string; added?: number };
@@ -57,20 +58,31 @@ function categoryOf(competition: { name: string; category: string; gender: strin
 }
 
 /**
- * Admin: veza naše utakmice s FIBA LiveStats utakmicom i pristupni kod (Stream Key) za zapisničara.
- * Prazan link = bez FIBA utakmice. FIBA utakmica koje još nema u spisku se doda (podaci s FIBA LiveStats).
+ * Veza naše utakmice s FIBA LiveStats utakmicom i pristupni kod (Stream Key) za zapisničara.
+ * Admin mijenja oboje (prazan link = bez FIBA utakmice). Sudije, pomoćne sudije i komesar utakmice
+ * samo upisuju ono čega još nema; već upisano ne mogu promijeniti ni obrisati.
+ * FIBA utakmica koje još nema u spisku se doda (podaci s FIBA LiveStats).
  */
 export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Promise<FibaLinkState> {
-  await requireRole("admin");
   const matchId = String(formData.get("match_id") ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(matchId)) return { error: "Nepoznata utakmica." };
+  const role = await matchRoleOf(await getCurrentUser(), matchId);
+  if (!role) return { error: "FIBA podatke upisuju savez i delegirani na utakmici." };
   const rawLink = String(formData.get("link") ?? "").trim();
-  const streamKey = String(formData.get("stream_key") ?? "").trim().toUpperCase() || null;
+  let streamKey = String(formData.get("stream_key") ?? "").trim().toUpperCase() || null;
   if (streamKey && !/^[A-Z0-9]{6,40}$/.test(streamKey)) return { error: "Pristupni kod (Stream Key) ima samo slova i brojeve, npr. 1SYA3ZV64M476WEVRFW1." };
-  const fibaId = rawLink ? parseFibaMatchId(rawLink) : null;
+  let fibaId = rawLink ? parseFibaMatchId(rawLink) : null;
   if (rawLink && !fibaId) return { error: "Zalijepi FIBA LiveStats link utakmice (…/u/BIH/2939998/) ili njen broj." };
 
   const db = createAdminClient();
+  if (role !== "admin") {
+    const { data: current } = await db.from("matches").select("fiba_game_id, fiba_stream_key").eq("id", matchId).maybeSingle();
+    if (!current) return { error: "Nepoznata utakmica." };
+    if (current.fiba_game_id != null && current.fiba_stream_key) return { error: "FIBA podaci su već upisani. Za izmjenu se javi savezu." };
+    fibaId = current.fiba_game_id ?? fibaId;
+    streamKey = current.fiba_stream_key ?? streamKey;
+    if (!fibaId && !streamKey) return { error: "Upiši FIBA LiveStats link ili pristupni kod." };
+  }
   let key = streamKey;
   let game: Awaited<ReturnType<typeof fetchFibaGame>> = null;
   if (fibaId) {

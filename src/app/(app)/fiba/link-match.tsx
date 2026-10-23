@@ -61,31 +61,48 @@ export function LinkMatch({ fibaGameId, candidates }: { fibaGameId: number; cand
   );
 }
 
-/** Naša utakmica → FIBA (admin, na stranici utakmice): link FIBA LiveStats utakmice i pristupni kod za zapisničara */
-export function FibaMatchForm({ matchId, fibaGameId, streamKey }: { matchId: string; fibaGameId: number | null; streamKey: string | null }) {
+/**
+ * Naša utakmica → FIBA: link FIBA LiveStats utakmice i pristupni kod za zapisničara.
+ * Admin na stranici utakmice mijenja oboje; sudije, pomoćne sudije i komesar (fillOnly) samo upisuju ono čega nema.
+ */
+export function FibaMatchForm({
+  matchId,
+  fibaGameId,
+  streamKey,
+  fillOnly = false,
+}: {
+  matchId: string;
+  fibaGameId: number | null;
+  streamKey: string | null;
+  fillOnly?: boolean;
+}) {
   const [state, action, pending] = useActionState<FibaLinkState, FormData>(saveFibaLink, {});
+  const linkLocked = fillOnly && fibaGameId != null;
+  const keyLocked = fillOnly && streamKey != null;
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="match_id" value={matchId} />
       <label className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-fg-muted">FIBA LiveStats utakmica (link ili broj)</span>
-        <input name="link" defaultValue={fibaGameId ?? ""} placeholder="https://fibalivestats…/u/BIH/2939998/" className={inputClass} />
+        <input name="link" defaultValue={fibaGameId ?? ""} readOnly={linkLocked} placeholder="https://fibalivestats…/u/BIH/2939998/" className={cx(inputClass, linkLocked && "bg-panel-2 text-fg-muted")} />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-fg-muted">Pristupni kod (Stream Key)</span>
-        <input name="stream_key" defaultValue={streamKey ?? ""} placeholder="1SYA3ZV64M476WEVRFW1" className={cx(inputClass, "font-mono uppercase")} />
+        <input name="stream_key" defaultValue={streamKey ?? ""} readOnly={keyLocked} placeholder="1SYA3ZV64M476WEVRFW1" className={cx(inputClass, "font-mono uppercase", keyLocked && "bg-panel-2 text-fg-muted")} />
       </label>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" variant="secondary" disabled={pending}>
-          {pending ? "Čuvam…" : "Sačuvaj FIBA"}
-        </Button>
-        {fibaGameId && (
-          <Link href={`/fiba/${fibaGameId}`} className="text-[14px] font-semibold text-fg-muted hover:text-fg">
-            Statistika uživo
-          </Link>
-        )}
-        <Saved state={state} />
-      </div>
+      <Button type="submit" variant="secondary" disabled={pending} className="w-full">
+        {pending ? "Čuvam…" : "Sačuvaj FIBA"}
+      </Button>
+      {(fibaGameId || state.error || state.saved) && (
+        <div className="flex flex-wrap items-center gap-3">
+          {fibaGameId && (
+            <Link href={`/fiba/${fibaGameId}`} className="text-[14px] font-semibold text-fg-muted hover:text-fg">
+              Statistika uživo
+            </Link>
+          )}
+          <Saved state={state} />
+        </div>
+      )}
     </form>
   );
 }
