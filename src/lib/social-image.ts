@@ -1,5 +1,7 @@
 import type { SocialMatch } from "@/lib/data/social";
 import { formatDate, formatTime, formatWeekday } from "@/lib/format";
+import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
+import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 
 export const SOCIAL_FORMATS = [
   { id: "portrait", name: "Objava · 4:5", detail: "Instagram / Facebook", width: 1080, height: 1350 },
@@ -15,7 +17,12 @@ export const SOCIAL_BRANDS = {
   ksks: { logo: KSKS_LOGO, name: "KSKS", lines: ["KOŠARKAŠKI SAVEZ", "KANTONA SARAJEVO"], footer: "Košarkaški savez Kantona Sarajevo", watermark: false },
   ksbih: { logo: "/competitions/ksbih.png", name: "KSBIH", lines: ["KOŠARKAŠKI SAVEZ", "BOSNE I HERCEGOVINE"], footer: "Košarkaški savez Bosne i Hercegovine", watermark: true },
 } as const;
-const ARENA = "/social/arena-background-v1.png";
+
+/** Savez čije je takmičenje: A2 jug i A1 žene su KSBIH lige, ostalo (i više takmičenja na slici) KSKS */
+export function brandOf(competitionId: string): SocialBrand {
+  return competitionId === A2_JUG_ID || competitionId === A1_ZENE_ID ? "ksbih" : "ksks";
+}
+const ARENA ="/social/arena-background-v1.png";
 const PARQUET = "/social/parquet-background-v1.png";
 
 export const SOCIAL_TEMPLATES = [

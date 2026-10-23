@@ -52,7 +52,7 @@ export function FixtureForm({
       <input type="hidden" name="round" value={round} />
       <input type="hidden" name="home_team_id" value={homeId} />
       <input type="hidden" name="away_team_id" value={awayId} />
-      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_2fr_1fr] lg:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_2fr_1fr]">
         <DateField label="Datum" name="date" defaultValue={draft.date} onChange={(date) => ctx.set(number, { date })} required />
         <TimeField label="Vrijeme" name="time" step={300} defaultValue={draft.time || undefined} onChange={(time) => ctx.set(number, { time })} required />
         <Select label="Dvorana" name="hall_id" defaultValue={draft.hallId} onChange={(e) => ctx.set(number, { hallId: e.target.value })}>

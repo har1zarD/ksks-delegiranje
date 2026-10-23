@@ -7,7 +7,7 @@ import { Button, CARD, cx, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import type { SocialMatch } from "@/lib/data/social";
 import { addDays, formatDate, formatTime, slug } from "@/lib/format";
-import { renderSocialImage, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_TEMPLATES, type SocialOptions } from "@/lib/social-image";
+import { brandOf, renderSocialImage, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_TEMPLATES, type SocialOptions } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
 
 export const DEFAULT_SOCIAL_OPTIONS: SocialOptions = {
@@ -16,12 +16,17 @@ export const DEFAULT_SOCIAL_OPTIONS: SocialOptions = {
   showHall: true, showCompetition: true, showLogos: true,
 };
 
-/** `initialOptions` npr. podnaslov s nazivom takmičenja kad se builder otvara na stranici takmičenja */
-export function SocialBuilder({ matches: initialMatches, today, now: initialNow, initialOptions }: { matches: SocialMatch[]; today: string; now: number; initialOptions?: Partial<SocialOptions> }) {
+/** `competition` iz linka sa stranice takmičenja (`?takmicenje=`): filter na to takmičenje i njegovo prvo naredno kolo */
+export function SocialBuilder({ matches: initialMatches, today, now: initialNow, competition: initialCompetition }: { matches: SocialMatch[]; today: string; now: number; competition?: string }) {
   const [now, setNow] = useState(initialNow);
   const matches = useMemo(() => initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), [initialMatches, now]);
-  // Početni filter: narednih 7 dana; ako tada nema utakmica (npr. na stranici takmičenja), 7 dana od prve naredne
+  // Početni filter: takmičenje iz linka i njegovo prvo naredno kolo; inače narednih 7 dana, a ako tada nema utakmica, 7 dana od prve naredne
   const [filters, setFilters] = useState<Filters>(() => {
+    const own = matches.filter((m) => m.competitionId === initialCompetition);
+    if (own.length) {
+      const rounds = own.flatMap((m) => (m.round == null ? [] : [m.round]));
+      return { ...NO_FILTERS, competition: own[0].competitionId, round: rounds.length ? String(Math.min(...rounds)) : "" };
+    }
     const first = matches.find((m) => m.status === "scheduled")?.date;
     const start = !first || matches.some((m) => m.date >= today && m.date <= addDays(today, 6)) ? today : first;
     return { ...NO_FILTERS, from: start, to: addDays(start, 6) };
@@ -32,12 +37,13 @@ export function SocialBuilder({ matches: initialMatches, today, now: initialNow,
   function filter(patch: Partial<Filters>) {
     const next = { ...filters, ...patch };
     setFilters(next);
+    setOptions((old) => followFilters(old, headline(matches, filters), next.competition, headline(matches, next)));
     setSelected(new Set(filterMatches(matches, next).map((m) => m.id)));
     setPage(0);
   }
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(7);
-  const [options, setOptions] = useState<SocialOptions>(() => ({ ...DEFAULT_SOCIAL_OPTIONS, ...initialOptions }));
+  const [options, setOptions] = useState<SocialOptions>(() => followFilters(DEFAULT_SOCIAL_OPTIONS, "", filters.competition, headline(matches, filters)));
   const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
   const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
   const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
@@ -268,6 +274,27 @@ function filterMatches(matches: SocialMatch[], { competition, round, search, fro
     (!from || m.date >= from) && (!to || m.date <= to) &&
     (!query || fold(`${m.home} ${m.away} ${m.competition} ${m.hall ?? ""} ${m.status === "postponed" ? "Odgođeno" : ""}`).includes(query)),
   );
+}
+
+/** Podnaslov po filteru: takmičenje i kolo (npr. „A1 žene · 3. kolo“) */
+function headline(matches: SocialMatch[], { competition, round }: Filters) {
+  const name = competition && matches.find((m) => m.competitionId === competition)?.competition;
+  if (!name) return "";
+  return round && round !== "none" ? `${name} · ${round}. kolo` : name;
+}
+
+/**
+ * Savez u zaglavlju prati takmičenje (KSBIH lige s logom KSBIH). Tekst u dnu i podnaslov se mijenjaju s filterom
+ * samo dok su kakvi su bili podrazumijevano, pa ručno upisan tekst ostaje.
+ */
+function followFilters(old: SocialOptions, oldHeadline: string, competition: string, nextHeadline: string): SocialOptions {
+  const brand = brandOf(competition);
+  return {
+    ...old,
+    brand,
+    footer: old.footer === SOCIAL_BRANDS[old.brand].footer ? SOCIAL_BRANDS[brand].footer : old.footer,
+    subtitle: old.subtitle === oldHeadline ? nextHeadline : old.subtitle,
+  };
 }
 
 function fold(value: string) {

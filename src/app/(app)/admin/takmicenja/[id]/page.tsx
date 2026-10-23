@@ -5,13 +5,11 @@ import Link from "next/link";
 import { crewDefaultsOf, crewSummary } from "@/lib/crew";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, Trophy, Users, CalendarDays, Images } from "lucide-react";
+import { ChevronDown, ChevronLeft, Trophy, CalendarDays, Images } from "lucide-react";
 import { getCompetitionAdmin } from "@/lib/data/results";
-import { Bone, ButtonSkeleton, FieldSkeleton, Skeleton, StandingsSkeleton, Text, TextButtonSkeleton, times } from "@/components/skeleton";
+import { Bone, ButtonSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
 import { DateField, TimeField } from "@/components/date-picker";
-import { ButtonLink, Empty, Field, Panel, SectionTitle, Textarea } from "@/components/ui";
-import { getSocialSchedules } from "@/lib/data/social";
-import { SocialBuilder } from "../../utakmice/objave/builder";
+import { ButtonLink, Field, Panel, SectionTitle, Textarea } from "@/components/ui";
 import { StandingsTable } from "@/app/(app)/rezultati/standings-table";
 import { ActionForm, Check } from "../action-form";
 import { addTeam, createPhase, deleteCompetition, generateSchedule, removeTeam, updateCompetition } from "../actions";
@@ -19,7 +17,6 @@ import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { A2JugRaspored } from "./a2-jug-raspored";
 import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A1ZeneRaspored } from "./a1-zene-objava";
-import { SocialBuilderSkeleton } from "../../utakmice/objave/skeleton";
 
 export const metadata = { title: "Takmičenje — KSKS" };
 
@@ -78,7 +75,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           <ButtonLink href={`/admin/utakmice?takmicenje=${c.id}`} variant="secondary">
             Utakmice
           </ButtonLink>
-          <ButtonLink href="#slike-za-objavu" variant="secondary">
+          <ButtonLink href={`/admin/utakmice/objave?takmicenje=${c.id}`} variant="secondary">
             <Images className="size-4" aria-hidden="true" /> Slike za objavu
           </ButtonLink>
         </div>
@@ -101,36 +98,7 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         </p>
       </Panel>
 
-      <section>
-        <SectionTitle icon={<Users />} count={teams.length}>Ekipe</SectionTitle>
-        <Panel className="overflow-hidden">
-          {teams.length > 0 && (
-            <ul className="divide-y divide-line border-b border-line">
-              {teams.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 py-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-display text-[19px] font-semibold"><TeamName name={t.name} logoUrl={t.club?.logo_url} /></span>
-                  </span>
-                  <ActionForm action={removeTeam} submit="Ukloni" pendingLabel="…" variant="destructive">
-                    <input type="hidden" name="id" value={t.id} />
-                  </ActionForm>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="py-4 sm:py-5">
-            <ActionForm action={addTeam} submit="Dodaj ekipu" success="Ekipa dodana.">
-              <input type="hidden" name="competition_id" value={c.id} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <TeamSelect label="Klub" name="club_id" placeholder="Izaberi klub" required allowNew options={clubs.map((club) => ({ id: club.id, name: club.name, logoUrl: club.logo_url }))} />
-                <Field label="Naziv ekipe u takmičenju" name="name" placeholder="Npr. Ilidža Orange, Čelik" required />
-              </div>
-            </ActionForm>
-          </div>
-        </Panel>
-      </section>
-
-      {/* A2 jug i A1 žene imaju raspored saveza (dno stranice) */}
+      {/* A2 jug i A1 žene imaju raspored saveza (ispod tabele) */}
       {matchCount === 0 && teams.length >= 2 && c.id !== A2_JUG_ID && !isA1Women && (
         <section>
           <SectionTitle icon={<CalendarDays />}>Raspored</SectionTitle>
@@ -157,6 +125,16 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           <StandingsTable rows={standings} />
         </section>
       )}
+
+      {isA2South ? (
+        <Suspense fallback={<RasporedSkeleton />}>
+          <A2JugRaspored teams={teams} />
+        </Suspense>
+      ) : isA1Women ? (
+        <Suspense fallback={<RasporedSkeleton />}>
+          <A1ZeneRaspored teams={teams} />
+        </Suspense>
+      ) : null}
 
       {!c.parent_id && teams.length >= 2 && (
         <Collapsible title="Druga faza" hint="Liga 4 za prvaka ili liga za plasman, po trenutnoj tabeli">
@@ -199,6 +177,31 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         </ActionForm>
       </Collapsible>
 
+      {/* Ekipe se rijetko mijenjaju: zatvorene na dnu, otvorene dok takmičenje nema nijednu */}
+      <Collapsible title="Ekipe" hint={teams.length ? `${teams.length} u takmičenju · dodaj ili ukloni ekipu` : "Dodaj ekipe u takmičenje"} open={teams.length === 0}>
+        {teams.length > 0 && (
+          <ul className="-mt-4 mb-4 divide-y divide-line border-b border-line sm:-mt-6 sm:mb-5">
+            {teams.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-display text-[19px] font-semibold"><TeamName name={t.name} logoUrl={t.club?.logo_url} /></span>
+                </span>
+                <ActionForm action={removeTeam} submit="Ukloni" pendingLabel="…" variant="destructive">
+                  <input type="hidden" name="id" value={t.id} />
+                </ActionForm>
+              </li>
+            ))}
+          </ul>
+        )}
+        <ActionForm action={addTeam} submit="Dodaj ekipu" success="Ekipa dodana.">
+          <input type="hidden" name="competition_id" value={c.id} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TeamSelect label="Klub" name="club_id" placeholder="Izaberi klub" required allowNew options={clubs.map((club) => ({ id: club.id, name: club.name, logoUrl: club.logo_url }))} />
+            <Field label="Naziv ekipe u takmičenju" name="name" placeholder="Npr. Ilidža Orange, Čelik" required />
+          </div>
+        </ActionForm>
+      </Collapsible>
+
       {teams.length === 0 && matchCount === 0 && (
         <section className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
           <p className="text-[13px] text-fg-muted">Takmičenje nema ekipa ni utakmica i može se obrisati.</p>
@@ -207,35 +210,8 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           </ActionForm>
         </section>
       )}
-
-      <section id="slike-za-objavu" className="scroll-mt-6">
-        {isA2South ? (
-          <Suspense fallback={<SocialBuilderSkeleton />}>
-            <A2JugRaspored teams={teams} />
-          </Suspense>
-        ) : isA1Women ? (
-          <Suspense fallback={<SocialBuilderSkeleton />}>
-            <A1ZeneRaspored teams={teams} />
-          </Suspense>
-        ) : (
-          <>
-            <SectionTitle icon={<Images />}>Slike za objavu</SectionTitle>
-            <Suspense fallback={<SocialBuilderSkeleton />}>
-              <CompetitionSocial ids={[c.id, ...children.map((ch) => ch.id)]} name={c.short_name ?? c.name} />
-            </Suspense>
-          </>
-        )}
-      </section>
     </div>
   );
-}
-
-/** Slike za objavu samo s utakmicama ovog takmičenja (i njegovih faza) */
-async function CompetitionSocial({ ids, name }: { ids: string[]; name: string }) {
-  const data = await getSocialSchedules();
-  const matches = data.matches.filter((m) => ids.includes(m.competitionId));
-  if (!matches.length) return <Empty icon={<Images />} title="Nema utakmica za objavu">Ovdje se nude buduće zakazane i odgođene utakmice ovog takmičenja.</Empty>;
-  return <SocialBuilder {...data} matches={matches} initialOptions={{ subtitle: name }} />;
 }
 
 function Fact({ value, label }: { value: number; label: string }) {
@@ -248,9 +224,9 @@ function Fact({ value, label }: { value: number; label: string }) {
 }
 
 /** Panel koji se otvara klikom na naslov (rijetke radnje) */
-function Collapsible({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+function Collapsible({ title, hint, open, children }: { title: string; hint: string; open?: boolean; children: React.ReactNode }) {
   return (
-    <details className="group overflow-hidden rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
+    <details open={open} className="group overflow-hidden rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-5">
       <summary className="-mx-4 flex cursor-pointer list-none items-center gap-4 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-5 sm:px-5 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
           <span className="block font-display text-[22px] font-semibold tracking-tight">{title}</span>
@@ -263,7 +239,7 @@ function Collapsible({ title, hint, children }: { title: string; hint: string; c
   );
 }
 
-/** Kao stranica takmičenja: naziv i linkovi, brojke, ekipe s formom, tabela, rijetke radnje */
+/** Kao stranica takmičenja: naziv i linkovi, brojke, tabela, rijetke radnje i ekipe (zatvorene) */
 function CompetitionSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
@@ -293,47 +269,13 @@ function CompetitionSkeleton() {
         </p>
       </Panel>
       <section>
-        <SectionTitle icon={<Users />}>
-          Ekipe
-          <CountSkeleton />
-        </SectionTitle>
-        <Panel className="overflow-hidden">
-          <ul className="divide-y divide-line border-b border-line">
-            {times(6, (i) => (
-              <li key={i} className="flex items-center gap-3 py-2">
-                <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <Bone className="h-8 w-12 shrink-0" />
-                  <Text className="min-w-0 font-display text-[19px] font-semibold" w={i % 2 ? "w-36" : "w-48"} />
-                </span>
-                <TextButtonSkeleton />
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-4 py-4 sm:py-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FieldSkeleton label="Klub" />
-              <FieldSkeleton label="Naziv ekipe u takmičenju" />
-            </div>
-            <ButtonSkeleton className="w-full sm:w-32" />
-          </div>
-        </Panel>
-      </section>
-      <section>
         <SectionTitle icon={<Trophy />}>Tabela</SectionTitle>
         <StandingsSkeleton rows={6} />
       </section>
       <CollapsedSkeleton title="Druga faza" hint="Liga 4 za prvaka ili liga za plasman, po trenutnoj tabeli" />
       <CollapsedSkeleton title="Podaci takmičenja" hint="Naziv, početak, kotizacija, trajanje perioda" />
+      <CollapsedSkeleton title="Ekipe" hint="Dodaj ili ukloni ekipu" />
     </Skeleton>
-  );
-}
-
-/** Značka s brojem uz naslov sekcije */
-function CountSkeleton() {
-  return (
-    <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
-      <Text w="w-2" />
-    </span>
   );
 }
 
@@ -347,5 +289,17 @@ function CollapsedSkeleton({ title, hint }: { title: string; hint: string }) {
       </span>
       <ChevronDown className="size-5 shrink-0 text-fg-faint" />
     </div>
+  );
+}
+
+/** Kola rasporeda saveza dok se učitavaju */
+function RasporedSkeleton() {
+  return (
+    <Skeleton className="flex flex-col gap-3">
+      <SectionTitle icon={<CalendarDays />}>Raspored</SectionTitle>
+      {times(3, (i) => (
+        <Bone key={i} className="h-[66px] rounded-lg" />
+      ))}
+    </Skeleton>
   );
 }
