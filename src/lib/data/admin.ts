@@ -197,6 +197,14 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
 /** Pregled prikazuje utakmice narednih toliko dana; aktivirane kasnije ostaju u Utakmicama */
 export const OVERVIEW_DAYS = 7;
 
+/** Gradovi Kantona Sarajevo (grad dvorane) */
+const KS_CITIES = new Set(["Sarajevo", "Ilidža", "Vogošća", "Hadžići", "Ilijaš"]);
+
+/** KSKS delegira samo utakmice u dvoranama Kantona Sarajevo (A1 žene u Brčkom ne); bez dvorane ili grada utakmica ostaje */
+export function delegatedHere(m: { hall: { city: string | null } | null }) {
+  return !m.hall?.city || KS_CITIES.has(m.hall.city);
+}
+
 /** Kraj prozora Pregleda (ISO): utakmica počinje prije njega */
 export function overviewEnd(now = Date.now()) {
   return new Date(now + OVERVIEW_DAYS * 86_400_000).toISOString();

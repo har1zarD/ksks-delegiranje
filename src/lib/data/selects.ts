@@ -6,7 +6,7 @@ export const MATCH_SELECT = `
   competition:competitions!matches_competition_id_fkey ( id, name, short_name, category ),
   home:teams!matches_home_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
   away:teams!matches_away_team_id_fkey ( id, name, club:clubs!teams_club_id_fkey ( logo_url ) ),
-  hall:halls!matches_hall_id_fkey ( id, name )
+  hall:halls!matches_hall_id_fkey ( id, name, city )
 ` as const;
 
 export const MY_ASSIGNMENT_SELECT = `id, position, status, decline_reason, match:matches!assignments_match_id_fkey ( ${MATCH_SELECT}, periods:match_periods ( period, home_points, away_points ) )` as const;

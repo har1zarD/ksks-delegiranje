@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
-import { getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
+import { delegatedHere, getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayMonth, formatGroupHeading, formatTime, positionName, weekendKey } from "@/lib/format";
 import { PingPending, type PingItem } from "./ping-pending";
@@ -43,7 +43,7 @@ export default function AdminHome() {
 async function Overview() {
   const [soon, activatedList] = await Promise.all([getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }), getActivatedMatches()]);
   const live = soon.filter((m) => m.status === "live");
-  const active = soon.filter((m) => m.status === "scheduled" || m.status === "live");
+  const active = soon.filter((m) => (m.status === "scheduled" || m.status === "live") && delegatedHere(m));
   const open = active.filter((m) => m.staffing.missing.length > 0);
 
   // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po vikendu; neaktivirane su u Utakmicama
@@ -217,7 +217,7 @@ function GroupHeading({ groupKey, count }: { groupKey: string; count: number }) 
 /** Brojke za narednih DAYS_AHEAD dana u zaglavlju, pored "Nova utakmica" */
 async function OverviewStats() {
   const soon = await getAdminMatches({ when: "upcoming", days: DAYS_AHEAD });
-  const active = soon.filter((m) => m.status === "scheduled" || m.status === "live");
+  const active = soon.filter((m) => (m.status === "scheduled" || m.status === "live") && delegatedHere(m));
   const open = active.filter((m) => m.staffing.missing.length > 0).length;
   const waiting = active.reduce((n, m) => n + m.staffing.pending, 0);
   const full = active.filter((m) => m.staffing.missing.length === 0).length;
