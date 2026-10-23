@@ -1,0 +1,14 @@
+[
+  {
+    "club": "KK Lokomotiva",
+    "id": "1d06ba2c-c999-4e14-b256-f41a7c5bcd07",
+    "before": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-20/a2-jug/lokomotiva-mostar.jpg",
+    "after": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-23/lokomotiva-mostar.png"
+  },
+  {
+    "club": "ŽKK Konjic",
+    "id": "ff37a503-e6e8-4511-9582-6f7b1befabff",
+    "before": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-22/zkk-konjic-pdf.jpg",
+    "after": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-23/zkk-konjic.png"
+  }
+]
