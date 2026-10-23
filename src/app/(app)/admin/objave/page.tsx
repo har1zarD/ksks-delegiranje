@@ -20,7 +20,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default function SocialPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, tabela i klubovi za Facebook i Instagram. Prozirni PNG za tvoj dizajn ili gotova slika s pozadinom." />
+      <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, tabela i klubovi za Facebook i Instagram." />
       <Suspense fallback={<SocialBuilderSkeleton />}>
         <Studio searchParams={searchParams} />
       </Suspense>

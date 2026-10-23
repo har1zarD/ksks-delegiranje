@@ -12,15 +12,24 @@ export const SOCIAL_FORMATS = [
 
 export const KSKS_LOGO = "/brand/ksks-logo-512.png";
 
-/** Savez u zaglavlju slike; KSBIH lige (A1 žene, A2 jug) imaju i grb saveza kao vodeni žig na predlošcima s pozadinom */
+const KSBIH = { name: "KSBIH", lines: ["KOŠARKAŠKI SAVEZ", "BOSNE I HERCEGOVINE"], footer: "Košarkaški savez Bosne i Hercegovine", watermark: "/competitions/ksbih.png" } as const;
+
+/**
+ * Savez u zaglavlju slike, logo je prozirni PNG bez podloge. `light` je ista slika s bijelim natpisom za tamne teme.
+ * KSBIH lige imaju svoj logo (A1Ž, A2), a vodeni žig je uvijek osnovni grb saveza.
+ */
 export const SOCIAL_BRANDS = {
-  ksks: { logo: KSKS_LOGO, name: "KSKS", lines: ["KOŠARKAŠKI SAVEZ", "KANTONA SARAJEVO"], footer: "Košarkaški savez Kantona Sarajevo", watermark: false },
-  ksbih: { logo: "/competitions/ksbih.png", name: "KSBIH", lines: ["KOŠARKAŠKI SAVEZ", "BOSNE I HERCEGOVINE"], footer: "Košarkaški savez Bosne i Hercegovine", watermark: true },
+  ksks: { logo: KSKS_LOGO, light: KSKS_LOGO, name: "KSKS", lines: ["KOŠARKAŠKI SAVEZ", "KANTONA SARAJEVO"], footer: "Košarkaški savez Kantona Sarajevo", watermark: null },
+  ksbih: { ...KSBIH, logo: "/competitions/ksbih.png", light: "/competitions/ksbih-light.png" },
+  "ksbih-a1-zene": { ...KSBIH, logo: "/competitions/ksbih-a1-zene.png", light: "/competitions/ksbih-a1-zene-light.png" },
+  "ksbih-a2": { ...KSBIH, logo: "/competitions/ksbih-a2.png", light: "/competitions/ksbih-a2-light.png" },
 } as const;
 
-/** Savez čije je takmičenje: A2 jug i A1 žene su KSBIH lige, ostalo (i više takmičenja na slici) KSKS */
+/** Savez čije je takmičenje: A1 žene i A2 jug su KSBIH lige, ostalo (i više takmičenja na slici) KSKS */
 export function brandOf(competitionId: string): SocialBrand {
-  return competitionId === A2_JUG_ID || competitionId === A1_ZENE_ID ? "ksbih" : "ksks";
+  if (competitionId === A1_ZENE_ID) return "ksbih-a1-zene";
+  if (competitionId === A2_JUG_ID) return "ksbih-a2";
+  return "ksks";
 }
 
 const ARENA = "/social/arena-background-v1.png";
@@ -35,7 +44,6 @@ type Template = {
   id: string;
   name: string;
   description: string;
-  /** Podloga slike; prozirni predlošci je nemaju (PNG s providnom pozadinom, za vlastiti dizajn) */
   bg: string;
   /** Traka reda; "transparent" = bez trake, redovi razdvojeni tankom linijom */
   panel: string;
@@ -47,19 +55,9 @@ type Template = {
   overlay: string;
   headerInk: string;
   headerMuted: string;
-  transparent?: boolean;
-  /** Blaga sjena ispod teksta, da bijeli tekst ostane čitljiv na svijetlom dijelu tuđe pozadine */
-  shadow?: boolean;
 };
 
 export const SOCIAL_TEMPLATES = [
-  // Prozirni: samo sadržaj, pozadinu dodaješ u svom dizajnu
-  { id: "glass", name: "Tamno staklo", description: "Prozirno · tamne trake, zlatni detalji", bg: "transparent", panel: "rgba(9,11,17,0.62)", ink: "#ffffff", muted: "rgba(255,255,255,0.68)", accent: "#f2c14e", line: "rgba(255,255,255,0.14)", background: null, overlay: "transparent", headerInk: "#ffffff", headerMuted: "rgba(255,255,255,0.8)", transparent: true, shadow: true },
-  { id: "frost", name: "Svijetlo staklo", description: "Prozirno · bijele trake, tamni tekst", bg: "transparent", panel: "rgba(255,255,255,0.86)", ink: "#0f172a", muted: "#536074", accent: "#2457d6", line: "rgba(15,23,42,0.10)", background: null, overlay: "transparent", headerInk: "#ffffff", headerMuted: "rgba(255,255,255,0.86)", transparent: true, shadow: true },
-  { id: "white-type", name: "Bijeli tekst", description: "Prozirno · bez traka, tanke linije", bg: "transparent", panel: "transparent", ink: "#ffffff", muted: "rgba(255,255,255,0.74)", accent: "#ff9a3d", line: "rgba(255,255,255,0.30)", background: null, overlay: "transparent", headerInk: "#ffffff", headerMuted: "rgba(255,255,255,0.82)", transparent: true, shadow: true },
-  { id: "dark-type", name: "Tamni tekst", description: "Prozirno · za svijetle pozadine", bg: "transparent", panel: "transparent", ink: "#0f172a", muted: "#4b5567", accent: "#c2410c", line: "rgba(15,23,42,0.18)", background: null, overlay: "transparent", headerInk: "#0f172a", headerMuted: "#4b5567", transparent: true },
-  { id: "ember", name: "Žar", description: "Prozirno · crne trake, narandžasti akcent", bg: "transparent", panel: "rgba(0,0,0,0.70)", ink: "#ffffff", muted: "rgba(255,255,255,0.66)", accent: "#ff7a1a", line: "rgba(255,122,26,0.55)", background: null, overlay: "transparent", headerInk: "#ffffff", headerMuted: "rgba(255,255,255,0.82)", transparent: true, shadow: true },
-  // S pozadinom
   { id: "fire", name: "Vatra", description: "Crna dvorana, žar i narandžasti sjaj", bg: "#120a05", panel: "rgba(14,9,6,0.84)", ink: "#ffffff", muted: "#efd3bd", accent: "#ff7a1a", line: "#6b3b1c", background: FIRE, overlay: "rgba(8,4,2,0.18)", headerInk: "#ffffff", headerMuted: "#ffdcc2" },
   { id: "electric", name: "Električna plava", description: "Plavi reflektori, broadcast stil", bg: "#06122e", panel: "rgba(5,16,44,0.84)", ink: "#ffffff", muted: "#bfd5f6", accent: "#ff8a3d", line: "#2f4f86", background: ELECTRIC, overlay: "rgba(2,8,24,0.16)", headerInk: "#ffffff", headerMuted: "#d3e2fb" },
   { id: "crimson", name: "Crvena noć", description: "Crveni reflektori i izmaglica", bg: "#1a0508", panel: "rgba(28,6,10,0.84)", ink: "#ffffff", muted: "#efc7cc", accent: "#ffcf8a", line: "#6b2a33", background: CRIMSON, overlay: "rgba(10,2,4,0.16)", headerInk: "#ffffff", headerMuted: "#f6d9dc" },
@@ -239,7 +237,6 @@ const logoUrls = (content: SocialContent) =>
 
 /**
  * Slika za objavu (PNG). `posterFont` je uski sportski font za naslove, imena i brojeve; ostalo je font aplikacije.
- * Prozirni predlošci daju PNG bez pozadine, da ga staviš preko svog dizajna.
  */
 export async function renderSocialImage(content: SocialContent, options: SocialOptions, page: number, pages: number, posterFont: string) {
   const format = SOCIAL_FORMATS.find((f) => f.id === options.format)!;
@@ -250,10 +247,11 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   const poster = posterFont || body;
   const mono = getComputedStyle(document.body).getPropertyValue("--font-geist-mono").trim() || "monospace";
   const urls = options.showLogos ? [...new Set(logoUrls(content).filter((url): url is string => Boolean(url)))] : [];
-  const [loaded, brandLogo, background] = await Promise.all([
+  const [loaded, brandLogo, background, watermark] = await Promise.all([
     Promise.all(urls.map(async (url) => [url, await loadImage(url)] as const)),
-    loadImage(brand.logo),
+    loadImage(luminance(base.headerInk) > 0.5 ? brand.light : brand.logo),
     theme.background ? loadImage(theme.background) : Promise.resolve(null),
+    brand.watermark ? loadImage(brand.watermark) : Promise.resolve(null),
     document.fonts.load(`700 40px ${poster}`, "ČĆŠĐŽčćšđž0123456789"),
     document.fonts.load(`500 40px ${poster}`, "ČĆŠĐŽčćšđž0123456789"),
     document.fonts.load(`600 24px ${body}`, "ČĆŠĐŽčćšđž"),
@@ -295,7 +293,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     ctx!.restore();
   }
 
-  type TextStyle = { size: number; color: string; max: number; weight?: number; align?: CanvasTextAlign; face?: Face; spacing?: number; shadow?: boolean };
+  type TextStyle = { size: number; color: string; max: number; weight?: number; align?: CanvasTextAlign; face?: Face; spacing?: number };
 
   type Face = "poster" | "body" | "mono";
   function setFont(size: number, weight: number, face: Face, spacing: number) {
@@ -304,7 +302,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   }
 
   /** Tekst koji se smanji (do 70%) da stane u `max`; sjena samo na prozirnim predlošcima bez trake ili u zaglavlju */
-  function text(value: string, x: number, y: number, { size, color, max, weight = 600, align = "left", face = "body", spacing = 0, shadow = false }: TextStyle) {
+  function text(value: string, x: number, y: number, { size, color, max, weight = 600, align = "left", face = "body", spacing = 0 }: TextStyle) {
     let fitted = size;
     setFont(fitted, weight, face, spacing);
     while (ctx!.measureText(value).width > max && fitted > size * 0.7) {
@@ -312,11 +310,6 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       setFont(fitted, weight, face, spacing);
     }
     ctx!.save();
-    if (shadow && theme.shadow) {
-      ctx!.shadowColor = "rgba(0,0,0,0.45)";
-      ctx!.shadowBlur = Math.max(6, fitted * 0.35);
-      ctx!.shadowOffsetY = Math.max(1, fitted * 0.05);
-    }
     ctx!.fillStyle = color;
     ctx!.textAlign = align;
     ctx!.textBaseline = "middle";
@@ -335,7 +328,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   /** Ime ekipe u jednom ili dva reda, centrirano na `x` */
   function teamName(name: string, x: number, y: number, max: number, size: number, color = theme.ink, align: CanvasTextAlign = "center") {
     const value = name.toUpperCase();
-    const style = { size, color, max, weight: 600, align, face: "poster" as const, spacing: 0.01, shadow: !hasPanel };
+    const style = { size, color, max, weight: 600, align, face: "poster" as const, spacing: 0.01 };
     if (measure(value, size, 600, "poster", 0.01) <= max) return text(value, x, y, style);
     const words = value.trim().split(/\s+/);
     if (words.length < 2) return text(value, x, y, style);
@@ -366,13 +359,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const logo = url ? logos.get(url) : null;
     if (options.crestTiles) box(x, y, size, size, "#ffffff", size * 0.16);
     if (logo) {
-      ctx!.save();
-      if (!options.crestTiles && !hasPanel && theme.shadow) {
-        ctx!.shadowColor = "rgba(0,0,0,0.35)";
-        ctx!.shadowBlur = size * 0.08;
-      }
       contain(logo, x, y, size, options.crestTiles ? size * 0.08 : 0);
-      ctx!.restore();
       return;
     }
     const initials = name.trim().split(/\s+/).map((word) => word[0]).slice(0, 2).join("").toUpperCase();
@@ -402,17 +389,15 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
 
   // ── Podloga ─────────────────────────────────────────────
 
-  if (!theme.transparent) {
-    ctx.fillStyle = theme.bg;
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, w, h);
+  if (background) {
+    const scale = Math.max(w / background.naturalWidth, h / background.naturalHeight);
+    const bw = background.naturalWidth * scale;
+    const bh = background.naturalHeight * scale;
+    ctx.drawImage(background, (w - bw) / 2, (h - bh) / 2, bw, bh);
+    ctx.fillStyle = theme.overlay;
     ctx.fillRect(0, 0, w, h);
-    if (background) {
-      const scale = Math.max(w / background.naturalWidth, h / background.naturalHeight);
-      const bw = background.naturalWidth * scale;
-      const bh = background.naturalHeight * scale;
-      ctx.drawImage(background, (w - bw) / 2, (h - bh) / 2, bw, bh);
-      ctx.fillStyle = theme.overlay;
-      ctx.fillRect(0, 0, w, h);
-    }
   }
 
   // ── Zaglavlje: savez lijevo, naslov u sredini, podnaslov između dvije linije akcenta ─────
@@ -420,17 +405,19 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   const top = story ? 170 : wide ? 34 : 54;
   const brandSize = wide ? 70 : 84;
   let cursor = top;
+  let titleX = margin;
   if (options.showBrand) {
-    if (theme.transparent || !background) {
-      contain(brandLogo, margin, top, brandSize, 0, true);
-    } else {
-      box(margin, top, brandSize, brandSize, "#ffffff", 14);
-      contain(brandLogo, margin, top, brandSize, 6, options.brand === "ksbih");
-    }
-    const bx = margin + brandSize + 20;
+    // Logo bez podloge, visine kao blok saveza; širi logo lige (A1Ž, A2) pomjeri tekst udesno
+    const bounds = visibleBounds(brandLogo);
+    const scale = brandSize / Math.max(bounds.height, bounds.width / 2.2);
+    const logoWidth = bounds.width * scale;
+    const logoHeight = bounds.height * scale;
+    ctx.drawImage(brandLogo, bounds.x, bounds.y, bounds.width, bounds.height, margin, top + (brandSize - logoHeight) / 2, logoWidth, logoHeight);
+    const bx = margin + logoWidth + 20;
+    titleX = Math.max(470, bx + 16 + measure(brand.lines[1], 15, 600, "body", 0.08) + 40);
     box(bx, top + brandSize * 0.18, 3, brandSize * 0.64, theme.accent, 1.5);
-    text(brand.lines[0], bx + 16, top + brandSize * 0.38, { size: wide ? 15 : 17, color: theme.headerMuted, max: 360, weight: 600, spacing: 0.08, shadow: true });
-    text(brand.lines[1], bx + 16, top + brandSize * 0.64, { size: wide ? 15 : 17, color: theme.headerMuted, max: 360, weight: 600, spacing: 0.08, shadow: true });
+    text(brand.lines[0], bx + 16, top + brandSize * 0.38, { size: wide ? 15 : 17, color: theme.headerMuted, max: 360, weight: 600, spacing: 0.08 });
+    text(brand.lines[1], bx + 16, top + brandSize * 0.64, { size: wide ? 15 : 17, color: theme.headerMuted, max: 360, weight: 600, spacing: 0.08 });
     cursor = top + (wide ? 0 : brandSize + 22);
   }
 
@@ -438,21 +425,21 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   const subtitle = options.subtitle.trim().toUpperCase();
   if (wide) {
     // Široka: naslov desno od saveza, u istom redu
-    const tx = options.showBrand ? 470 : margin;
-    if (title) text(title, tx, top + (subtitle ? 26 : brandSize / 2), { size: 50, color: theme.headerInk, max: w - tx - margin, weight: 700, face: "poster", spacing: 0.01, shadow: true });
-    if (subtitle) text(subtitle, tx, top + 66, { size: 20, color: theme.headerMuted, max: w - tx - margin, weight: 600, spacing: 0.12, shadow: true });
+    const tx = titleX;
+    if (title) text(title, tx, top + (subtitle ? 26 : brandSize / 2), { size: 50, color: theme.headerInk, max: w - tx - margin, weight: 700, face: "poster", spacing: 0.01 });
+    if (subtitle) text(subtitle, tx, top + 66, { size: 20, color: theme.headerMuted, max: w - tx - margin, weight: 600, spacing: 0.12 });
     cursor = top + brandSize + 22;
   } else {
     const titleSize = story ? 112 : options.format === "square" ? 84 : 96;
     if (title) {
-      text(title, w / 2, cursor + titleSize * 0.55, { size: titleSize, color: theme.headerInk, max: w - margin * 2, weight: 700, align: "center", face: "poster", spacing: 0.01, shadow: true });
+      text(title, w / 2, cursor + titleSize * 0.55, { size: titleSize, color: theme.headerInk, max: w - margin * 2, weight: 700, align: "center", face: "poster", spacing: 0.01 });
       cursor += titleSize * 1.12;
     }
     if (subtitle) {
       const size = story ? 30 : 25;
       const width = Math.min(measure(subtitle, size, 600, "body", 0.14), w - margin * 2 - 180);
       const y = cursor + size * 0.6;
-      text(subtitle, w / 2, y, { size, color: theme.headerMuted, max: width, weight: 600, align: "center", spacing: 0.14, shadow: true });
+      text(subtitle, w / 2, y, { size, color: theme.headerMuted, max: width, weight: 600, align: "center", spacing: 0.14 });
       const gap = 22;
       const rule = Math.min(140, (w - margin * 2 - width) / 2 - gap);
       if (rule > 20) {
@@ -471,14 +458,14 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   const width = w - margin * 2;
 
   // Vodeni žig saveza (KSBIH) samo na predlošcima s pozadinom
-  if (brand.watermark && !theme.transparent) {
+  if (watermark) {
     const size = Math.min(width, available) * 0.9;
     ctx.save();
     ctx.globalAlpha = background ? 0.22 : 0.1;
-    contain(brandLogo, (w - size) / 2, contentTop + (available - size) / 2, size);
+    contain(watermark, (w - size) / 2, contentTop + (available - size) / 2, size);
     ctx.restore();
   }
-  const panelAlpha = brand.watermark && !theme.transparent ? 0.8 : 1;
+  const panelAlpha = watermark ? 0.8 : 1;
 
   // ── Raspored ─────────────────────────────────────────────
 
@@ -519,7 +506,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         const cardWidth = colWidth - inset * 2;
         const y = y0 + Math.floor(i / cols) * (slotHeight + gapY);
         const center = x + cardWidth / 2;
-        text(`${m.home}  –  ${m.away}`.toUpperCase(), center, y + labelHeight * 0.45, { size: Math.min(labelHeight * 0.5, 18), color: theme.headerMuted, max: cardWidth, weight: 600, align: "center", spacing: 0.2, shadow: true });
+        text(`${m.home}  –  ${m.away}`.toUpperCase(), center, y + labelHeight * 0.45, { size: Math.min(labelHeight * 0.5, 18), color: theme.headerMuted, max: cardWidth, weight: 600, align: "center", spacing: 0.2 });
         const cy = y + labelHeight;
         ctx.save();
         ctx.shadowColor = "rgba(0,0,0,0.32)";
@@ -560,7 +547,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const timeWidth = width * 0.17;
       for (const [label, list] of groups) {
         const postponedGroup = label === "ODGOĐENO";
-        text(label, margin, y + headerHeight * 0.5, { size: headerHeight * 0.46, color: postponedGroup ? postponedOn(lightPanel || theme.ink === "#0f172a") : theme.accent, max: width, weight: 700, face: postponedGroup ? "mono" : "poster", spacing: postponedGroup ? 0.08 : 0.04, shadow: true });
+        text(label, margin, y + headerHeight * 0.5, { size: headerHeight * 0.46, color: postponedGroup ? postponedOn(lightPanel || theme.ink === "#0f172a") : theme.accent, max: width, weight: 700, face: postponedGroup ? "mono" : "poster", spacing: postponedGroup ? 0.08 : 0.04 });
         line(margin, y + headerHeight - 2, margin + width, y + headerHeight - 2, theme.accent, 2);
         y += headerHeight;
         list.forEach((m, i) => {
@@ -568,8 +555,8 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
           rowSurface(margin, y + 4, width, rowHeight - 8, i === list.length - 1, panelAlpha, Math.min(10, rowHeight * 0.14));
           const pad = 18;
           const nameY = options.showHall && m.status !== "postponed" ? cy - rowHeight * 0.1 : cy;
-          if (m.status === "postponed") text("—", margin + pad, cy, { size: rowHeight * 0.36, color: theme.muted, max: timeWidth, weight: 700, face: "poster", shadow: !hasPanel });
-          else text(formatTime(m.startsAt), margin + pad, cy, { size: rowHeight * 0.4, color: theme.ink, max: timeWidth - pad, weight: 700, face: "poster", shadow: !hasPanel });
+          if (m.status === "postponed") text("—", margin + pad, cy, { size: rowHeight * 0.36, color: theme.muted, max: timeWidth, weight: 700, face: "poster" });
+          else text(formatTime(m.startsAt), margin + pad, cy, { size: rowHeight * 0.4, color: theme.ink, max: timeWidth - pad, weight: 700, face: "poster" });
           const size = options.showLogos ? rowHeight * 0.58 : 0;
           const left = margin + timeWidth;
           const right = margin + width - pad;
@@ -579,8 +566,8 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
           const nameSize = Math.min(rowHeight * 0.26, 32);
           teamName(m.home, left + size + (size ? 16 : 0), nameY, mid - left - size - 40, nameSize, theme.ink, "left");
           teamName(m.away, right - size - (size ? 16 : 0), nameY, right - mid - size - 40, nameSize, theme.ink, "right");
-          text("–", mid, nameY, { size: nameSize, color: theme.muted, max: 30, weight: 600, align: "center", face: "poster", shadow: !hasPanel });
-          if (options.showHall && m.status !== "postponed") text((m.hall ?? "Dvorana nije određena").toUpperCase(), mid, cy + rowHeight * 0.24, { size: Math.min(rowHeight * 0.14, 17), color: theme.muted, max: right - left - size * 2 - 40, weight: 600, align: "center", spacing: 0.1, shadow: !hasPanel });
+          text("–", mid, nameY, { size: nameSize, color: theme.muted, max: 30, weight: 600, align: "center", face: "poster" });
+          if (options.showHall && m.status !== "postponed") text((m.hall ?? "Dvorana nije određena").toUpperCase(), mid, cy + rowHeight * 0.24, { size: Math.min(rowHeight * 0.14, 17), color: theme.muted, max: right - left - size * 2 - 40, weight: 600, align: "center", spacing: 0.1 });
           y += rowHeight;
         });
         y += 18;
@@ -611,12 +598,12 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         crest(m.away, m.awayLogo, x + cardWidth - side, cy, crestSize);
         teamName(m.home, x + side, cy + nameGap, cardWidth * 0.34, 38);
         teamName(m.away, x + cardWidth - side, cy + nameGap, cardWidth * 0.34, 38);
-        if (showCompetition) text(competition, center, y + 44, { size: 20, color: theme.muted, max: cardWidth - 80, weight: 600, align: "center", spacing: 0.12, shadow: !hasPanel });
-        if (postponed) text("ODGOĐENO", center, cy - 14, { size: 44, color: postponedColor, max: cardWidth * 0.27, weight: 700, align: "center", face: "mono", spacing: 0.08, shadow: !hasPanel });
-        else text(shortDate(m.date), center, cy - 14, { size: 80, color: theme.ink, max: cardWidth * 0.27, weight: 700, align: "center", face: "poster", shadow: !hasPanel });
+        if (showCompetition) text(competition, center, y + 44, { size: 20, color: theme.muted, max: cardWidth - 80, weight: 600, align: "center", spacing: 0.12 });
+        if (postponed) text("ODGOĐENO", center, cy - 14, { size: 44, color: postponedColor, max: cardWidth * 0.27, weight: 700, align: "center", face: "mono", spacing: 0.08 });
+        else text(shortDate(m.date), center, cy - 14, { size: 80, color: theme.ink, max: cardWidth * 0.27, weight: 700, align: "center", face: "poster" });
         const [time, hall] = detail.split("  ·  ");
-        text(time, center, cy + 44, { size: 24, color: postponed ? theme.muted : theme.accent, max: cardWidth * 0.28, weight: 700, align: "center", spacing: 0.08, shadow: !hasPanel });
-        if (hall) text(hall, center, cy + 76, { size: 18, color: theme.muted, max: cardWidth * 0.28, weight: 600, align: "center", spacing: 0.08, shadow: !hasPanel });
+        text(time, center, cy + 44, { size: 24, color: postponed ? theme.muted : theme.accent, max: cardWidth * 0.28, weight: 700, align: "center", spacing: 0.08 });
+        if (hall) text(hall, center, cy + 76, { size: 18, color: theme.muted, max: cardWidth * 0.28, weight: 600, align: "center", spacing: 0.08 });
         return;
       }
 
@@ -639,10 +626,10 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const bigY = withLabel ? y + rowHeight * 0.5 : y + rowHeight * 0.43;
       const bigSize = Math.min(rowHeight * (withLabel ? 0.3 : 0.36), 64);
       const smallSize = Math.min(rowHeight * 0.13, 20);
-      if (withLabel) text(competition, center, y + rowHeight * 0.2, { size: smallSize * 0.9, color: theme.muted, max: middle, weight: 600, align: "center", spacing: 0.1, shadow: !hasPanel });
-      if (postponed) text("ODGOĐENO", center, bigY, { size: bigSize * 0.6, color: postponedColor, max: middle, weight: 700, align: "center", face: "mono", spacing: 0.08, shadow: !hasPanel });
-      else text(shortDate(m.date), center, bigY, { size: bigSize, color: theme.ink, max: middle, weight: 700, align: "center", face: "poster", shadow: !hasPanel });
-      text(detail, center, withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75, { size: smallSize, color: postponed ? theme.muted : theme.accent, max: middle + 20, weight: 600, align: "center", spacing: 0.06, shadow: !hasPanel });
+      if (withLabel) text(competition, center, y + rowHeight * 0.2, { size: smallSize * 0.9, color: theme.muted, max: middle, weight: 600, align: "center", spacing: 0.1 });
+      if (postponed) text("ODGOĐENO", center, bigY, { size: bigSize * 0.6, color: postponedColor, max: middle, weight: 700, align: "center", face: "mono", spacing: 0.08 });
+      else text(shortDate(m.date), center, bigY, { size: bigSize, color: theme.ink, max: middle, weight: 700, align: "center", face: "poster" });
+      text(detail, center, withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75, { size: smallSize, color: postponed ? theme.muted : theme.accent, max: middle + 20, weight: 600, align: "center", spacing: 0.06 });
     });
   }
 
@@ -710,14 +697,14 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       if (board) { if (index < rows.length - 1) line(margin, y + rowHeight, margin + width, y + rowHeight, theme.line, 1); }
       else rowSurface(margin, y, width, rowHeight, index === rows.length - 1, panelAlpha * (hasPanel && index % 2 ? 0.86 : 1), Math.min(10, rowHeight * 0.16));
       const size = Math.min(rowHeight * 0.44, 38);
-      text(`${content.firstRank + index}.`, margin + rankWidth / 2, cy, { size, color: theme.ink, max: rankWidth - 6, weight: 600, align: "center", face: "poster", shadow: !hasPanel });
+      text(`${content.firstRank + index}.`, margin + rankWidth / 2, cy, { size, color: theme.ink, max: rankWidth - 6, weight: 600, align: "center", face: "poster" });
       if (logo) crest(r.name, r.logoUrl, margin + rankWidth + 12 + logo / 2, cy, logo);
       teamName(r.name, nameX, cy, nameMax, size, theme.ink, "left");
       let x = margin + width - numbersWidth;
       numbers.forEach((column, i) => {
         const cw = column.width * width;
         const last = i === numbers.length - 1;
-        text(column.value(r), x + cw / 2, cy, { size: last ? size * 1.05 : size * 0.95, color: last ? theme.accent : theme.ink, max: cw - 6, weight: last ? 700 : 500, align: "center", face: "poster", shadow: !hasPanel });
+        text(column.value(r), x + cw / 2, cy, { size: last ? size * 1.05 : size * 0.95, color: last ? theme.accent : theme.ink, max: cw - 6, weight: last ? 700 : 500, align: "center", face: "poster" });
         x += cw;
       });
     });
@@ -787,9 +774,9 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
 
   if (options.footer.trim()) {
     const footer = options.footer.trim().toUpperCase();
-    text(footer, w / 2, footerY, { size: wide ? 14 : 17, color: theme.headerMuted, max: w - margin * 2 - 160, weight: 600, align: "center", spacing: 0.16, shadow: true });
+    text(footer, w / 2, footerY, { size: wide ? 14 : 17, color: theme.headerMuted, max: w - margin * 2 - 160, weight: 600, align: "center", spacing: 0.16 });
   }
-  if (pages > 1) text(`${page + 1} / ${pages}`, w - margin, footerY, { size: wide ? 15 : 18, color: theme.headerMuted, max: 90, weight: 700, align: "right", shadow: true });
+  if (pages > 1) text(`${page + 1} / ${pages}`, w - margin, footerY, { size: wide ? 15 : 18, color: theme.headerMuted, max: 90, weight: 700, align: "right" });
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Slika nije mogla biti sačuvana.")), "image/png");

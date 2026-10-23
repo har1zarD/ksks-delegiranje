@@ -15,7 +15,7 @@ import { SocialPreviewSkeleton } from "./skeleton";
 import { SOCIAL_KINDS } from "./kinds";
 
 const DEFAULT_DESIGN: SocialDesignOptions = {
-  format: "portrait", template: "glass", accent: "",
+  format: "portrait", template: "fire", accent: "",
   showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true,
 };
 
@@ -323,9 +323,6 @@ function ClubsBuilder({ tables, competition: initialCompetition, design, onDesig
 
 // ───────────────────────── Zajedničko ─────────────────────────
 
-const CHECKER_LIGHT: CSSProperties = { backgroundColor: "#f4f4f5", backgroundImage: "repeating-conic-gradient(#e4e4e7 0% 25%, transparent 0% 50%)", backgroundSize: "16px 16px" };
-const CHECKER_DARK: CSSProperties = { backgroundColor: "#27272a", backgroundImage: "repeating-conic-gradient(#3f3f46 0% 25%, transparent 0% 50%)", backgroundSize: "16px 16px" };
-
 /** Raspored elemenata na slici (npr. trake, kartice, lista) */
 function LayoutPicker({ kind, value, onChange }: { kind: SocialKind; value: string; onChange: (layout: string) => void }) {
   return (
@@ -357,22 +354,16 @@ function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
   return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1">{[0, 1, 2].map((n) => <span key={n} className="flex h-3 items-center justify-between rounded-[3px] bg-fg-faint/20 px-1"><span className={dot} /><span className={cx(bar, "h-1 w-1/3")} /><span className={dot} /></span>)}</span>;
 }
 
-/** Predložak (prozirni pa s pozadinom), boja akcenta i format */
+/** Tema, boja akcenta i format */
 function SocialDesign({ design, onDesign: change, brand }: { design: SocialDesignOptions; onDesign: DesignChange; brand: SocialTextOptions["brand"] }) {
-  const groups = [
-    { title: "Prozirna pozadina", hint: "PNG bez pozadine: stavi ga preko svog dizajna", list: SOCIAL_TEMPLATES.filter((t) => "transparent" in t) },
-    { title: "S pozadinom", hint: "Gotova slika za objavu", list: SOCIAL_TEMPLATES.filter((t) => !("transparent" in t)) },
-  ];
   return (
     <>
-      {groups.map((group) => (
-        <div key={group.title} className="flex flex-col gap-2.5">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3"><h3 className="text-[14px] font-semibold">{group.title}</h3><span className="text-[12px] text-fg-muted">{group.hint}</span></div>
-          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4" role="group" aria-label={group.title}>
-            {group.list.map((template) => <TemplateThumb key={template.id} id={template.id} brand={brand} accent={design.accent} active={design.template === template.id} onPick={() => change("template", template.id)} />)}
-          </div>
+      <div className="flex flex-col gap-2.5">
+        <h3 className="text-[14px] font-semibold">Tema</h3>
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4" role="group" aria-label="Tema">
+          {SOCIAL_TEMPLATES.map((template) => <TemplateThumb key={template.id} id={template.id} brand={brand} accent={design.accent} active={design.template === template.id} onPick={() => change("template", template.id)} />)}
         </div>
-      ))}
+      </div>
       <div className="flex flex-col gap-2.5">
         <h3 className="text-[14px] font-semibold">Boja akcenta</h3>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Boja akcenta">
@@ -399,9 +390,7 @@ function SocialDesign({ design, onDesign: change, brand }: { design: SocialDesig
 function TemplateThumb({ id, brand, accent: accentOverride, active, onPick }: { id: SocialOptions["template"]; brand: SocialTextOptions["brand"]; accent: string; active: boolean; onPick: () => void }) {
   const t = templateOf(id);
   const accent = accentOverride || t.accent;
-  const surface: CSSProperties = t.transparent
-    ? (t.headerInk === "#ffffff" ? CHECKER_DARK : CHECKER_LIGHT)
-    : { backgroundColor: t.bg, backgroundImage: t.background ? `linear-gradient(${t.overlay}, ${t.overlay}), url("${t.background}")` : undefined, backgroundSize: "cover", backgroundPosition: "center" };
+  const surface: CSSProperties = { backgroundColor: t.bg, backgroundImage: t.background ? `linear-gradient(${t.overlay}, ${t.overlay}), url("${t.background}")` : undefined, backgroundSize: "cover", backgroundPosition: "center" };
   const panel = t.panel !== "transparent";
   return (
     <button type="button" aria-pressed={active} title={t.description} onClick={onPick} className={cx("min-w-0 rounded-lg border p-1.5 text-left transition-colors", active ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-hover")}>
@@ -451,13 +440,6 @@ function SocialText({ texts, onText, design, onDesign, schedule, placeholder }: 
   );
 }
 
-type Backdrop = "checker" | "dark" | "light";
-const BACKDROPS: { id: Backdrop; label: string; style: CSSProperties }[] = [
-  { id: "checker", label: "Prozirno", style: CHECKER_LIGHT },
-  { id: "dark", label: "Tamno", style: { backgroundColor: "#111114" } },
-  { id: "light", label: "Svijetlo", style: { backgroundColor: "#f1f1f3" } },
-];
-
 /** Pregled i preuzimanje; `stale` provjeri prije preuzimanja da neka utakmica nije u međuvremenu počela */
 function SocialPreview({ kind, pages, options, font, page, onPage: setPage, empty, stale, onStale }: {
   kind: SocialKind;
@@ -472,15 +454,12 @@ function SocialPreview({ kind, pages, options, font, page, onPage: setPage, empt
 }) {
   const [preview, setPreview] = useState<{ key: string; url: string; missingLogos: number } | null>(null);
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
-  const transparent = Boolean(templateOf(options.template).transparent);
-  const [backdrop, setBackdrop] = useState<Backdrop>("checker");
   const format = SOCIAL_FORMATS.find((f) => f.id === options.format)!;
   const currentPage = Math.min(page, Math.max(0, pages.length - 1));
   const content = pages[currentPage];
   const renderKey = JSON.stringify([content, options, currentPage, pages.length]);
   const ready = Boolean(content) && preview?.key === renderKey;
   const error = failure?.key === renderKey ? failure.message : null;
-  const backdropStyle = transparent ? BACKDROPS.find((b) => b.id === backdrop)!.style : undefined;
 
   useEffect(() => {
     if (!content) return;
@@ -519,24 +498,16 @@ function SocialPreview({ kind, pages, options, font, page, onPage: setPage, empt
     <section aria-label="Pregled slike" className={cx(CARD, "flex min-w-0 flex-col gap-4 p-4 lg:sticky lg:top-6")}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[18px] font-semibold tracking-tight">Pregled</h2>
-        <span className="text-[12px] text-fg-faint">PNG{transparent ? " · prozirno" : ""} · {format.width} × {format.height}</span>
+        <span className="text-[12px] text-fg-faint">PNG · {format.width} × {format.height}</span>
       </div>
-      <div className="grid min-h-52 place-items-center overflow-hidden rounded-lg border border-line bg-panel-2 p-3" style={backdropStyle} aria-busy={Boolean(content) && !ready && !error}>
+      <div className="grid min-h-52 place-items-center overflow-hidden rounded-lg border border-line bg-panel-2 p-3" aria-busy={Boolean(content) && !ready && !error}>
         {!content ? <div className="px-5 py-16 text-center text-fg-muted"><Images className="mx-auto mb-3 size-8" aria-hidden="true" /><p className="text-[14px]">{empty}</p></div>
           : error ? <p role="alert" className="p-6 text-[14px] text-crest">{error}</p>
           : ready ? (
             // eslint-disable-next-line @next/next/no-img-element -- Lokalni PNG blob je tačno slika koja se preuzima.
-            <img src={preview.url} alt={describe(content, options)} width={format.width} height={format.height} className={cx("block h-auto max-h-[66vh] w-auto max-w-full", !transparent && "shadow-panel")} />
+            <img src={preview.url} alt={describe(content, options)} width={format.width} height={format.height} className="block h-auto max-h-[66vh] w-auto max-w-full shadow-panel" />
           ) : <SocialPreviewSkeleton width={format.width} height={format.height} rows={Math.min(contentSize(content), 12)} />}
       </div>
-      {transparent && (
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[12px] text-fg-muted">Pregled na podlozi</span>
-          <div className="flex gap-0.5 rounded-md bg-track p-[3px]" role="group" aria-label="Podloga pregleda">
-            {BACKDROPS.map((b) => <button key={b.id} type="button" aria-pressed={backdrop === b.id} onClick={() => setBackdrop(b.id)} className={cx("rounded px-2.5 py-1 text-[12px] font-semibold", backdrop === b.id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:text-fg")}>{b.label}</button>)}
-          </div>
-        </div>
-      )}
       {pages.length > 1 && <div className="flex items-center justify-between gap-2">
         <Button variant="secondary" aria-label="Prethodna slika" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} className="px-3"><ChevronLeft className="size-4" /></Button>
         <label className="flex items-center gap-2 text-[13px]">Slika <select aria-label="Broj slike" className={cx(inputClass, "w-auto!")} value={currentPage} onChange={(event) => setPage(Number(event.target.value))}>{pages.map((_, n) => <option key={n} value={n}>{n + 1} / {pages.length}</option>)}</select></label>
