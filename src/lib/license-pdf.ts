@@ -57,12 +57,14 @@ async function fetchBytes(url: string) {
 // Slike se smanjuju prije ugradnje: original (fotografija i do 5 MB) bi napuhao PDF na desetine MB.
 // 4 px po pt ≈ 290 dpi, dovoljno za štampu. sharp čita i WebP/SVG, a rotate() poštuje EXIF orijentaciju kao preglednik.
 const PX_PER_PT = 4;
+// Neke fotografije (npr. s mobitela) imaju sitne greške u JPEG-u koje preglednik zanemari; sharp ih inače odbije
+const DECODE = { failOn: "none" } as const;
 
 /** Fotografija za okvir: JPEG koji (bez izobličenja) pokriva cijeli okvir, višak odsijeca drawCover */
 async function embedPhoto(doc: PDFDocument, bytes: Uint8Array | null) {
   if (!bytes) return null;
   try {
-    const jpg = await sharp(bytes)
+    const jpg = await sharp(bytes, DECODE)
       .rotate()
       .resize({ width: PHOTO.w * PX_PER_PT, height: PHOTO.h * PX_PER_PT, fit: "outside", withoutEnlargement: true })
       .flatten({ background: "#ffffff" })
@@ -79,7 +81,7 @@ async function embedLogo(doc: PDFDocument, bytes: Uint8Array | null) {
   if (!bytes) return null;
   try {
     const size = 36 * PX_PER_PT;
-    const png = await sharp(bytes).resize({ width: size, height: size, fit: "inside", withoutEnlargement: true }).png().toBuffer();
+    const png = await sharp(bytes, DECODE).resize({ width: size, height: size, fit: "inside", withoutEnlargement: true }).png().toBuffer();
     return await doc.embedPng(png);
   } catch {
     return null;
