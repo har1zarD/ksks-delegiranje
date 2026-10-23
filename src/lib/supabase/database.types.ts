@@ -536,14 +536,14 @@ isOneToOne: false
                   ]
                 },"license_folders": {
                   Row: {
-                    "club_id": string,"competition_id": string,"created_at": string
+                    "club_id": string,"competition_id": string,"created_at": string,"name": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "club_id": string,"competition_id": string,"created_at"?: string
+                    "club_id": string,"competition_id": string,"created_at"?: string,"name"?: string | null
                   }
                   Update: {
-                    "club_id"?: string,"competition_id"?: string,"created_at"?: string
+                    "club_id"?: string,"competition_id"?: string,"created_at"?: string,"name"?: string | null
                   }
                   Relationships: [
                     {

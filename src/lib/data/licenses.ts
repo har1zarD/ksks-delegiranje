@@ -32,7 +32,7 @@ async function folderRows() {
   cacheTag(TAG.licenses, TAG.clubs, TAG.competitions, TAG.teams);
   const db = createAdminClient();
   const [saved, teams] = await Promise.all([
-    db.from("license_folders").select(`competition_id, club_id, ${COMPETITION}, ${CLUB}`).order("created_at"),
+    db.from("license_folders").select(`competition_id, club_id, name, ${COMPETITION}, ${CLUB}`).order("created_at"),
     db
       .from("teams")
       .select(`competition_id, club_id, ${TEAM_COMPETITION}, ${TEAM_CLUB}`)
@@ -45,7 +45,7 @@ async function folderRows() {
     const key = `${t.competition_id}/${t.club_id}`;
     if (!isYouth(t.competition.category) || keys.has(key)) continue;
     keys.add(key);
-    folders.push({ competition_id: t.competition_id, club_id: t.club_id, competition: t.competition, club: t.club });
+    folders.push({ competition_id: t.competition_id, club_id: t.club_id, name: null, competition: t.competition, club: t.club });
   }
   return folders;
 }
@@ -70,7 +70,8 @@ function competitionOf(r: FolderRow) {
 }
 
 function clubOf(r: FolderRow) {
-  return { id: r.club.id, name: r.club.name, shortName: r.club.short_name, logoUrl: r.club.logo_url };
+  // Folder može imati svoje ime (ekipa nastupa pod drugim imenom u tom takmičenju)
+  return { id: r.club.id, name: r.name ?? r.club.name, shortName: r.name ? null : r.club.short_name, logoUrl: r.club.logo_url };
 }
 
 /** Folderi: takmičenja koja imaju bar jedan folder kluba, s brojem klubova i licenci; omladinska odvojeno (jedan folder) */
