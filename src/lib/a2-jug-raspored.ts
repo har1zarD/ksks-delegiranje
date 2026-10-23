@@ -5,24 +5,24 @@
 export const A2_JUG_ID = "d74bc0b4-99f1-4313-8c15-463f76d06764";
 
 /** Takmičarski brojevi iz PDF-a → naziv ekipe u takmičenju */
-const TEAMS = ["Vukovi", "Never Stop", "Lokomotiva", "Point", "Hrasnica", "Čelik", "Realway", "Mladost", "Ilidža", "Star Fojnica"];
+const TEAMS = ["KK Vukovi", "KK Never Stop", "KK Lokomotiva", "KK Point - Richmond Park", "KK Hrasnica", "KK Čelik", "KK Realway", "KK Mladost", "KK Ilidža", "KK Star Fojnica"];
 
 /** Dvorana domaćina iz nominacije 1. kola */
 const HOME_HALLS: Record<string, string> = {
-  Vukovi: "SD Arena",
-  "Never Stop": "SD Donji Vakuf",
-  Lokomotiva: "USRC Midhad Hujdur Hujka",
-  Point: "KSC Sabit Hadžić",
-  Hrasnica: "SD Hrasnica",
+  "KK Vukovi": "SD Arena",
+  "KK Never Stop": "SD Donji Vakuf",
+  "KK Lokomotiva": "USRC Midhad Hujdur Hujka",
+  "KK Point - Richmond Park": "KSC Sabit Hadžić",
+  "KK Hrasnica": "SD Hrasnica",
 };
 
 /** Termini 1. kola iz nominacije (po domaćinu) */
 const ROUND_ONE: Record<string, { date: string; time: string }> = {
-  Vukovi: { date: "2026-10-24", time: "17:00" },
-  "Never Stop": { date: "2026-10-25", time: "20:30" },
-  Lokomotiva: { date: "2026-10-25", time: "13:00" },
-  Point: { date: "2026-10-25", time: "14:00" },
-  Hrasnica: { date: "2026-10-28", time: "16:30" },
+  "KK Vukovi": { date: "2026-10-24", time: "17:00" },
+  "KK Never Stop": { date: "2026-10-25", time: "20:30" },
+  "KK Lokomotiva": { date: "2026-10-25", time: "13:00" },
+  "KK Point - Richmond Park": { date: "2026-10-25", time: "14:00" },
+  "KK Hrasnica": { date: "2026-10-28", time: "16:30" },
 };
 
 /** [datum kola, parovi domaćin–gost po takmičarskim brojevima] */

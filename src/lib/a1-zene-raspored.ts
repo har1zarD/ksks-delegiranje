@@ -2,7 +2,7 @@ import type { Fixture } from "./a2-jug-raspored";
 
 export const A1_ZENE_ID = "443667aa-44cf-4c3c-9934-5b3d426c8de4";
 
-const TEAMS = ["StarTz", "Konjic", "Brčko Distrikt", "Čelik", "Bugojno", "Zenica", "Faze", "Play Off", "RMU Banovići", "G-Stars"];
+const TEAMS = ["ŽKK StarTz", "ŽKK Konjic", "ŽKK Brčko Distrikt", "ŽKK Čelik", "ŽKK Bugojno", "ŽKK Zenica", "ŽKK Faze", "ŽKK Play Off", "ŽKK RMU Banovići", "ŽKK G-Stars"];
 
 const ROUNDS: [string, [number, number][]][] = [
   ["2026-10-24", [[1, 10], [2, 9], [3, 8], [4, 7], [5, 6]]],
