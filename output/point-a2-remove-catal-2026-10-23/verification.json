@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-10-23T14:25:58.190Z",
+  "club": "KK Point",
+  "competition": "A2 liga jug KSBiH",
+  "deleted": "Bakir Čatal (player, sort 2)",
+  "photo_removed_from_storage": true,
+  "backup": [
+    "license-deleted.json",
+    "photo-backup.jpg"
+  ],
+  "remaining": {
+    "players": 15,
+    "officials": 3
+  }
+}

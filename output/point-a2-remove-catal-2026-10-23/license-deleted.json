@@ -1,0 +1,17 @@
+{
+  "id": "a68c90c0-ee62-4631-9abd-fefb0170787b",
+  "competition_id": "d74bc0b4-99f1-4313-8c15-463f76d06764",
+  "club_id": "436f8af2-7691-4a1b-8666-71057277d861",
+  "kind": "player",
+  "role": null,
+  "last_name": "Čatal",
+  "first_name": "Bakir",
+  "birth_date": "2008-01-12",
+  "birth_place": "Tuzla",
+  "height_cm": 188,
+  "position": "SG",
+  "license_no": "128",
+  "photo_path": "436f8af2-7691-4a1b-8666-71057277d861/point-a2-2026-27-fe87fd12-4621-463b-b907-e713c521282d.jpg",
+  "sort": 2,
+  "created_at": "2026-10-22T14:30:55.107519+00:00"
+}
