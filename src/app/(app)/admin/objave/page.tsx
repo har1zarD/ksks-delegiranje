@@ -6,7 +6,8 @@ import { getSocialTables } from "@/lib/data/results";
 import { PageHeader } from "@/components/ui";
 import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
-import { SOCIAL_KINDS, SocialStudio } from "./builder";
+import { SocialStudio } from "./builder";
+import { SOCIAL_KINDS } from "./kinds";
 import { SocialBuilderSkeleton } from "./skeleton";
 
 export const metadata = { title: "Slike za objavu — KSKS" };

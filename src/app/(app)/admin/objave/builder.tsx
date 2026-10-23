@@ -12,17 +12,14 @@ import {
   type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions,
 } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
+import { SOCIAL_KINDS } from "./kinds";
 
 const DEFAULT_DESIGN: SocialDesignOptions = {
   format: "portrait", template: "glass", accent: "",
   showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true,
 };
 
-export const SOCIAL_KINDS = [
-  { id: "schedule", param: "raspored", label: "Raspored", icon: CalendarDays },
-  { id: "standings", param: "tabela", label: "Tabela", icon: Trophy },
-  { id: "clubs", param: "klubovi", label: "Klubovi", icon: Shield },
-] as const;
+const KIND_ICONS = { schedule: CalendarDays, standings: Trophy, clubs: Shield };
 
 type DesignChange = <K extends keyof SocialDesignOptions>(key: K, value: SocialDesignOptions[K]) => void;
 type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: string };
@@ -56,11 +53,11 @@ export function SocialStudio({ matches, today, now, competition, kind: initialKi
   return (
     <div className="flex flex-col gap-6">
       <div role="tablist" aria-label="Vrsta slike" className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:w-auto sm:self-start">
-        {SOCIAL_KINDS.map(({ id, label, icon: Icon }) => (
+        {SOCIAL_KINDS.map(({ id, label }) => { const Icon = KIND_ICONS[id]; return (
           <button key={id} type="button" role="tab" aria-selected={kind === id} onClick={() => pick(id)} className={cx("flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5 text-[14px] font-semibold transition-colors sm:flex-none sm:py-1.5", kind === id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg")}>
             <Icon className="size-4" aria-hidden="true" />{label}
           </button>
-        ))}
+        ); })}
       </div>
       <div role="tabpanel" hidden={kind !== "schedule"}><ScheduleBuilder {...shared} matches={matches} today={today} now={now} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
