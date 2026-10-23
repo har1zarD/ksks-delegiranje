@@ -5,7 +5,7 @@ import Link from "next/link";
 import { crewDefaultsOf, crewSummary } from "@/lib/crew";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronDown, ChevronLeft, Trophy, CalendarDays, Images } from "lucide-react";
+import { ChevronDown, ChevronLeft, Trophy, CalendarDays } from "lucide-react";
 import { getCompetitionAdmin } from "@/lib/data/results";
 import { Bone, ButtonSkeleton, Skeleton, StandingsSkeleton, Text, times } from "@/components/skeleton";
 import { DateField, TimeField } from "@/components/date-picker";
@@ -74,9 +74,6 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
           </ButtonLink>
           <ButtonLink href={`/admin/utakmice?takmicenje=${c.id}`} variant="secondary">
             Utakmice
-          </ButtonLink>
-          <ButtonLink href={`/admin/utakmice/objave?takmicenje=${c.id}`} variant="secondary">
-            <Images className="size-4" aria-hidden="true" /> Slike za objavu
           </ButtonLink>
         </div>
       </header>

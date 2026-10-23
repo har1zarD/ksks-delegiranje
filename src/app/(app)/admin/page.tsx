@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet, Images } from "lucide-react";
+import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
 import { getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayMonth, formatGroupHeading, formatTime, positionName, weekendKey } from "@/lib/format";
@@ -31,7 +31,6 @@ export default function AdminHome() {
         <Suspense fallback={<OverviewStatsSkeleton />}>
           <OverviewStats />
         </Suspense>
-        <ButtonLink href="/admin/utakmice/objave" variant="secondary" className="h-8! gap-1! rounded-lg px-2.5! text-[12px]! sm:h-8!"><Images className="size-3.5" aria-hidden="true" />Slike za objavu</ButtonLink>
         <ButtonLink href="/admin/utakmice/nova" className="h-8! gap-1! rounded-lg px-2.5! text-[12px]! sm:h-8!"><Plus className="size-3.5" aria-hidden="true" />Nova utakmica</ButtonLink>
       </PageIntro>
       <Suspense fallback={<OverviewSkeleton />}>

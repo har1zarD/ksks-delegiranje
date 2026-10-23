@@ -21,6 +21,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/rezultati", label: "Rezultati", icon: "results", primary: true },
     { href: "/fiba", label: "FIBA uživo", icon: "live" },
     { href: "/admin/naknade", label: "Naknade", icon: "fees" },
+    { href: "/admin/objave", label: "Slike za objavu", icon: "social" },
     { href: "/admin/statistika", label: "Statistika", icon: "stats" },
     { href: "/admin/kotizacije", label: "Kotizacije", icon: "registrations" },
     // Rjeđe korišteno: na dnu

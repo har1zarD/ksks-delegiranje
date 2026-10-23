@@ -24,12 +24,13 @@ import {
   Shield,
   IdCard,
   Radio,
+  Images,
 } from "lucide-react";
 import { Bone, Text } from "@/components/skeleton";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { cx, GUTTER } from "@/components/ui";
 
-export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences" | "stats" | "clubs" | "licenses" | "live";
+export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences" | "stats" | "clubs" | "licenses" | "live" | "social";
 
 /** `primary` = ima mjesto u donjoj traci na mobitelu; ostale idu pod "Više" */
 export type NavItem = { href: string; label: string; icon: NavIcon; primary?: boolean };
@@ -48,6 +49,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   clubs: Shield,
   licenses: IdCard,
   live: Radio,
+  social: Images,
 };
 
 /** Najduži link koji odgovara putu je aktivan (/admin ne smije biti aktivan na /admin/utakmice) */

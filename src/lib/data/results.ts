@@ -180,3 +180,35 @@ export async function getCompetitionAdmin(id: string) {
   await requireRole("admin");
   return competitionAdminData(id);
 }
+
+// ───────────────────────── Slike za objavu ─────────────────────────
+
+/** Tabela i ekipe svakog takmičenja tekuće sezone (i seniori), za slike tabele i klubova */
+async function socialTablesData() {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.competitions, TAG.teams, TAG.clubs, TAG.matches);
+  const db = createAdminClient();
+  const competitions = rows(await db.from("competitions").select(COMPETITION_LIST_SELECT).eq("season.is_current", true).order("sort").order("name"));
+  return Promise.all(
+    competitions.map(async (competition) => {
+      const [teams, matches] = await Promise.all([
+        db.from("teams").select("id, name, club:clubs!teams_club_id_fkey ( logo_url )").eq("competition_id", competition.id),
+        db.from("matches").select(STANDING_MATCH_SELECT).eq("competition_id", competition.id),
+      ]);
+      const standings = await loadStandings(db, competition, rows(teams), rows(matches));
+      return {
+        id: competition.id,
+        name: competition.short_name ?? competition.name,
+        standings: standings.map((s) => ({ teamId: s.teamId, name: s.name, logoUrl: s.logoUrl, played: s.played, won: s.won, lost: s.lost, diff: s.diff, points: s.points })),
+      };
+    }),
+  );
+}
+
+export async function getSocialTables() {
+  await requireRole("admin");
+  return (await socialTablesData()).filter((competition) => competition.standings.length >= 2);
+}
+
+export type SocialTable = Awaited<ReturnType<typeof getSocialTables>>[number];

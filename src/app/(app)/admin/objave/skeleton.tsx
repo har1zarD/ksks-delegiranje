@@ -29,7 +29,9 @@ export function SocialPreviewSkeleton({ width = 1080, height = 1350, rows = 7 }:
 
 export function SocialBuilderSkeleton() {
   return (
-    <Skeleton className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,440px)] lg:gap-8">
+    <Skeleton className="flex flex-col gap-6">
+      <div className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:w-72">{times(3, (i) => <Bone key={i} className="h-9 flex-1 rounded-md sm:h-7" />)}</div>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,440px)] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
         <StepSkeleton number={1} title="Izaberi utakmice">
           <div className="grid gap-3 sm:grid-cols-2">{["Takmičenje", "Kolo", "Od datuma", "Do datuma"].map((label) => <FieldSkeleton key={label} label={label} />)}</div>
@@ -41,8 +43,8 @@ export function SocialBuilderSkeleton() {
           </div>
           <Text className="text-[12px]" w="w-72" />
         </StepSkeleton>
-        <StepSkeleton number={2} title="Predložak i format">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{times(8, (i) => <div key={i} className="rounded-lg border border-line p-2"><div className="mb-2 flex aspect-[4/5] flex-col gap-2 rounded-md bg-panel-2 p-3"><Bone className="size-5" /><Bone className="h-3 w-3/4" /><Bone className="flex-1" /><Bone className="flex-1" /></div><Text className="text-[12px]" w="w-20" /></div>)}</div>
+        <StepSkeleton number={2} title="Izgled">
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">{times(8, (i) => <div key={i} className="rounded-lg border border-line p-2"><div className="mb-2 flex aspect-[4/5] flex-col gap-2 rounded-md bg-panel-2 p-3"><Bone className="size-5" /><Bone className="h-3 w-3/4" /><Bone className="flex-1" /><Bone className="flex-1" /></div><Text className="text-[12px]" w="w-20" /></div>)}</div>
           <div className="grid grid-cols-2 gap-2">{times(4, (i) => <div key={i} className="rounded-lg border border-line p-3"><Text className="text-[13px]" w="w-24" /><Text className="mt-1 text-[11px]" w="w-20" /><Text className="text-[11px]" w="w-24" /></div>)}</div>
           <FieldSkeleton label="Utakmica po slici" hint />
         </StepSkeleton>
@@ -53,11 +55,11 @@ export function SocialBuilderSkeleton() {
         </StepSkeleton>
       </div>
       <div className={cx(CARD, "flex min-w-0 flex-col gap-4 p-4 lg:sticky lg:top-6")}>
-        <div className="flex items-center justify-between gap-3"><h2 className="text-[18px] font-semibold tracking-tight">Pregled objave</h2><Text className="text-[12px]" w="w-24" /></div>
+        <div className="flex items-center justify-between gap-3"><h2 className="text-[18px] font-semibold tracking-tight">Pregled</h2><Text className="text-[12px]" w="w-24" /></div>
         <div className="grid min-h-52 place-items-center overflow-hidden rounded-lg border border-line bg-panel-2 p-2"><SocialPreviewSkeleton /></div>
         <div className="flex items-center justify-between"><ButtonSkeleton className="w-10" /><Text className="text-[13px]" w="w-24" /><ButtonSkeleton className="w-10" /></div>
         <ButtonSkeleton className="w-full" />
-        <Text className="mx-auto text-[12px]" w="w-64" />
+      </div>
       </div>
     </Skeleton>
   );

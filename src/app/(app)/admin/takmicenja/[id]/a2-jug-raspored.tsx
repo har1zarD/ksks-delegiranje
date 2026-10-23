@@ -4,7 +4,7 @@ import { A2_JUG_FIXTURES, A2_JUG_ID, type Fixture } from "@/lib/a2-jug-raspored"
 import { getCompetitionMatches, getHalls } from "@/lib/data/admin";
 import { formatDate, formatTime, formatWeekday, isoToSarajevo, matchNo } from "@/lib/format";
 import { SectionTitle } from "@/components/ui";
-import { DraftsProvider, FixtureForm, type Draft } from "./a2-jug-nacrti";
+import { FixtureForm } from "./a2-jug-nacrti";
 
 type ScheduleTeam = { id: string; name: string; club: { logo_url: string | null } | null };
 
@@ -35,8 +35,6 @@ export async function CompetitionRaspored({ teams, competitionId, competitionNam
   });
   const rounds = [...new Set(fixtures.map((f) => f.round))].map((round) => fixtures.filter((f) => f.round === round));
   const made = fixtures.filter((f) => f.match).length;
-  const open = fixtures.filter((f) => !f.match && f.homeId && f.awayId);
-  const drafts: Record<number, Draft> = Object.fromEntries(open.map((f) => [f.number, { date: f.date, time: f.time, hallId: f.hallId }]));
   // Otvoreno je prvo kolo u kojem ima nenapravljenih utakmica
   const firstOpen = rounds.find((r) => r.some((f) => !f.match))?.[0].round;
 
@@ -49,7 +47,6 @@ export async function CompetitionRaspored({ teams, competitionId, competitionNam
         Parovi iz rasporeda saveza ({fixtures.length} utakmica, {rounds.length} kola). Upiši datum, vrijeme i dvoranu i napravi utakmicu;
         do tada se ne vidi nigdje drugo.
       </p>
-      <DraftsProvider initial={drafts}>
         <div className="flex min-w-0 flex-col gap-3">
           {rounds.map((list) => {
             const round = list[0].round;
@@ -85,7 +82,7 @@ export async function CompetitionRaspored({ teams, competitionId, competitionNam
                       ) : (
                         <FixtureForm
                           competitionId={competitionId}
-                          number={f.number}
+                          draft={{ date: f.date, time: f.time, hallId: f.hallId }}
                           round={f.round}
                           homeId={f.homeId}
                           awayId={f.awayId}
@@ -100,7 +97,6 @@ export async function CompetitionRaspored({ teams, competitionId, competitionNam
             );
           })}
         </div>
-      </DraftsProvider>
     </section>
   );
 }
