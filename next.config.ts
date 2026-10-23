@@ -15,12 +15,13 @@ const nextConfig: NextConfig = {
     // Klijent čuva posjećenu stranicu 60 s: povratak na nju se ne učitava ponovo.
     // Svaka izmjena (Server Action s updateTag) i router.refresh odmah brišu ovaj keš.
     staleTimes: { dynamic: 60 },
+    agentUpgrade: "security",
   },
-  // OAuth za MCP connector: standardne /.well-known adrese (i varijante s putanjom resursa, npr. /api/mcp)
   // Slike za objavu su prije bile pod Utakmicama
   async redirects() {
     return [{ source: "/admin/utakmice/objave", destination: "/admin/objave", permanent: true }];
   },
+  // OAuth za MCP connector: standardne /.well-known adrese (i varijante s putanjom resursa, npr. /api/mcp)
   async rewrites() {
     return [
       { source: "/.well-known/oauth-protected-resource/:path*", destination: "/api/well-known/oauth-protected-resource" },
