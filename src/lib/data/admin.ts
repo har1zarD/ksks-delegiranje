@@ -545,6 +545,8 @@ export async function getBulletinData() {
       home: m.home?.name ?? "—",
       away: m.away?.name ?? "—",
       hall: m.hall?.name ?? null,
+      /** FIBA utakmica (rezultat i, kad nema delegiranja, komesar i sudije iz statistike) */
+      fibaGameId: m.fiba_game_id,
       /** Konačni rezultat: zbir četvrtina, inače rezultat upisan na utakmici */
       score: periods.length > 0 ? sum : m.home_score != null && m.away_score != null ? { home: m.home_score, away: m.away_score } : null,
       periods: periods.map((p) => ({ home: p.home_points, away: p.away_points })),

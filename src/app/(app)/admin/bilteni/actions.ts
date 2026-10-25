@@ -3,7 +3,9 @@
 import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
 import { bulletinBrand, bulletinPdf } from "@/lib/bulletin-pdf";
-import { defaultRemarks, type BulletinRequest } from "@/lib/bulletin";
+import { defaultRemarks, delegatedOfficials, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { requireRole } from "@/lib/auth";
+import { fetchFibaGame } from "@/lib/fiba";
 import { seasonLabel } from "@/lib/schedule-pdf";
 import { slug } from "@/lib/format";
 
@@ -28,7 +30,11 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
       items: data.matches
         .filter((m) => m.competitionId === c.id && chosen.has(m.id))
         .sort(byNumber)
-        .map((m) => ({ ...m, remarks: typeof req.remarks?.[m.id] === "string" ? req.remarks[m.id] : defaultRemarks(m) })),
+        .map((m) => {
+          const sent = req.officials?.[m.id];
+          const officials = sent && typeof sent.commissioner === "string" && typeof sent.referees === "string" ? sent : delegatedOfficials(m.officials);
+          return { ...m, ...officials, remarks: typeof req.remarks?.[m.id] === "string" ? req.remarks[m.id] : defaultRemarks(m) };
+        }),
     }))
     .filter((g) => g.items.length > 0);
 
@@ -74,4 +80,20 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
     nominations,
   });
   return { pdf: Buffer.from(pdf).toString("base64"), name: `bilten${req.number?.trim() ? `-${slug(req.number)}` : ""}-${slug(title)}.pdf` };
+}
+
+/** Komesar i sudije s FIBA statistike povezanih utakmica (FIBA id → imena); utakmica bez podataka se izostavlja */
+export async function getFibaOfficials(gameIds: number[]): Promise<Record<number, BulletinOfficials>> {
+  await requireRole("admin");
+  const ids = [...new Set(gameIds.filter((id) => Number.isInteger(id) && id > 0))].slice(0, 40);
+  const games = await Promise.all(ids.map((id) => fetchFibaGame(id).catch(() => null)));
+  const out: Record<number, BulletinOfficials> = {};
+  games.forEach((g, i) => {
+    if (!g || g.officials.length === 0) return;
+    out[ids[i]] = {
+      commissioner: g.officials.filter((o) => o.role === "Komesar").map((o) => o.name).join(", "),
+      referees: g.officials.filter((o) => o.role !== "Komesar").map((o) => o.name).join(", "),
+    };
+  });
+  return out;
 }

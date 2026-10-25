@@ -13,6 +13,8 @@ export type BulletinRequest = {
   matchIds: string[];
   /** Primjedbe po utakmici (id → tekst) */
   remarks: Record<string, string>;
+  /** Komesar i sudije po utakmici kako idu u bilten (delegiranje, FIBA statistika ili ručni unos) */
+  officials: Record<string, BulletinOfficials>;
   /** Odluke: jedna po redu */
   decisions: string | null;
   /** Tabela izabranih takmičenja */
@@ -21,7 +23,16 @@ export type BulletinRequest = {
   nominations: { round: number; names: boolean } | null;
 };
 
+/** Komesar i sudije u biltenu (sudije razdvojene zarezom) */
+export type BulletinOfficials = { commissioner: string; referees: string };
+
 export const NO_REMARKS = "Bez primjedbi.";
+
+/** Delegirani komesar i sudije naše utakmice; prazno kad nisu delegirani */
+export function delegatedOfficials(officials: { position: string; name: string | null }[]): BulletinOfficials {
+  const names = (pick: (position: string) => boolean) => officials.filter((o) => pick(o.position) && o.name).map((o) => o.name!).join(", ");
+  return { commissioner: names((p) => p === "commissioner"), referees: names((p) => p.startsWith("referee")) };
+}
 
 const FOUL_PHRASE: Record<TechnicalFoul["type"], string> = {
   T: "tehnička greška",

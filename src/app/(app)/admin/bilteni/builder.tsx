@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, FileText, LoaderCircle, RotateCcw } from "lucide-react";
 import type { BulletinData, BulletinMatch } from "@/lib/data/admin";
-import { defaultRemarks, type BulletinRequest } from "@/lib/bulletin";
+import { defaultRemarks, delegatedOfficials, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
 import { matchesLabel } from "@/lib/finance";
 import { isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
 import { Chip, Step, Toggle } from "../utakmice/satnice/builder";
-import { makeBulletinPdf } from "./actions";
+import { getFibaOfficials, makeBulletinPdf } from "./actions";
 
 const SIGNATURE = "Takmičarska komisija";
 const DECISIONS = "Sve utakmice se registruju postignutim rezultatima.";
@@ -23,6 +23,9 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   // Ispravljene primjedbe (id → tekst); bez zapisa = automatski iz biltena komesara
   const [remarks, setRemarks] = useState<Record<string, string>>({});
+  // Komesar i sudije: ručni unos (id → imena) i FIBA statistika povezanih utakmica (FIBA id → imena)
+  const [officialEdits, setOfficialEdits] = useState<Record<string, BulletinOfficials>>({});
+  const [fibaOfficials, setFibaOfficials] = useState<Record<number, BulletinOfficials>>({});
   const [registration, setRegistration] = useState(true);
   const [decisionsOn, setDecisionsOn] = useState(true);
   const [decisions, setDecisions] = useState(DECISIONS);
@@ -47,6 +50,36 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
   const nominated = nextRound === null ? 0 : own.filter((m) => m.round === nextRound).length;
   const autoTitle = [...new Set(selected.map((c) => c.label))].join(" / ") || "Bilten";
 
+  // FIBA statistika utakmica u izboru (jednom po utakmici)
+  const fibaIds = groups.flatMap((g) => g.matches.flatMap((m) => (m.fibaGameId ? [m.fibaGameId] : [])));
+  const missingFiba = fibaIds.filter((id) => !(id in fibaOfficials)).join(",");
+  useEffect(() => {
+    if (!missingFiba) return;
+    const ids = missingFiba.split(",").map(Number);
+    let stale = false;
+    getFibaOfficials(ids)
+      .then((found) => {
+        // I utakmica bez podataka se pamti (prazno), da se ne traži ponovo
+        if (!stale) setFibaOfficials((old) => ({ ...old, ...Object.fromEntries(ids.map((id) => [id, found[id] ?? { commissioner: "", referees: "" }])) }));
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [missingFiba]);
+
+  /** Imena u biltenu: ručni unos, inače delegiranje, inače FIBA statistika (po polju) */
+  const officialsOf = (m: BulletinMatch): BulletinOfficials & { source: string | null } => {
+    const delegated = delegatedOfficials(m.officials);
+    const fiba = m.fibaGameId ? fibaOfficials[m.fibaGameId] : undefined;
+    const auto = {
+      commissioner: delegated.commissioner || fiba?.commissioner || "",
+      referees: delegated.referees || fiba?.referees || "",
+    };
+    const source = delegated.commissioner || delegated.referees ? "iz delegiranja" : fiba?.commissioner || fiba?.referees ? "iz FIBA statistike" : null;
+    return { ...auto, ...officialEdits[m.id], source: officialEdits[m.id] ? "ručno" : source };
+  };
+
   const request = ((): BulletinRequest | null => {
     const regIds = registration ? chosen.map((m) => m.id) : [];
     const decisionText = decisionsOn && decisions.trim() ? decisions : null;
@@ -61,6 +94,12 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
       round: activeRound,
       matchIds: regIds,
       remarks: Object.fromEntries(regIds.filter((id) => id in remarks).map((id) => [id, remarks[id]])),
+      officials: Object.fromEntries(
+        (registration ? chosen : []).map((m) => {
+          const { commissioner, referees } = officialsOf(m);
+          return [m.id, { commissioner, referees }];
+        }),
+      ),
       decisions: decisionText,
       standings,
       nominations,
@@ -218,6 +257,13 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
                         match={m}
                         on={!excluded.has(m.id)}
                         onToggle={() => toggleMatch(m.id)}
+                        officials={officialsOf(m)}
+                        onOfficials={(change) =>
+                          setOfficialEdits((o) => {
+                            const { commissioner, referees } = officialsOf(m);
+                            return { ...o, [m.id]: { commissioner, referees, ...change } };
+                          })
+                        }
                         remarks={remarks[m.id]}
                         onRemarks={(text) => setRemarks((r) => ({ ...r, [m.id]: text }))}
                         onReset={() =>
@@ -312,11 +358,13 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
   );
 }
 
-/** Utakmica s kvačicom: ekipe, rezultat, stanje biltena komesara i primjedbe koje idu u bilten (mogu se ispraviti) */
+/** Utakmica s kvačicom: ekipe, rezultat, stanje biltena komesara; komesar, sudije i primjedbe koje idu u bilten (mogu se ispraviti) */
 function MatchOption({
   match: m,
   on,
   onToggle,
+  officials,
+  onOfficials,
   remarks,
   onRemarks,
   onReset,
@@ -324,14 +372,14 @@ function MatchOption({
   match: BulletinMatch;
   on: boolean;
   onToggle: () => void;
+  officials: BulletinOfficials & { source: string | null };
+  onOfficials: (change: Partial<BulletinOfficials>) => void;
   remarks: string | undefined;
   onRemarks: (text: string) => void;
   onReset: () => void;
 }) {
   const auto = defaultRemarks(m);
   const text = remarks ?? auto;
-  const referees = m.officials.filter((o) => o.position.startsWith("referee") && o.name).map((o) => o.name);
-  const commissioner = m.officials.find((o) => o.position === "commissioner")?.name;
   return (
     <li className={cx("flex flex-col gap-3 px-4 py-3", !on && "opacity-55")}>
       <label className="flex cursor-pointer items-start gap-3">
@@ -347,8 +395,7 @@ function MatchOption({
           </span>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-fg-muted">
             {m.number != null && <span>Utakmica {m.number}</span>}
-            <span>Komesar: {commissioner ?? "—"}</span>
-            {referees.length > 0 && <span>Sudije: {referees.join(", ")}</span>}
+            {m.fibaGameId && <span>FIBA statistika</span>}
             {m.report ? (
               <Status tone={m.report.submitted ? "mint" : "gold"}>{m.report.submitted ? "Bilten komesara poslan" : "Bilten komesara u nacrtu"}</Status>
             ) : (
@@ -357,6 +404,18 @@ function MatchOption({
           </span>
         </span>
       </label>
+      {on && (
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:pl-8">
+          <Field
+            label="Komesar"
+            value={officials.commissioner}
+            onChange={(e) => onOfficials({ commissioner: e.target.value })}
+            placeholder="Ime i prezime"
+            hint={officials.source ?? "Nije delegiran ni u FIBA statistici"}
+          />
+          <Field label="Sudije" value={officials.referees} onChange={(e) => onOfficials({ referees: e.target.value })} placeholder="Imena, razdvojena zarezom" />
+        </div>
+      )}
       {on && (
         <div className="flex flex-col gap-1.5 sm:pl-8">
           <span className="flex items-center justify-between gap-3 text-[13px] font-medium text-fg-muted">

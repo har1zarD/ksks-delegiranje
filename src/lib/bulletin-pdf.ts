@@ -5,6 +5,7 @@ import { PDFDocument, type PDFImage, type PDFPage } from "pdf-lib";
 import type { BulletinMatch } from "@/lib/data/admin";
 import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
+import type { BulletinOfficials } from "@/lib/bulletin";
 import { formatDate, MATCH_STATUS_LABEL, todayISO } from "@/lib/format";
 import {
   A4,
@@ -28,6 +29,9 @@ import {
 export type BulletinStanding = { name: string; played: number; won: number; lost: number; pointsFor: number; pointsAgainst: number; diff: number; points: number };
 
 type Group<T> = { name: string; items: T[] };
+
+/** Utakmica u registraciji: primjedbe, komesar i sudije kako ih je admin potvrdio u bilderu */
+export type RegistrationMatch = BulletinMatch & BulletinOfficials & { remarks: string };
 
 /** Savez biltena: KSBiH lige nose logo lige i naziv KSBiH, ostalo KSKS */
 export type BulletinBrand = { org: string; logo: string; ksbih: boolean };
@@ -58,7 +62,7 @@ export type BulletinPdfInput = {
   title: string;
   signature: string;
   cover: boolean;
-  registration: { round: number | null; groups: Group<BulletinMatch & { remarks: string }>[] } | null;
+  registration: { round: number | null; groups: Group<RegistrationMatch>[] } | null;
   decisions: string[] | null;
   standings: Group<BulletinStanding>[] | null;
   nominations: { round: number; names: boolean; groups: Group<BulletinMatch>[] } | null;
@@ -134,7 +138,7 @@ export async function bulletinPdf(input: BulletinPdfInput) {
     y -= 20;
   };
 
-  function drawRegistration(groups: Group<BulletinMatch & { remarks: string }>[]) {
+  function drawRegistration(groups: Group<RegistrationMatch>[]) {
     const blocks = groups.map((g) => ({ name: g.name, items: g.items.map((m) => ({ m, h: registrationHeight(f, m) })) }));
     partTitle(parts[n].title, blocks[0].items[0]?.h ?? 0);
     for (const g of blocks) {
@@ -252,20 +256,12 @@ function drawCover(
 
 // ───────── Registracija ─────────
 
-function officialNames(m: BulletinMatch) {
-  const named = (p: (pos: string) => boolean) => m.officials.filter((o) => p(o.position) && o.name).map((o) => o.name!);
-  return {
-    commissioner: named((p) => p === "commissioner").join(", ") || "—",
-    referees: named((p) => p.startsWith("referee")).join(", ") || "—",
-  };
-}
-
 function periodLines(f: Fonts, m: BulletinMatch) {
   if (!m.score || m.periods.length === 0) return [];
   return wrap(m.periods.map((p) => `${p.home}:${p.away}`).join(", "), f.regular, PERIOD_SIZE, COL_SCORE - 12);
 }
 
-function remarkLines(f: Fonts, m: BulletinMatch & { remarks: string }, x1: number) {
+function remarkLines(f: Fonts, m: RegistrationMatch, x1: number) {
   return wrap(m.remarks.trim() || "Bez primjedbi.", f.regular, REMARK_SIZE, M + W - x1 - 20);
 }
 
@@ -273,12 +269,12 @@ function topHeight(f: Fonts, m: BulletinMatch) {
   return TEAM_ROW + Math.max(2 * OFFICIAL_ROW, 30 + periodLines(f, m).length * PERIOD_LINE);
 }
 
-function registrationHeight(f: Fonts, m: BulletinMatch & { remarks: string }) {
+function registrationHeight(f: Fonts, m: RegistrationMatch) {
   return topHeight(f, m) + 24 + remarkLines(f, m, M + COL_NO).length * REMARK_LINE;
 }
 
 /** Jedna utakmica: broj | domaćin – gost, komesar, sudije | rezultat i četvrtine; ispod primjedbe; y = vrh bloka */
-function drawRegistrationMatch(page: PDFPage, f: Fonts, m: BulletinMatch & { remarks: string }, y: number, h: number) {
+function drawRegistrationMatch(page: PDFPage, f: Fonts, m: RegistrationMatch, y: number, h: number) {
   const x0 = M;
   const x1 = M + COL_NO;
   const x3 = M + W;
@@ -310,7 +306,7 @@ function drawRegistrationMatch(page: PDFPage, f: Fonts, m: BulletinMatch & { rem
   centeredIn(page, "REZULTAT", f.bold, 7.5, xs, x3, teamY + 0.5, C.faint);
 
   // Komesar i sudije
-  const names = officialNames(m);
+  const names = { commissioner: m.commissioner.trim() || "—", referees: m.referees.trim() || "—" };
   const rowH = (top - TEAM_ROW) / 2;
   (
     [
