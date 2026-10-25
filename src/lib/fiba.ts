@@ -428,6 +428,7 @@ export const FIBA_CATEGORIES = [
   { key: "plbih_z", label: "Premijer liga Ž" },
   { key: "a1", label: "A1 liga" },
   { key: "a2", label: "A2 liga" },
+  { key: "a1_z", label: "A1 liga Ž" },
   { key: "pioniri", label: "Pioniri" },
   { key: "kadeti", label: "Kadeti" },
   { key: "juniori", label: "Juniori" },
@@ -435,7 +436,7 @@ export const FIBA_CATEGORIES = [
   { key: "kadetkinje", label: "Kadetkinje" },
 ] as const;
 
-const SENIOR_CATEGORIES = new Set(["plbih", "plbih_z", "a1", "a2"]);
+const SENIOR_CATEGORIES = new Set(["plbih", "plbih_z", "a1", "a2", "a1_z"]);
 
 /** "Premijer liga" ili "Omladinska liga KS, Kadeti" (naslov FIBA utakmice) */
 export function fibaCategoryLabel(category: string | null | undefined) {

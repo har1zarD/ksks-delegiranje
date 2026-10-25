@@ -30,7 +30,7 @@ export function SocialPreviewSkeleton({ width = 1080, height = 1350, rows = 7 }:
 export function SocialBuilderSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-6">
-      <div className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:w-[30rem]">{times(5, (i) => <Bone key={i} className="h-9 flex-1 rounded-md sm:h-7" />)}</div>
+      <div className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:w-[30rem]">{times(5, (i) => <Bone key={i} className="h-[52px] flex-1 rounded-md sm:h-7" />)}</div>
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,440px)] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
         <StepSkeleton number={1} title="Izaberi utakmice">

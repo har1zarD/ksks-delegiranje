@@ -52,7 +52,7 @@ export function PayrollMatchCard({ match: m }: { match: PayrollMatch }) {
   };
 
   return (
-    <li className={cx(CARD, "flex flex-col p-4")}>
+    <li className={cx(CARD, "flex min-w-0 flex-col p-4")}>
       <button
         type="button"
         onClick={() => (editing ? setEditing(false) : open())}

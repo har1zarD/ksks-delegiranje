@@ -243,7 +243,7 @@ export function PayrollTable({ people, personHref, open }: { people: PayrollPers
 /** Male kartice utakmica: ekipe, ko je radio, iznos i isplata po osobi; isplata cijele utakmice odjednom; klik na utakmicu = ručne cijene */
 export function PayrollMatches({ matches }: { matches: PayrollMatch[] }) {
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {matches.map((m) => (
         <PayrollMatchCard key={m.matchId} match={m} />
       ))}
