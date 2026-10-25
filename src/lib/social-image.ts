@@ -20,9 +20,10 @@ const KSBIH = { name: "KSBIH", lines: ["KOŠARKAŠKI SAVEZ", "BOSNE I HERCEGOVIN
  */
 export const SOCIAL_BRANDS = {
   ksks: { logo: KSKS_LOGO, light: KSKS_LOGO, name: "KSKS", lines: ["KOŠARKAŠKI SAVEZ", "KANTONA SARAJEVO"], footer: "Košarkaški savez Kantona Sarajevo", watermark: null },
+  // Sve KSBiH lige nose isti logo KSBiH (bez oznake lige desno), korisnik 2026-10-25
   ksbih: { ...KSBIH, logo: "/competitions/ksbih.png", light: "/competitions/ksbih-light.png" },
-  "ksbih-a1-zene": { ...KSBIH, logo: "/competitions/ksbih-a1-zene.png", light: "/competitions/ksbih-a1-zene-light.png" },
-  "ksbih-a2": { ...KSBIH, logo: "/competitions/ksbih-a2.png", light: "/competitions/ksbih-a2-light.png" },
+  "ksbih-a1-zene": { ...KSBIH, logo: "/competitions/ksbih.png", light: "/competitions/ksbih-light.png" },
+  "ksbih-a2": { ...KSBIH, logo: "/competitions/ksbih.png", light: "/competitions/ksbih-light.png" },
 } as const;
 
 /** Savez čije je takmičenje: A1 žene i A2 jug su KSBIH lige, ostalo (i više takmičenja na slici) KSKS */

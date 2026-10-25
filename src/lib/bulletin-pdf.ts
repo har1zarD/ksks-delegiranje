@@ -33,25 +33,21 @@ type Group<T> = { name: string; items: T[] };
 /** Utakmica u registraciji: primjedbe, komesar i sudije kako ih je admin potvrdio u bilderu */
 export type RegistrationMatch = BulletinMatch & BulletinOfficials & { remarks: string };
 
-/** Savez biltena: KSBiH lige nose logo lige i naziv KSBiH, ostalo KSKS */
+/** Savez biltena: KSBiH lige nose logo i naziv KSBiH, ostalo KSKS */
 export type BulletinBrand = { org: string; logo: string; ksbih: boolean };
 
 const KSBIH = "Košarkaški savez Bosne i Hercegovine";
 /** A1 liga KSBiH (takmičenje tekuće sezone) */
 const A1_KSBIH_ID = "a6358eb7-260f-48d4-95d2-7988b9bca13c";
-// Logoi lige obrezani na vidljivi dio (public/competitions/pdf), da u zaglavlju ne budu sitni
-const KSBIH_LOGO: Record<string, string> = {
-  [A1_KSBIH_ID]: "public/competitions/pdf/ksbih-a1.png",
-  [A2_JUG_ID]: "public/competitions/pdf/ksbih-a2.png",
-  [A1_ZENE_ID]: "public/competitions/pdf/ksbih-a1-zene.png",
-};
+/** KSBiH lige: bilten nosi logo KSBiH (grb s natpisom, obrezan na vidljivi dio) */
+const KSBIH_COMPETITIONS = new Set([A1_KSBIH_ID, A2_JUG_ID, A1_ZENE_ID]);
 
-/** Jedna KSBiH liga: njen logo; više KSBiH liga: logo KSBiH; ima li KSKS takmičenja: KSKS */
+/** Samo KSBiH lige: KSBiH; ima li KSKS takmičenja: KSKS */
 export function bulletinBrand(competitionIds: string[]): BulletinBrand {
-  if (competitionIds.length === 0 || !competitionIds.every((id) => id in KSBIH_LOGO)) {
-    return { org: "Košarkaški savez Kantona Sarajevo", logo: "public/brand/ksks-logo-1024.png", ksbih: false };
+  if (competitionIds.length > 0 && competitionIds.every((id) => KSBIH_COMPETITIONS.has(id))) {
+    return { org: KSBIH, logo: "public/competitions/pdf/ksbih.png", ksbih: true };
   }
-  return { org: KSBIH, logo: competitionIds.length === 1 ? KSBIH_LOGO[competitionIds[0]] : "public/competitions/pdf/ksbih.png", ksbih: true };
+  return { org: "Košarkaški savez Kantona Sarajevo", logo: "public/brand/ksks-logo-1024.png", ksbih: false };
 }
 
 export type BulletinPdfInput = {
@@ -110,8 +106,7 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   if (input.cover) drawCover(doc.addPage([A4.w, A4.h]), f, crest, { ...input, heading, issued, contents: parts.map((p) => p.title) });
 
   const first = doc.getPageCount();
-  // Širi logo KSBiH lige (grb + "A2") dobija širi okvir u zaglavlju
-  const header = { league: input.title, season: input.season, title: heading, dates: issued, dateLabel: "DATUM", logoW: Math.min(60, Math.max(38, (44 * crest.width) / crest.height)) };
+  const header = { league: input.title, season: input.season, title: heading, dates: issued, dateLabel: "DATUM" };
   let page = doc.addPage([A4.w, A4.h]);
   let y = drawPageHeader(page, f, crest, header);
   const bottom = M + 24;

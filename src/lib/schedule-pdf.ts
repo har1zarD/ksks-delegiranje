@@ -170,20 +170,13 @@ export function drawPageHeader(
   page: PDFPage,
   f: Fonts,
   crest: PDFImage,
-  {
-    league,
-    season,
-    title,
-    dates,
-    dateLabel = "TERMIN KOLA",
-    logoW = 38,
-  }: { league: string; season: string | null; title: string; dates: string; dateLabel?: string; logoW?: number },
+  { league, season, title, dates, dateLabel = "TERMIN KOLA" }: { league: string; season: string | null; title: string; dates: string; dateLabel?: string },
 ) {
   const top = A4.h - M;
-  drawContained(page, crest, M, top - 44, logoW, 44);
-  const x = M + logoW + 12;
+  drawContained(page, crest, M, top - 44, 38, 44);
+  const x = M + 50;
   page.drawText(upper(league), { x, y: top - 12, size: 7.5, font: f.bold, color: C.faint });
-  page.drawText(fit(upper(title), f.bold, 17, W - logoW - 12 - 140), { x, y: top - 31, size: 17, font: f.bold, color: C.fg });
+  page.drawText(fit(upper(title), f.bold, 17, W - 50 - 140), { x, y: top - 31, size: 17, font: f.bold, color: C.fg });
   if (season) page.drawText(`Takmičarska sezona ${season}`, { x, y: top - 44, size: 8.5, font: f.regular, color: C.muted });
   if (dates) {
     page.drawText(dateLabel, { x: A4.w - M - f.bold.widthOfTextAtSize(dateLabel, 7), y: top - 12, size: 7, font: f.bold, color: C.faint });
