@@ -8,6 +8,7 @@ import { matchesLabel } from "@/lib/finance";
 import { isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
 import { Chip, Step, Toggle } from "../utakmice/satnice/builder";
+import { makeBulletinPdf } from "./actions";
 
 const SIGNATURE = "Takmičarska komisija";
 const DECISIONS = "Sve utakmice se registruju postignutim rezultatima.";
@@ -68,56 +69,47 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
   // Pregled se pravi ponovo samo kad se zahtjev stvarno promijeni (poređenje teksta)
   const body = request ? JSON.stringify(request) : null;
 
-  // Pregled: PDF se pravi kad se izmjene smire; stari blob se oslobađa
-  const [preview, setPreview] = useState<string | null>(null);
+  // Pregled: PDF se pravi kad se izmjene smire (server action); stari blob se oslobađa. `pdf.body` = zahtjev od kojeg je napravljen
+  const [pdf, setPdf] = useState<{ body: string; url: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   useEffect(() => {
-    // Bez zahtjeva se pregled ne prikazuje (uslov `preview && body` u prikazu)
+    // Bez zahtjeva se pregled ne prikazuje (uslov `preview` u prikazu)
     if (!body) return;
-    const ctrl = new AbortController();
+    let stale = false;
     const t = setTimeout(async () => {
       setLoading(true);
       setError(undefined);
       try {
-        const res = await fetch("/admin/bilteni/pdf", { method: "POST", body, headers: { "Content-Type": "application/json" }, signal: ctrl.signal });
-        if (!res.ok) throw new Error(await res.text());
-        const url = URL.createObjectURL(await res.blob());
-        setPreview((old) => {
-          if (old) URL.revokeObjectURL(old);
-          return url;
+        const res = await makeBulletinPdf(JSON.parse(body) as BulletinRequest);
+        if (stale) return;
+        if ("error" in res) throw new Error(res.error);
+        const bytes = Uint8Array.from(atob(res.pdf), (c) => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+        setPdf((old) => {
+          if (old) URL.revokeObjectURL(old.url);
+          return { body, url, name: res.name };
         });
       } catch (e) {
-        if (!ctrl.signal.aborted) setError(e instanceof Error && e.message ? e.message : "PDF se nije napravio.");
+        if (!stale) setError(e instanceof Error && e.message ? e.message : "PDF se nije napravio.");
       } finally {
-        if (!ctrl.signal.aborted) setLoading(false);
+        if (!stale) setLoading(false);
       }
     }, 700);
     return () => {
+      stale = true;
       clearTimeout(t);
-      ctrl.abort();
     };
   }, [body]);
+  // Pregled i preuzimanje samo za PDF trenutnog izbora
+  const preview = pdf && pdf.body === body ? pdf.url : null;
 
-  const [downloading, setDownloading] = useState(false);
-  async function download() {
-    if (!body) return;
-    setDownloading(true);
-    try {
-      const res = await fetch("/admin/bilteni/pdf?preuzmi", { method: "POST", body, headers: { "Content-Type": "application/json" } });
-      if (!res.ok) throw new Error(await res.text());
-      const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "bilten.pdf";
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : "PDF se nije preuzeo.");
-    } finally {
-      setDownloading(false);
-    }
+  function download() {
+    if (!pdf || !preview) return;
+    const a = document.createElement("a");
+    a.href = preview;
+    a.download = pdf.name;
+    a.click();
   }
 
   const toggleComp = (id: string) => setCompIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -295,7 +287,7 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
           </span>
         </div>
         <div className="relative hidden aspect-[210/297] w-full overflow-hidden rounded-md border border-line bg-white lg:block">
-          {preview && body ? (
+          {preview ? (
             <iframe key={preview} src={`${preview}#toolbar=0&navpanes=0&view=FitH`} title="Pregled PDF-a" className="size-full" />
           ) : (
             <div className="grid size-full place-items-center p-6 text-center text-[14px] text-black/50">
@@ -308,11 +300,11 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
         </div>
         {error && <p className="text-[13px] font-medium text-crest">{error}</p>}
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" disabled={!preview || !body} onClick={() => preview && window.open(preview, "_blank", "noopener")}>
+          <Button variant="secondary" disabled={!preview} onClick={() => preview && window.open(preview, "_blank", "noopener")}>
             <ExternalLink className="size-4" aria-hidden="true" /> Otvori
           </Button>
-          <Button disabled={!body || downloading} onClick={download}>
-            {downloading ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Download className="size-4" aria-hidden="true" />} Preuzmi PDF
+          <Button disabled={!preview} onClick={download}>
+            <Download className="size-4" aria-hidden="true" /> Preuzmi PDF
           </Button>
         </div>
       </aside>
