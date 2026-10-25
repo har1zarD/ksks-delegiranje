@@ -2,7 +2,8 @@
 
 import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
-import { bulletinBrand, bulletinPdf } from "@/lib/bulletin-pdf";
+import { bulletinBrand, bulletinPdf, type BulletinPdfInput } from "@/lib/bulletin-pdf";
+import { bulletinDocx } from "@/lib/bulletin-docx";
 import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, roundWeekend, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
 import type { BulletinMatch } from "@/lib/data/admin";
 import type { NominationMatch } from "@/lib/bulletin-pdf";
@@ -28,11 +29,26 @@ function nominationMatches(competitionId: string, round: number, matches: Bullet
 }
 
 export type BulletinPdfResult = { pdf: string; name: string } | { error: string };
+export type BulletinDocxResult = { docx: string; name: string } | { error: string };
 
-// PDF bilten kao server action, ne ruta: Hobby plan dozvoljava 12 serverless funkcija, a action radi u funkciji stranice.
+// Bilten kao server action, ne ruta: Hobby plan dozvoljava 12 serverless funkcija, a action radi u funkciji stranice.
 // Podaci utakmica se ponovo čitaju iz baze, od bildera stižu samo izbor i tekstovi. getBulletinData provjerava admin ulogu.
 /** PDF (base64) i naziv fajla */
 export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdfResult> {
+  const b = await bulletinInput(req);
+  if ("error" in b) return b;
+  return { pdf: Buffer.from(await bulletinPdf(b.input)).toString("base64"), name: `${b.name}.pdf` };
+}
+
+/** Word (.docx, base64) istog biltena i naziv fajla */
+export async function makeBulletinDocx(req: BulletinRequest): Promise<BulletinDocxResult> {
+  const b = await bulletinInput(req);
+  if ("error" in b) return b;
+  return { docx: (await bulletinDocx(b.input)).toString("base64"), name: `${b.name}.docx` };
+}
+
+/** Sadržaj biltena iz zahtjeva bildera (isti za PDF i Word) i naziv fajla bez nastavka */
+async function bulletinInput(req: BulletinRequest): Promise<{ input: BulletinPdfInput; name: string } | { error: string }> {
   if (!req || !Array.isArray(req.competitionIds) || !Array.isArray(req.matchIds)) return { error: "Neispravan zahtjev." };
   const [data, tables] = await Promise.all([getBulletinData(), req.standings ? getSocialTables() : Promise.resolve([])]);
 
@@ -82,7 +98,7 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
 
   const title = req.title?.trim() || [...new Set(competitions.map((c) => c.label))].join(" / ");
   const brand = bulletinBrand(competitions.map((c) => c.id));
-  const pdf = await bulletinPdf({
+  const input: BulletinPdfInput = {
     brand,
     league: brand.ksbih ? brand.org : competitions.every((c) => c.youth) ? "Omladinska liga Kantona Sarajevo" : brand.org,
     season: seasonLabel(competitions[0].season),
@@ -94,8 +110,8 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
     decisions: decisions ?? null,
     standings,
     nominations,
-  });
-  return { pdf: Buffer.from(pdf).toString("base64"), name: `bilten${req.number?.trim() ? `-${slug(req.number)}` : ""}-${slug(title)}.pdf` };
+  };
+  return { input, name: `bilten${req.number?.trim() ? `-${slug(req.number)}` : ""}-${slug(title)}` };
 }
 
 /** Komesar i sudije s FIBA statistike povezanih utakmica (FIBA id → imena); utakmica bez podataka se izostavlja */

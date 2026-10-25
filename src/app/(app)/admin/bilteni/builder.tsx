@@ -8,7 +8,7 @@ import { matchesLabel } from "@/lib/finance";
 import { isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
 import { Chip, Step, Toggle } from "../utakmice/satnice/builder";
-import { getFibaOfficials, makeBulletinPdf } from "./actions";
+import { getFibaOfficials, makeBulletinDocx, makeBulletinPdf } from "./actions";
 
 const SIGNATURE = "Takmičarska komisija";
 const DECISIONS = "Sve utakmice se registruju postignutim rezultatima.";
@@ -155,6 +155,29 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
     a.href = preview;
     a.download = pdf.name;
     a.click();
+  }
+
+  // Word istog biltena: pravi se tek na klik (pregled je PDF)
+  const [word, setWord] = useState(false);
+  async function downloadWord() {
+    if (!body) return;
+    setWord(true);
+    setError(undefined);
+    try {
+      const res = await makeBulletinDocx(JSON.parse(body) as BulletinRequest);
+      if ("error" in res) throw new Error(res.error);
+      const bytes = Uint8Array.from(atob(res.docx), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Word se nije napravio.");
+    } finally {
+      setWord(false);
+    }
   }
 
   const toggleComp = (id: string) => setCompIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -357,6 +380,9 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
           </Button>
           <Button disabled={!preview} onClick={download}>
             <Download className="size-4" aria-hidden="true" /> Preuzmi PDF
+          </Button>
+          <Button variant="secondary" className="col-span-2" disabled={!body || word} onClick={downloadWord}>
+            {word ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <FileText className="size-4" aria-hidden="true" />} Preuzmi Word
           </Button>
         </div>
       </aside>
