@@ -115,7 +115,8 @@ async function Match({ params }: { params: Params }) {
           {!fiba && isCommissioner && !isAdmin && match.status === "finished" && (
             <p className="pt-3 text-[14px] text-fg-muted">Utakmica je završena. Za ispravku rezultata javi se savezu.</p>
           )}
-          {canScore && !finalOnly && (match.status === "scheduled" || match.status === "live") && (
+          {/* FIBA utakmicu pokreće sync (prva akcija na LiveStats), pa nema "Počni utakmicu" */}
+          {canScore && !finalOnly && (match.status === "live" || (match.status === "scheduled" && !fiba)) && (
             <div className="mt-5 border-t border-line pt-5">
               {match.status === "scheduled" ? (
                 <form action={setStatus}>
