@@ -47,3 +47,8 @@ export const SCHEDULE_MATCH_SELECT = `id, number, round, starts_at, status, comp
   away:teams!matches_away_team_id_fkey ( name ),
   hall:halls!matches_hall_id_fkey ( name ),
   assignments ( position, status, profile:profiles!assignments_profile_id_fkey ( full_name ) )` as const;
+
+/** Bilten: kao satnice, plus rezultat, četvrtine i bilten komesara (primjedbe) */
+export const BULLETIN_MATCH_SELECT = `${SCHEDULE_MATCH_SELECT}, home_score, away_score,
+  match_periods ( period, home_points, away_points ),
+  match_reports ( technicals, incidents, remarks, submitted_at )` as const;

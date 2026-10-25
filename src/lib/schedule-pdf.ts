@@ -8,9 +8,9 @@ import type { ScheduleCompetition, ScheduleMatch } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { formatDate, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, WEEKDAYS_LONG, type Position } from "@/lib/format";
 
-const A4 = { w: 595.28, h: 841.89 };
-const M = 42; // margina
-const W = A4.w - 2 * M;
+export const A4 = { w: 595.28, h: 841.89 };
+export const M = 42; // margina
+export const W = A4.w - 2 * M;
 
 // Kolone tabele: broj utakmice, termin, ekipe i službena lica (oznaka pa ime)
 const COL_NO = 74;
@@ -18,9 +18,9 @@ const COL_TIME = 124;
 const COL_LABEL = 88;
 const TEAM_ROW = 24;
 const OFFICIAL_ROW = 17;
-const BLOCK_GAP = 8;
+export const BLOCK_GAP = 8;
 
-const C = {
+export const C = {
   fg: rgb(0.059, 0.059, 0.067),
   muted: rgb(0.361, 0.361, 0.4),
   faint: rgb(0.42, 0.447, 0.502),
@@ -53,13 +53,13 @@ const OFFICIAL_LABEL: Partial<Record<Position, string>> = {
   referee_3: "Sudija",
 };
 
-type Fonts = { regular: PDFFont; bold: PDFFont };
+export type Fonts = { regular: PDFFont; bold: PDFFont };
 
-const asset = (p: string) => readFile(path.join(process.cwd(), p));
-const upper = (s: string) => s.toLocaleUpperCase("bs");
+export const asset = (p: string) => readFile(path.join(process.cwd(), p));
+export const upper = (s: string) => s.toLocaleUpperCase("bs");
 
 /** "2026/27" → "2026/2027" */
-function seasonLabel(season: string | null) {
+export function seasonLabel(season: string | null) {
   const m = season && /^(\d{4})\/(\d{2})$/.exec(season);
   return m ? `${m[1]}/${m[1].slice(0, 2)}${m[2]}` : season;
 }
@@ -166,7 +166,12 @@ function drawCover(
 }
 
 /** Zaglavlje strane satnice: grb, liga, naslov kola, sezona i dani desno; vraća vrh sadržaja */
-function drawPageHeader(page: PDFPage, f: Fonts, crest: PDFImage, { league, season, title, dates }: { league: string; season: string | null; title: string; dates: string }) {
+export function drawPageHeader(
+  page: PDFPage,
+  f: Fonts,
+  crest: PDFImage,
+  { league, season, title, dates, dateLabel = "TERMIN KOLA" }: { league: string; season: string | null; title: string; dates: string; dateLabel?: string },
+) {
   const top = A4.h - M;
   drawContained(page, crest, M, top - 44, 38, 44);
   const x = M + 50;
@@ -174,8 +179,7 @@ function drawPageHeader(page: PDFPage, f: Fonts, crest: PDFImage, { league, seas
   page.drawText(fit(upper(title), f.bold, 17, W - 50 - 140), { x, y: top - 31, size: 17, font: f.bold, color: C.fg });
   if (season) page.drawText(`Takmičarska sezona ${season}`, { x, y: top - 44, size: 8.5, font: f.regular, color: C.muted });
   if (dates) {
-    const label = "TERMIN KOLA";
-    page.drawText(label, { x: A4.w - M - f.bold.widthOfTextAtSize(label, 7), y: top - 12, size: 7, font: f.bold, color: C.faint });
+    page.drawText(dateLabel, { x: A4.w - M - f.bold.widthOfTextAtSize(dateLabel, 7), y: top - 12, size: 7, font: f.bold, color: C.faint });
     page.drawText(dates, { x: A4.w - M - f.bold.widthOfTextAtSize(dates, 11), y: top - 28, size: 11, font: f.bold, color: C.fg });
   }
   page.drawLine({ start: { x: M, y: top - 56 }, end: { x: A4.w - M, y: top - 56 }, thickness: 0.75, color: C.line });
@@ -212,14 +216,14 @@ function timeLines(m: ScheduleMatch, opts: ScheduleOptions) {
 
 const lineHeight = (size: number) => size * 1.35;
 
-function blockHeight(m: ScheduleMatch, opts: ScheduleOptions) {
+export function blockHeight(m: ScheduleMatch, opts: ScheduleOptions) {
   const rows = officialRows(m, opts).length;
   const text = timeLines(m, opts).reduce((h, l) => h + lineHeight(l.size), 0) + 16;
   return Math.max(rows > 0 ? TEAM_ROW + rows * OFFICIAL_ROW : 40, text, 44);
 }
 
 /** Jedna utakmica kao u šablonu: broj | termin | domaćin – gost, ispod komesar i sudije; y = vrh bloka */
-function drawMatch(page: PDFPage, f: Fonts, m: ScheduleMatch, opts: ScheduleOptions, y: number, h: number) {
+export function drawMatch(page: PDFPage, f: Fonts, m: ScheduleMatch, opts: ScheduleOptions, y: number, h: number) {
   const rows = officialRows(m, opts);
   const x0 = M;
   const x1 = M + COL_NO;
@@ -284,16 +288,16 @@ function drawFree(page: PDFPage, f: Fonts, free: string[], y: number) {
   return y - h - BLOCK_GAP;
 }
 
-function centered(page: PDFPage, text: string, font: PDFFont, size: number, y: number, color: typeof C.fg) {
+export function centered(page: PDFPage, text: string, font: PDFFont, size: number, y: number, color: typeof C.fg) {
   page.drawText(text, { x: (A4.w - font.widthOfTextAtSize(text, size)) / 2, y, size, font, color });
 }
 
-function centeredIn(page: PDFPage, text: string, font: PDFFont, size: number, from: number, to: number, y: number, color: typeof C.fg) {
+export function centeredIn(page: PDFPage, text: string, font: PDFFont, size: number, from: number, to: number, y: number, color: typeof C.fg) {
   page.drawText(text, { x: from + (to - from - font.widthOfTextAtSize(text, size)) / 2, y, size, font, color });
 }
 
 /** Slika unutar okvira, cijela vidljiva, centrirana */
-function drawContained(page: PDFPage, image: PDFImage, x: number, y: number, w: number, h: number) {
+export function drawContained(page: PDFPage, image: PDFImage, x: number, y: number, w: number, h: number) {
   const s = Math.min(w / image.width, h / image.height);
   const dw = image.width * s;
   const dh = image.height * s;
@@ -301,14 +305,14 @@ function drawContained(page: PDFPage, image: PDFImage, x: number, y: number, w: 
 }
 
 /** Najveća veličina fonta (od max do min) u kojoj tekst stane u širinu */
-function sizeToFit(text: string, font: PDFFont, max: number, min: number, width: number) {
+export function sizeToFit(text: string, font: PDFFont, max: number, min: number, width: number) {
   let size = max;
   while (size > min && font.widthOfTextAtSize(text, size) > width) size -= 0.5;
   return size;
 }
 
 /** Tekst skraćen s "…" da stane u širinu */
-function fit(text: string, font: PDFFont, size: number, width: number) {
+export function fit(text: string, font: PDFFont, size: number, width: number) {
   if (font.widthOfTextAtSize(text, size) <= width) return text;
   let t = text;
   while (t.length > 1 && font.widthOfTextAtSize(`${t}…`, size) > width) t = t.slice(0, -1);
@@ -316,7 +320,7 @@ function fit(text: string, font: PDFFont, size: number, width: number) {
 }
 
 /** Tekst u redove do širine (novi red u tekstu ostaje novi red) */
-function wrap(text: string, font: PDFFont, size: number, width: number) {
+export function wrap(text: string, font: PDFFont, size: number, width: number) {
   const out: string[] = [];
   for (const para of text.split(/\r?\n/)) {
     let line = "";

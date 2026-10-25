@@ -200,7 +200,7 @@ async function socialTablesData() {
       return {
         id: competition.id,
         name: competition.short_name ?? competition.name,
-        standings: standings.map((s) => ({ teamId: s.teamId, name: s.name, logoUrl: s.logoUrl, played: s.played, won: s.won, lost: s.lost, diff: s.diff, points: s.points })),
+        standings: standings.map((s) => ({ teamId: s.teamId, name: s.name, logoUrl: s.logoUrl, played: s.played, won: s.won, lost: s.lost, pointsFor: s.pointsFor, pointsAgainst: s.pointsAgainst, diff: s.diff, points: s.points })),
       };
     }),
   );

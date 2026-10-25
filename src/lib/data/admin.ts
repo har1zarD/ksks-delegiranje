@@ -11,9 +11,11 @@ import {
   COMPETITION_SELECT,
   DELEGATION_ASSIGNMENT_SELECT,
   DELEGATION_MATCH_SELECT,
+  BULLETIN_MATCH_SELECT,
   SCHEDULE_COMPETITION_SELECT,
   SCHEDULE_MATCH_SELECT,
 } from "./selects";
+import { parseTechnicals } from "./report-selects";
 import { BULLETIN_CATEGORIES } from "./report";
 import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
@@ -496,3 +498,77 @@ export async function getRoundSchedules() {
 export type RoundSchedules = Awaited<ReturnType<typeof getRoundSchedules>>;
 export type ScheduleCompetition = RoundSchedules["competitions"][number];
 export type ScheduleMatch = RoundSchedules["matches"][number];
+
+// ───────── Bilten (admin): registracija odigranih utakmica, tabela i nominacija narednog kola ─────────
+
+async function bulletinRows() {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.halls, TAG.assignments, TAG.profiles, TAG.periods, TAG.reports);
+  const db = createAdminClient();
+  const competitions = rows(await db.from("competitions").select(SCHEDULE_COMPETITION_SELECT).eq("season.is_current", true).order("sort").order("name"));
+  if (competitions.length === 0) return { competitions, matches: [] };
+  const matches = rows(
+    await db
+      .from("matches")
+      .select(BULLETIN_MATCH_SELECT)
+      .in("competition_id", competitions.map((c) => c.id))
+      .not("round", "is", null)
+      .order("starts_at")
+      .order("number"),
+  );
+  return { competitions, matches };
+}
+
+/**
+ * Bilten: takmičenja tekuće sezone s kolima i sve njihove utakmice s rezultatom, četvrtinama, komesarom i sudijama
+ * i biltenom komesara (greške, incidenti, napomene). `suggested` = takmičenje i kolo zadnje odigrane utakmice.
+ */
+export async function getBulletinData() {
+  await requireRole("admin");
+  const data = await bulletinRows();
+  const matches = data.matches.map((m) => {
+    // match_reports je 1:1 (PK = match_id), ali PostgREST ga može vratiti i kao listu
+    const raw = m.match_reports;
+    const report = Array.isArray(raw) ? (raw[0] ?? null) : raw;
+    const periods = [...m.match_periods].sort((a, b) => a.period - b.period);
+    const sum = periods.reduce((t, p) => ({ home: t.home + p.home_points, away: t.away + p.away_points }), { home: 0, away: 0 });
+    return {
+      id: m.id,
+      number: m.number,
+      round: m.round!,
+      startsAt: m.starts_at,
+      status: m.status,
+      competitionId: m.competition_id,
+      homeId: m.home_team_id,
+      awayId: m.away_team_id,
+      home: m.home?.name ?? "—",
+      away: m.away?.name ?? "—",
+      hall: m.hall?.name ?? null,
+      /** Konačni rezultat: zbir četvrtina, inače rezultat upisan na utakmici */
+      score: periods.length > 0 ? sum : m.home_score != null && m.away_score != null ? { home: m.home_score, away: m.away_score } : null,
+      periods: periods.map((p) => ({ home: p.home_points, away: p.away_points })),
+      officials: crewSlots(crewOf(m), m.assignments)
+        .filter((s) => nominationGroupOf(s.position) === "officials")
+        .map((s) => ({ position: s.position, name: s.status === "pending" || s.status === "accepted" ? s.name : null })),
+      report: report
+        ? { technicals: parseTechnicals(report.technicals), incidents: report.incidents, remarks: report.remarks, submitted: report.submitted_at !== null }
+        : null,
+    };
+  });
+  const competitions = data.competitions
+    .filter((c) => matches.some((m) => m.competitionId === c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      shortName: c.short_name ?? c.name,
+      label: youthLabel(c.category) ?? c.short_name ?? c.name,
+      youth: youthLabel(c.category) !== null,
+      season: c.season?.name ?? null,
+    }));
+  const last = matches.filter((m) => m.status === "finished").at(-1) ?? matches[0];
+  return { competitions, matches, suggested: last ? { competitionId: last.competitionId, round: last.round } : null };
+}
+
+export type BulletinData = Awaited<ReturnType<typeof getBulletinData>>;
+export type BulletinMatch = BulletinData["matches"][number];

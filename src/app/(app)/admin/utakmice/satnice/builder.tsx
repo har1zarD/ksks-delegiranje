@@ -229,7 +229,7 @@ export function ScheduleBuilder({ competitions, matches, suggested }: RoundSched
   );
 }
 
-function Step({ n, title, aside, children }: { n: number; title: string; aside?: ReactNode; children: ReactNode }) {
+export function Step({ n, title, aside, children }: { n: number; title: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <section className={cx(CARD, "flex flex-col gap-4 p-4 sm:p-5")}>
       <div className="flex items-center justify-between gap-3">
@@ -246,7 +246,7 @@ function Step({ n, title, aside, children }: { n: number; title: string; aside?:
   );
 }
 
-function Chip({ on, onClick, small, children }: { on: boolean; onClick: () => void; small?: boolean; children: ReactNode }) {
+export function Chip({ on, onClick, small, children }: { on: boolean; onClick: () => void; small?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -263,7 +263,7 @@ function Chip({ on, onClick, small, children }: { on: boolean; onClick: () => vo
   );
 }
 
-function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex min-h-12 items-center gap-3 rounded-md bg-panel-2 px-3.5 py-2.5 transition-colors hover:bg-brand-soft">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="size-5 shrink-0 accent-[var(--brand)]" />
