@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus, CalendarDays, ChevronLeft, ChevronRight, FileImage, FileText } from "lucide-react";
-import { getAdminMatches, getCompetitions, getHalls, overviewEnd, type MatchPayment } from "@/lib/data/admin";
+import { delegatedHere, getAdminMatches, getCompetitions, getHalls, overviewEnd, type MatchPayment } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } from "@/components/filter-nav";
@@ -66,9 +66,10 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
     return `/admin/utakmice${s ? `?${s}` : ""}`;
   };
 
-  // Aktivirane zakazane utakmice narednih OVERVIEW_DAYS dana su na Pregledu; ovdje ostaju one koje tek treba aktivirati i kasnije aktivirane
+  // Aktivirane zakazane utakmice narednih OVERVIEW_DAYS dana su na Pregledu; ovdje ostaju one koje tek treba aktivirati i kasnije aktivirane.
+  // Predstojeće van Sarajeva (A2 liga jug, A1 žene) KSKS ne delegira
   const end = overviewEnd();
-  const matches = past ? all : all.filter((m) => !(m.status === "scheduled" && m.published_at && m.starts_at < end));
+  const matches = past ? all : all.filter((m) => delegatedHere(m) && !(m.status === "scheduled" && m.published_at && m.starts_at < end));
   const allActivated = matches.length === 0 && all.length > 0;
 
   // Grupisanje po danu (sarajevsko vrijeme)

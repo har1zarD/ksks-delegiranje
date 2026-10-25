@@ -15,6 +15,8 @@ import {
   SCHEDULE_MATCH_SELECT,
 } from "./selects";
 import { BULLETIN_CATEGORIES } from "./report";
+import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
+import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 
 // Svaka izvezena funkcija sama provjerava ulogu (DAL), ne oslanja se na layout.
 // Keširani čitači (ispod) koriste servisni klijent, pa provjera uloge mora ostati u izvezenoj funkciji.
@@ -200,8 +202,27 @@ export const OVERVIEW_DAYS = 7;
 /** Gradovi Kantona Sarajevo (grad dvorane) */
 const KS_CITIES = new Set(["Sarajevo", "Ilidža", "Vogošća", "Hadžići", "Ilijaš"]);
 
-/** KSKS delegira samo utakmice u dvoranama Kantona Sarajevo (A1 žene u Brčkom ne); bez dvorane ili grada utakmica ostaje */
-export function delegatedHere(m: { hall: { city: string | null } | null }) {
+/** Lige saveza BiH: KSKS delegira samo domaće utakmice sarajevskih ekipa (team id) */
+const SARAJEVO_HOME_TEAMS: Record<string, Set<string>> = {
+  // Hrasnica, Ilidža, Mladost, Point - Richmond Park, Realway
+  [A2_JUG_ID]: new Set([
+    "a363895b-2c09-4151-8178-b25240524b81",
+    "0e314b72-24a3-4557-bc49-91a1d7819cd2",
+    "274476bb-268f-416c-8b22-63c4041bf4d3",
+    "8840a236-eb54-4dea-875c-1ec6a43afde1",
+    "9083bf35-a5b3-44da-a70a-18fa68f734ab",
+  ]),
+  // Play Off, Faze
+  [A1_ZENE_ID]: new Set(["4a3cebd2-658f-46ba-aee0-7260697f5aac", "7747444b-2113-4058-afd6-f4091fc6b219"]),
+};
+
+/**
+ * KSKS delegira samo utakmice u Sarajevu: u A2 ligi jug i A1 ženama domaćin je sarajevska ekipa,
+ * inače dvorana u Kantonu Sarajevo (bez dvorane ili grada utakmica ostaje)
+ */
+export function delegatedHere(m: { competition: { id: string } | null; home: { id: string } | null; hall: { city: string | null } | null }) {
+  const home = m.competition && SARAJEVO_HOME_TEAMS[m.competition.id];
+  if (home) return !!m.home && home.has(m.home.id);
   return !m.hall?.city || KS_CITIES.has(m.hall.city);
 }
 
