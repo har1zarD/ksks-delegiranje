@@ -74,6 +74,9 @@ async function Match({ params }: { params: Params }) {
   const canPay = isAdmin || isFirstReferee || (!match.has_referees && (isTable || isCommissioner));
   const accepted = crew.filter((c) => c.status === "accepted");
   const allPaid = accepted.length > 0 && accepted.every((c) => c.paid_at);
+  const showBilten = isCommissioner || isAdmin || !!report?.submitted_at;
+  const canPrint = showBilten && !!report;
+  const canFinish = canScore && !finalOnly && match.status === "live";
   const homeName = match.home?.name ?? "Domaćin";
   const awayName = match.away?.name ?? "Gost";
 
@@ -115,20 +118,16 @@ async function Match({ params }: { params: Params }) {
           {!fiba && isCommissioner && !isAdmin && match.status === "finished" && (
             <p className="pt-3 text-[14px] text-fg-muted">Utakmica je završena. Za ispravku rezultata javi se savezu.</p>
           )}
-          {/* FIBA utakmicu pokreće sync (prva akcija na LiveStats), pa nema "Počni utakmicu" */}
-          {canScore && !finalOnly && (match.status === "live" || (match.status === "scheduled" && !fiba)) && (
+          {/* FIBA utakmicu pokreće sync (prva akcija na LiveStats), pa nema "Počni utakmicu"; "Završi utakmicu" je na dnu stranice */}
+          {canScore && !finalOnly && match.status === "scheduled" && !fiba && (
             <div className="mt-5 border-t border-line pt-5">
-              {match.status === "scheduled" ? (
-                <form action={setStatus}>
-                  <input type="hidden" name="match_id" value={match.id} />
-                  <input type="hidden" name="status" value="live" />
-                  <Button type="submit" className="w-full sm:w-auto">
-                    Počni utakmicu
-                  </Button>
-                </form>
-              ) : (
-                <FinishButton matchId={match.id} />
-              )}
+              <form action={setStatus}>
+                <input type="hidden" name="match_id" value={match.id} />
+                <input type="hidden" name="status" value="live" />
+                <Button type="submit" className="w-full sm:w-auto">
+                  Počni utakmicu
+                </Button>
+              </form>
             </div>
           )}
           {canLock && (
@@ -233,20 +232,9 @@ async function Match({ params }: { params: Params }) {
         </div>
       </section>
 
-      {(isCommissioner || isAdmin || report?.submitted_at) && (
+      {showBilten && (
         <section>
-          <SectionTitle
-            icon={<ClipboardList />}
-            action={
-              report && (
-                <Link href={`/bilten/${match.id}`} className={buttonClass("secondary")}>
-                  <Printer className="size-4" /> Za štampu
-                </Link>
-              )
-            }
-          >
-            Bilten
-          </SectionTitle>
+          <SectionTitle icon={<ClipboardList />}>Bilten</SectionTitle>
           {isCommissioner || isAdmin ? (
             <BiltenForm matchId={match.id} homeName={homeName} awayName={awayName} homeLogoUrl={match.home?.club?.logo_url ?? null} awayLogoUrl={match.away?.club?.logo_url ?? null} values={report} isAdmin={isAdmin} />
           ) : (
@@ -255,6 +243,18 @@ async function Match({ params }: { params: Params }) {
             </p>
           )}
         </section>
+      )}
+
+      {/* Na dnu, poslije svega što se upisuje (statistika, slike, bilten) */}
+      {(canPrint || canFinish) && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          {canPrint && (
+            <Link href={`/bilten/${match.id}`} className={buttonClass("secondary")}>
+              <Printer className="size-4" /> Za štampu
+            </Link>
+          )}
+          {canFinish && <FinishButton matchId={match.id} />}
+        </div>
       )}
     </div>
   );

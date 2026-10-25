@@ -27,6 +27,8 @@ async function MyMatches() {
   const upcoming = mine.upcoming.filter((a) => a.status === "accepted");
   const past = mine.past.filter((a) => a.status === "accepted");
   const crews = await getCrews([...upcoming, ...past].map((a) => a.match.id));
+  // Komesar ne sudi: njemu su to završene utakmice
+  const pastTitle = past.every((a) => a.position === "commissioner") ? "Završene utakmice" : "Odsuđene";
 
   if (upcoming.length + past.length === 0)
     return (
@@ -62,7 +64,7 @@ async function MyMatches() {
       </section>
       {past.length > 0 && (
         <section>
-          <SectionTitle icon={<CheckCircle2 />} count={past.length}>Odsuđene</SectionTitle>
+          <SectionTitle icon={<CheckCircle2 />} count={past.length}>{pastTitle}</SectionTitle>
           <ul className="flex flex-col gap-3">
             {past.map((a) => (
               <li key={a.id} className="overflow-hidden rounded-lg border border-line bg-panel shadow-panel px-4 sm:px-6">

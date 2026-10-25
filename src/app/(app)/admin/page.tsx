@@ -68,6 +68,30 @@ async function Overview() {
 
   return (
     <div className="flex flex-col gap-10">
+      {live.length > 0 && (
+        <section>
+          <LiveRefresh matchIds={live.map((m) => m.id)} />
+          <SectionTitle icon={<Radio />} count={live.length}>Uživo</SectionTitle>
+          <Rows>
+            {live.map((m) => (
+              <li key={m.id}>
+                <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
+                  <MatchLine
+                    match={m}
+                    periods={m.periods}
+                    badge={
+                      <Status tone="crest" pulse>
+                        Uživo
+                      </Status>
+                    }
+                  />
+                </Link>
+              </li>
+            ))}
+          </Rows>
+        </section>
+      )}
+
       {activatedList.length > 0 && (
         <section>
           <SectionTitle
@@ -119,30 +143,6 @@ async function Overview() {
               </div>
             ))}
           </div>
-        </section>
-      )}
-
-      {live.length > 0 && (
-        <section>
-          <LiveRefresh matchIds={live.map((m) => m.id)} />
-          <SectionTitle icon={<Radio />} count={live.length}>Uživo</SectionTitle>
-          <Rows>
-            {live.map((m) => (
-              <li key={m.id}>
-                <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                  <MatchLine
-                    match={m}
-                    periods={m.periods}
-                    badge={
-                      <Status tone="crest" pulse>
-                        Uživo
-                      </Status>
-                    }
-                  />
-                </Link>
-              </li>
-            ))}
-          </Rows>
         </section>
       )}
 
