@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Download, Images, Search, Shield, Trophy } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, Search, Shield, Trophy } from "lucide-react";
 import { Button, CARD, cx, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import type { SocialMatch } from "@/lib/data/social";
@@ -19,17 +19,18 @@ const DEFAULT_DESIGN: SocialDesignOptions = {
   showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true,
 };
 
-const KIND_ICONS = { schedule: CalendarDays, standings: Trophy, clubs: Shield };
+const KIND_ICONS = { schedule: CalendarDays, results: ClipboardCheck, standings: Trophy, clubs: Shield };
 
 type DesignChange = <K extends keyof SocialDesignOptions>(key: K, value: SocialDesignOptions[K]) => void;
 type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: string };
 
 /**
- * Slike za objavu: raspored, tabela i klubovi. Izgled (predložak, format, akcent) je zajednički,
- * tekst i izbor ima svaka vrsta svoj; sve tri ostaju otvorene, pa prelazak između njih ništa ne briše.
+ * Slike za objavu: raspored, rezultati, tabela i klubovi. Izgled (predložak, format, akcent) je zajednički,
+ * tekst i izbor ima svaka vrsta svoj; sve ostaju otvorene, pa prelazak između njih ništa ne briše.
  */
-export function SocialStudio({ matches, today, now, competition, kind: initialKind, tables, font }: {
+export function SocialStudio({ matches, results, today, now, competition, kind: initialKind, tables, font }: {
   matches: SocialMatch[];
+  results: SocialMatch[];
   today: string;
   now: number;
   competition?: string;
@@ -60,6 +61,7 @@ export function SocialStudio({ matches, today, now, competition, kind: initialKi
         ); })}
       </div>
       <div role="tabpanel" hidden={kind !== "schedule"}><ScheduleBuilder {...shared} matches={matches} today={today} now={now} competition={competition} /></div>
+      <div role="tabpanel" hidden={kind !== "results"}><ResultsBuilder {...shared} matches={results} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "clubs"}><ClubsBuilder {...shared} tables={tables} competition={competition} /></div>
     </div>
@@ -73,7 +75,7 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
   const [now, setNow] = useState(initialNow);
   const matches = useMemo(() => initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), [initialMatches, now]);
   // Početni filter: takmičenje iz linka i njegovo prvo naredno kolo; inače narednih 7 dana, a ako tada nema utakmica, 7 dana od prve naredne
-  const [filters, setFilters] = useState<Filters>(() => {
+  const picker = useMatchPicker(matches, "Raspored utakmica", () => {
     const own = matches.filter((m) => m.competitionId === initialCompetition);
     if (own.length) {
       const rounds = own.flatMap((m) => (m.round == null ? [] : [m.round]));
@@ -83,25 +85,9 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
     const start = !first || matches.some((m) => m.date >= today && m.date <= addDays(today, 6)) ? today : first;
     return { ...NO_FILTERS, from: start, to: addDays(start, 6) };
   });
-  const { competition, round, search, from, to } = filters;
-  // Izbor prati filtere: svaka promjena filtera označi upravo prikazane utakmice, pa se i pregled odmah mijenja
-  const [selected, setSelected] = useState(() => new Set(filterMatches(matches, filters).map((m) => m.id)));
-  const [page, setPage] = useState(0);
+  const { chosen, page, setPage, texts, setTexts } = picker;
   const [perPage, setPerPage] = useState(7);
-  const [texts, setTexts] = useState<SocialTextOptions>(() => follow(defaultTexts("Raspored utakmica", "rows"), "", filters.competition, headline(matches, filters)));
-  function filter(patch: Partial<Filters>) {
-    const next = { ...filters, ...patch };
-    setFilters(next);
-    setTexts((old) => follow(old, headline(matches, filters), next.competition, headline(matches, next)));
-    setSelected(new Set(filterMatches(matches, next).map((m) => m.id)));
-    setPage(0);
-  }
-  const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
   const pages = useMemo<SocialContent[]>(() => chunk(chosen, perPage).map((list) => ({ kind: "schedule", matches: list })), [chosen, perPage]);
-  const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
-  const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
-  const visible = filterMatches(matches, filters);
-  const hiddenSelected = chosen.length - visible.filter((m) => selected.has(m.id)).length;
 
   useEffect(() => {
     const refreshTime = () => setNow(Date.now());
@@ -117,16 +103,6 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
     };
   }, [matches]);
 
-  function toggle(id: string) {
-    setSelected((old) => {
-      const next = new Set(old);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    setPage(0);
-  }
-
   return (
     <Layout preview={
       <SocialPreview
@@ -137,57 +113,157 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
       />
     }>
       <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
-        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema budućih ni odgođenih utakmica tekuće sezone.</p> : <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Select label="Takmičenje" value={competition} onChange={(event) => filter({ competition: event.target.value, round: "", from: "", to: "" })}>
-              <option value="">Sva takmičenja</option>
-              {competitions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </Select>
-            <Select label="Kolo" value={round} onChange={(event) => filter({ round: event.target.value, from: "", to: "" })}>
-              <option value="">Sva kola</option>
-              <option value="none">Bez kola</option>
-              {rounds.map((n) => <option key={n} value={String(n)}>{n}. kolo</option>)}
-            </Select>
-            <Field label="Od datuma" type="date" value={from} max={to || undefined} onChange={(event) => filter({ from: event.target.value })} />
-            <Field label="Do datuma" type="date" value={to} min={from || undefined} onChange={(event) => filter({ to: event.target.value })} />
-          </div>
-          <Field label="Pretraži utakmice" placeholder="Ekipa, takmičenje ili dvorana…" icon={<Search className="size-4" />} value={search} onChange={(event) => filter({ search: event.target.value })} />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
-            <button type="button" className="font-semibold hover:underline" onClick={() => filter({ from: today, to: addDays(today, 6) })}>Narednih 7 dana</button>
-            <button type="button" className="text-fg-muted hover:underline" onClick={() => filter(NO_FILTERS)}>Očisti filtere</button>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">
-            <button type="button" disabled={!visible.length} className="font-semibold hover:underline disabled:opacity-40" onClick={() => { setSelected((old) => new Set([...old, ...visible.map((m) => m.id)])); setPage(0); }}>Označi prikazane ({visible.length})</button>
-            <button type="button" disabled={!chosen.length} className="text-fg-muted hover:underline disabled:opacity-40" onClick={() => { setSelected(new Set()); setPage(0); }}>Poništi izbor</button>
-          </div>
-          {hiddenSelected > 0 && <p className="text-[12px] text-fg-muted">Odabrano izvan trenutnog filtera: {hiddenSelected}. Te utakmice ostaju na slikama.</p>}
-          {from && to && from > to && <p role="alert" className="text-[13px] text-crest">Početni datum mora biti prije završnog.</p>}
-          <div className="max-h-[420px] overflow-y-auto rounded-lg border border-line">
-            {visible.length ? visible.map((m) => (
-              <label key={m.id} className={cx("flex cursor-pointer items-start gap-3 border-b border-line p-3 last:border-b-0 hover:bg-panel-2", selected.has(m.id) && "bg-panel-2")}>
-                <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">{m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}{m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}</span>
-                  <span className="mt-0.5 block text-[14px] font-semibold">{m.home} <span className="font-normal text-fg-faint">–</span> {m.away}</span>
-                  <span className="mt-1 block text-[12px] text-fg-muted">{m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}</span>
-                </span>
-              </label>
-            )) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
-          </div>
-          <p className="text-[12px] text-fg-faint">Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum.</p>
-        </>}
+        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema budućih ni odgođenih utakmica tekuće sezone.</p> : (
+          <MatchPicker matches={matches} picker={picker} range={{ label: "Narednih 7 dana", from: today, to: addDays(today, 6) }} note="Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum." />
+        )}
       </Step>
       <Step number={2} title="Izgled">
         <LayoutPicker kind="schedule" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
         <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
-        <Select label="Utakmica po slici" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(0); }} hint="Više utakmica daje gušći raspored; za veće grbove izaberi manji broj ili Story format.">
-          {Array.from({ length: 12 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} po slici</option>)}
-        </Select>
+        <PerPage value={perPage} onChange={(count) => { setPerPage(count); setPage(0); }} />
       </Step>
       <Step number={3} title="Tekst i detalji">
         <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} schedule placeholder="Raspored utakmica" />
       </Step>
     </Layout>
+  );
+}
+
+// ───────────────────────── Rezultati ─────────────────────────
+
+/** `competition` iz linka (`?takmicenje=`): filter na to takmičenje i njegovo zadnje odigrano kolo */
+function ResultsBuilder({ matches, today, competition: initialCompetition, design, onDesign, font }: Shared & { matches: SocialMatch[]; today: string; competition?: string }) {
+  // Početni filter: takmičenje iz linka i njegovo zadnje kolo; inače zadnjih 7 dana, a ako tada nema utakmica, 7 dana do zadnje odigrane
+  const picker = useMatchPicker(matches, "Rezultati", () => {
+    const own = matches.filter((m) => m.competitionId === initialCompetition);
+    if (own.length) {
+      const rounds = own.flatMap((m) => (m.round == null ? [] : [m.round]));
+      return { ...NO_FILTERS, competition: own[0].competitionId, round: rounds.length ? String(Math.max(...rounds)) : "" };
+    }
+    const last = matches[matches.length - 1]?.date;
+    const end = !last || matches.some((m) => m.date >= addDays(today, -6)) ? today : last;
+    return { ...NO_FILTERS, from: addDays(end, -6), to: end };
+  });
+  const { chosen, page, setPage, texts, setTexts } = picker;
+  const [perPage, setPerPage] = useState(7);
+  const pages = useMemo<SocialContent[]>(() => chunk(chosen, perPage).map((list) => ({ kind: "results", matches: list })), [chosen, perPage]);
+
+  return (
+    <Layout preview={<SocialPreview kind="results" pages={pages} options={{ ...design, ...texts }} font={font} page={page} onPage={setPage} empty="Označi utakmice za pregled slike." />}>
+      <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
+        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema završenih utakmica s upisanim rezultatom u tekućoj sezoni.</p> : (
+          <MatchPicker matches={matches} picker={picker} range={{ label: "Zadnjih 7 dana", from: addDays(today, -6), to: today }} note="Završene utakmice tekuće sezone s upisanim rezultatom." />
+        )}
+      </Step>
+      <Step number={2} title="Izgled">
+        <LayoutPicker kind="results" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
+        <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
+        <PerPage value={perPage} onChange={(count) => { setPerPage(count); setPage(0); }} />
+      </Step>
+      <Step number={3} title="Tekst i detalji">
+        <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} schedule placeholder="Rezultati" />
+      </Step>
+    </Layout>
+  );
+}
+
+// ───────────────────────── Izbor utakmica (raspored i rezultati) ─────────────────────────
+
+/** Filteri i izbor: svaka promjena filtera označi upravo prikazane utakmice, pa se i pregled odmah mijenja; podnaslov prati takmičenje i kolo */
+function useMatchPicker(matches: SocialMatch[], title: string, initialFilters: () => Filters) {
+  const [filters, setFilters] = useState<Filters>(initialFilters);
+  const [selected, setSelected] = useState(() => new Set(filterMatches(matches, filters).map((m) => m.id)));
+  const [page, setPage] = useState(0);
+  const [texts, setTexts] = useState<SocialTextOptions>(() => follow(defaultTexts(title, "rows"), "", filters.competition, headline(matches, filters)));
+  const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
+
+  function filter(patch: Partial<Filters>) {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    setTexts((old) => follow(old, headline(matches, filters), next.competition, headline(matches, next)));
+    setSelected(new Set(filterMatches(matches, next).map((m) => m.id)));
+    setPage(0);
+  }
+
+  function select(ids: Set<string>) {
+    setSelected(ids);
+    setPage(0);
+  }
+
+  function toggle(id: string) {
+    setSelected((old) => {
+      const next = new Set(old);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setPage(0);
+  }
+
+  return { filters, filter, selected, select, toggle, chosen, page, setPage, texts, setTexts };
+}
+
+function MatchPicker({ matches, picker: { filters, filter, selected, select, toggle, chosen }, range, note }: {
+  matches: SocialMatch[];
+  picker: ReturnType<typeof useMatchPicker>;
+  /** Brzi filter datuma (npr. narednih ili zadnjih 7 dana) */
+  range: { label: string; from: string; to: string };
+  note: string;
+}) {
+  const { competition, round, search, from, to } = filters;
+  const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
+  const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
+  const visible = filterMatches(matches, filters);
+  const hiddenSelected = chosen.length - visible.filter((m) => selected.has(m.id)).length;
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Select label="Takmičenje" value={competition} onChange={(event) => filter({ competition: event.target.value, round: "", from: "", to: "" })}>
+          <option value="">Sva takmičenja</option>
+          {competitions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </Select>
+        <Select label="Kolo" value={round} onChange={(event) => filter({ round: event.target.value, from: "", to: "" })}>
+          <option value="">Sva kola</option>
+          <option value="none">Bez kola</option>
+          {rounds.map((n) => <option key={n} value={String(n)}>{n}. kolo</option>)}
+        </Select>
+        <Field label="Od datuma" type="date" value={from} max={to || undefined} onChange={(event) => filter({ from: event.target.value })} />
+        <Field label="Do datuma" type="date" value={to} min={from || undefined} onChange={(event) => filter({ to: event.target.value })} />
+      </div>
+      <Field label="Pretraži utakmice" placeholder="Ekipa, takmičenje ili dvorana…" icon={<Search className="size-4" />} value={search} onChange={(event) => filter({ search: event.target.value })} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
+        <button type="button" className="font-semibold hover:underline" onClick={() => filter({ from: range.from, to: range.to })}>{range.label}</button>
+        <button type="button" className="text-fg-muted hover:underline" onClick={() => filter(NO_FILTERS)}>Očisti filtere</button>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">
+        <button type="button" disabled={!visible.length} className="font-semibold hover:underline disabled:opacity-40" onClick={() => select(new Set([...selected, ...visible.map((m) => m.id)]))}>Označi prikazane ({visible.length})</button>
+        <button type="button" disabled={!chosen.length} className="text-fg-muted hover:underline disabled:opacity-40" onClick={() => select(new Set())}>Poništi izbor</button>
+      </div>
+      {hiddenSelected > 0 && <p className="text-[12px] text-fg-muted">Odabrano izvan trenutnog filtera: {hiddenSelected}. Te utakmice ostaju na slikama.</p>}
+      {from && to && from > to && <p role="alert" className="text-[13px] text-crest">Početni datum mora biti prije završnog.</p>}
+      <div className="max-h-[420px] overflow-y-auto rounded-lg border border-line">
+        {visible.length ? visible.map((m) => (
+          <label key={m.id} className={cx("flex cursor-pointer items-start gap-3 border-b border-line p-3 last:border-b-0 hover:bg-panel-2", selected.has(m.id) && "bg-panel-2")}>
+            <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">{m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}{m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}</span>
+              <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{m.homeScore} : {m.awayScore}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
+              <span className="mt-1 block text-[12px] text-fg-muted">{m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}</span>
+            </span>
+          </label>
+        )) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
+      </div>
+      <p className="text-[12px] text-fg-faint">{note}</p>
+    </>
+  );
+}
+
+function PerPage({ value, onChange }: { value: number; onChange: (count: number) => void }) {
+  return (
+    <Select label="Utakmica po slici" value={value} onChange={(event) => onChange(Number(event.target.value))} hint="Više utakmica daje gušći raspored; za veće grbove izaberi manji broj ili Story format.">
+      {Array.from({ length: 12 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} po slici</option>)}
+    </Select>
   );
 }
 
@@ -346,7 +422,7 @@ function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
   const bar = "rounded-[2px] bg-fg-faint/40";
   const dot = "size-2.5 shrink-0 rounded-[2px] bg-fg-faint/70";
   if (kind === "schedule" && id === "cards") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1">{[0, 1].map((n) => <span key={n} className="flex flex-col items-center gap-0.5"><span className={cx(bar, "h-0.5 w-1/2")} /><span className="flex h-3.5 w-full items-center justify-between rounded-[4px] bg-fg-faint/20 px-1"><span className={dot} /><span className="h-1.5 w-4 rounded-[2px] bg-fg-faint/70" /><span className={dot} /></span></span>)}</span>;
-  if (kind === "schedule" && id === "list") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{[0, 1, 2].map((n) => <span key={n} className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
+  if ((kind === "schedule" || kind === "results") && id === "list") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{[0, 1, 2].map((n) => <span key={n} className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
   if (kind === "standings" && id === "board") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-0 rounded-[4px] bg-fg-faint/15 p-1">{[0, 1, 2, 3].map((n) => <span key={n} className="flex items-center gap-1 border-b border-fg-faint/30 py-0.5 last:border-0"><span className={cx(bar, "h-1 w-1/2")} /><span className="ml-auto h-1 w-3 rounded-[2px] bg-fg-faint/60" /></span>)}</span>;
   if (kind === "clubs" && id === "grid") return <span aria-hidden="true" className="grid h-12 grid-cols-4 content-center gap-1">{Array.from({ length: 8 }, (_, n) => <span key={n} className="aspect-square rounded-[3px] bg-fg-faint/30" />)}</span>;
   if (kind === "clubs" && id === "list") return <span aria-hidden="true" className="grid h-12 grid-cols-2 content-center gap-x-2 gap-y-1">{Array.from({ length: 6 }, (_, n) => <span key={n} className="flex items-center gap-1"><span className={dot} /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
@@ -522,6 +598,7 @@ function SocialPreview({ kind, pages, options, font, page, onPage: setPage, empt
 function describe(content: SocialContent, options: SocialOptions) {
   const title = options.title || "Slika za objavu";
   if (content.kind === "schedule") return `${title}: ${content.matches.map((m) => `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
+  if (content.kind === "results") return `${title}: ${content.matches.map((m) => `${m.home} ${m.homeScore} : ${m.awayScore} ${m.away}, ${formatDate(m.date)}`).join("; ")}`;
   if (content.kind === "standings") return `${title}: ${content.rows.map((r, i) => `${content.firstRank + i}. ${r.name} ${r.points} bodova`).join("; ")}`;
   return `${title}: ${content.clubs.map((c) => c.name).join(", ")}`;
 }

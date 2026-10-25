@@ -92,6 +92,10 @@ export const SOCIAL_LAYOUTS = {
     { id: "cards", name: "Kartice", description: "Svijetle kartice i veliko vrijeme" },
     { id: "list", name: "Lista", description: "Po danima, sažeto" },
   ],
+  results: [
+    { id: "rows", name: "Trake", description: "Grb, ime, rezultat, ime, grb" },
+    { id: "list", name: "Lista", description: "Po danima, sažeto" },
+  ],
   standings: [
     { id: "bars", name: "Trake", description: "Svaka ekipa u svojoj traci" },
     { id: "board", name: "Ploča", description: "Jedan panel, tanke linije" },
@@ -105,7 +109,7 @@ export const SOCIAL_LAYOUTS = {
 export type SocialFormat = (typeof SOCIAL_FORMATS)[number]["id"];
 export type SocialTemplate = (typeof SOCIAL_TEMPLATES)[number]["id"];
 export type SocialBrand = keyof typeof SOCIAL_BRANDS;
-export type SocialKind = "schedule" | "standings" | "clubs";
+export type SocialKind = "schedule" | "results" | "standings" | "clubs";
 
 /** Izgled: zajednički za sve vrste slika */
 export type SocialDesignOptions = {
@@ -130,6 +134,7 @@ export type SocialClub = { id: string; name: string; logoUrl: string | null };
 
 export type SocialContent =
   | { kind: "schedule"; matches: SocialMatch[] }
+  | { kind: "results"; matches: SocialMatch[] }
   | { kind: "standings"; rows: SocialStanding[]; firstRank: number }
   | { kind: "clubs"; clubs: SocialClub[] };
 
@@ -138,7 +143,7 @@ export function templateOf(id: SocialTemplate): Template {
 }
 
 export function contentSize(content: SocialContent) {
-  return content.kind === "schedule" ? content.matches.length : content.kind === "standings" ? content.rows.length : content.clubs.length;
+  return content.kind === "schedule" || content.kind === "results" ? content.matches.length : content.kind === "standings" ? content.rows.length : content.clubs.length;
 }
 
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
@@ -232,7 +237,7 @@ const shortDate = (date: string) => {
 };
 
 const logoUrls = (content: SocialContent) =>
-  content.kind === "schedule" ? content.matches.flatMap((m) => [m.homeLogo, m.awayLogo])
+  content.kind === "schedule" || content.kind === "results" ? content.matches.flatMap((m) => [m.homeLogo, m.awayLogo])
     : content.kind === "standings" ? content.rows.map((r) => r.logoUrl)
     : content.clubs.map((c) => c.logoUrl);
 
@@ -632,6 +637,130 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       else text(shortDate(m.date), center, bigY, { size: bigSize, color: theme.ink, max: middle, weight: 700, align: "center", face: "poster" });
       text(detail, center, withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75, { size: smallSize, color: postponed ? theme.muted : theme.accent, max: middle + 20, weight: 600, align: "center", spacing: 0.06 });
     });
+  }
+
+  // ── Rezultati ─────────────────────────────────────────────
+
+  if (content.kind === "results") {
+    const matches = content.matches;
+    const mixed = new Set(matches.map((m) => `${m.competitionId}|${m.round ?? ""}`)).size > 1;
+    const showCompetition = options.showCompetition && mixed;
+    const dayLabel = (m: SocialMatch) => `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date)}`;
+    const hallOf = (m: SocialMatch) => (options.showHall && m.hall ? m.hall.toUpperCase() : null);
+
+    /** Rezultat „78 : 65“ centriran na dvotački; pobjednikov broj punom bojom, poraženog prigušeno */
+    const score = (m: SocialMatch, cx: number, cy: number, size: number, max: number) => {
+      const home = m.homeScore ?? 0;
+      const away = m.awayScore ?? 0;
+      const side = max / 2 - size * 0.24;
+      text(String(home), cx - size * 0.24, cy, { size, color: home >= away ? theme.ink : theme.muted, max: side, weight: 700, align: "right", face: "poster" });
+      text(":", cx, cy - size * 0.05, { size: size * 0.8, color: theme.accent, max: size * 0.3, weight: 700, align: "center", face: "poster" });
+      text(String(away), cx + size * 0.24, cy, { size, color: away >= home ? theme.ink : theme.muted, max: side, weight: 700, align: "left", face: "poster" });
+    };
+
+    /** Lista: zaglavlje po danu, red = grb ime · rezultat · ime grb, dvorana ispod */
+    const list = () => {
+      const groups = new Map<string, SocialMatch[]>();
+      for (const m of matches) {
+        const key = `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date)}`;
+        groups.set(key, [...(groups.get(key) ?? []), m]);
+      }
+      const headers = groups.size;
+      const headerHeight = Math.min(58, available / (matches.length + headers) * 0.7);
+      const rowHeight = Math.min(story ? 128 : 112, (available - headers * headerHeight - (headers - 1) * 18) / Math.max(1, matches.length));
+      const block = headers * headerHeight + matches.length * rowHeight + (headers - 1) * 18;
+      let y = contentTop + Math.max(0, (available - block) / 2) * 0.4;
+      const scoreWidth = width * 0.24;
+      for (const [label, list] of groups) {
+        text(label, margin, y + headerHeight * 0.5, { size: headerHeight * 0.46, color: theme.accent, max: width, weight: 700, face: "poster", spacing: 0.04 });
+        line(margin, y + headerHeight - 2, margin + width, y + headerHeight - 2, theme.accent, 2);
+        y += headerHeight;
+        list.forEach((m, i) => {
+          const cy = y + rowHeight / 2;
+          rowSurface(margin, y + 4, width, rowHeight - 8, i === list.length - 1, panelAlpha, Math.min(10, rowHeight * 0.14));
+          const pad = 18;
+          const hall = hallOf(m);
+          const nameY = hall ? cy - rowHeight * 0.1 : cy;
+          const size = options.showLogos ? rowHeight * 0.58 : 0;
+          const left = margin + pad;
+          const right = margin + width - pad;
+          const mid = margin + width / 2;
+          crest(m.home, m.homeLogo, left + size / 2, cy, size);
+          crest(m.away, m.awayLogo, right - size / 2, cy, size);
+          const nameSize = Math.min(rowHeight * 0.26, 32);
+          const nameMax = mid - scoreWidth / 2 - left - size - (size ? 16 : 0) - 12;
+          teamName(m.home, left + size + (size ? 16 : 0), nameY, nameMax, nameSize, theme.ink, "left");
+          teamName(m.away, right - size - (size ? 16 : 0), nameY, nameMax, nameSize, theme.ink, "right");
+          score(m, mid, nameY, Math.min(rowHeight * 0.38, 46), scoreWidth);
+          if (hall) text(hall, mid, cy + rowHeight * 0.26, { size: Math.min(rowHeight * 0.14, 17), color: theme.muted, max: right - left - size * 2 - 40, weight: 600, align: "center", spacing: 0.1 });
+          y += rowHeight;
+        });
+        y += 18;
+      }
+    };
+
+    if (options.layout === "list") list();
+    else {
+      const columns = wide && matches.length > 3 ? 2 : 1;
+      const rows = Math.ceil(matches.length / columns);
+      const gap = hasPanel ? (matches.length > 6 ? 10 : 14) : 0;
+      const cap = rows === 1 ? 440 : rows === 2 ? 400 : story ? 230 : 210;
+      const rowHeight = Math.min(cap, (available - (rows - 1) * gap) / Math.max(1, rows));
+      const block = rows * rowHeight + (rows - 1) * gap;
+      const startY = contentTop + Math.max(0, (available - block) / 2) * (matches.length <= 2 ? 1 : 0.35);
+      const cardWidth = (width - (columns - 1) * 16) / columns;
+      const big = columns === 1 && rowHeight >= 300;
+      matches.forEach((m, index) => {
+        const row = Math.floor(index / columns);
+        const x = margin + (index % columns) * (cardWidth + 16);
+        const y = startY + row * (rowHeight + gap);
+        const center = x + cardWidth / 2;
+        rowSurface(x, y, cardWidth, rowHeight, row === rows - 1, panelAlpha);
+        const competition = [m.competition, m.round == null ? null : `${m.round}. kolo`].filter(Boolean).join(" · ").toUpperCase();
+        const hall = hallOf(m);
+
+        if (big) {
+          // Jedna ili dvije utakmice: veliki grbovi s imenima ispod, rezultat i datum u sredini
+          const crestSize = Math.min(rowHeight * 0.5, cardWidth * 0.24, 250);
+          const side = cardWidth * 0.2;
+          const nameGap = options.showLogos ? crestSize / 2 + 44 : 0;
+          const cy = y + rowHeight / 2 - nameGap / 2 + (showCompetition ? 16 : 0);
+          crest(m.home, m.homeLogo, x + side, cy, crestSize);
+          crest(m.away, m.awayLogo, x + cardWidth - side, cy, crestSize);
+          teamName(m.home, x + side, cy + nameGap, cardWidth * 0.34, 38);
+          teamName(m.away, x + cardWidth - side, cy + nameGap, cardWidth * 0.34, 38);
+          if (showCompetition) text(competition, center, y + 44, { size: 20, color: theme.muted, max: cardWidth - 80, weight: 600, align: "center", spacing: 0.12 });
+          score(m, center, cy - 14, 84, cardWidth * 0.3);
+          text(dayLabel(m), center, cy + 50, { size: 24, color: theme.accent, max: cardWidth * 0.28, weight: 700, align: "center", spacing: 0.08 });
+          if (hall) text(hall, center, cy + 82, { size: 18, color: theme.muted, max: cardWidth * 0.28, weight: 600, align: "center", spacing: 0.08 });
+          return;
+        }
+
+        // Red: grb · ime · rezultat · ime · grb
+        const pad = Math.min(24, rowHeight * 0.14);
+        const crestSize = options.showLogos ? Math.min(rowHeight * 0.74, 150, cardWidth * 0.13) : 0;
+        const middle = cardWidth * (columns > 1 ? 0.34 : 0.3);
+        const nameSize = Math.min(rowHeight * 0.22, columns > 1 ? 24 : 34);
+        const homeLeft = x + pad + (crestSize ? crestSize + pad : 0);
+        const homeRight = center - middle / 2 - 10;
+        const awayLeft = center + middle / 2 + 10;
+        const awayRight = x + cardWidth - pad - (crestSize ? crestSize + pad : 0);
+        const cy = y + rowHeight / 2;
+        crest(m.home, m.homeLogo, x + pad + crestSize / 2, cy, crestSize);
+        crest(m.away, m.awayLogo, x + cardWidth - pad - crestSize / 2, cy, crestSize);
+        teamName(m.home, (homeLeft + homeRight) / 2, cy, homeRight - homeLeft, nameSize);
+        teamName(m.away, (awayLeft + awayRight) / 2, cy, awayRight - awayLeft, nameSize);
+
+        const withLabel = showCompetition && rowHeight >= 96;
+        const bigY = withLabel ? y + rowHeight * 0.5 : y + rowHeight * 0.43;
+        const bigSize = Math.min(rowHeight * (withLabel ? 0.3 : 0.36), 64);
+        const smallSize = Math.min(rowHeight * 0.13, 20);
+        if (withLabel) text(competition, center, y + rowHeight * 0.2, { size: smallSize * 0.9, color: theme.muted, max: middle, weight: 600, align: "center", spacing: 0.1 });
+        score(m, center, bigY, bigSize, middle);
+        const detail = [dayLabel(m), hall].filter(Boolean).join("  ·  ");
+        text(detail, center, withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75, { size: smallSize, color: theme.accent, max: middle + 20, weight: 600, align: "center", spacing: 0.06 });
+      });
+    }
   }
 
   // ── Tabela ─────────────────────────────────────────────
