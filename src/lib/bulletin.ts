@@ -1,5 +1,8 @@
 // Bilten: zahtjev za PDF i primjedbe iz biltena komesara. Bez Next-a; koristi ga i klijent (bilder) i server (PDF ruta).
 import { foulTimeLabel, type TechnicalFoul } from "@/lib/data/report-selects";
+import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
+import { A2_JUG_FIXTURES, A2_JUG_ID, type Fixture } from "@/lib/a2-jug-raspored";
+import { addDays, formatDate } from "@/lib/format";
 
 /** Šta bilder šalje PDF ruti: izbor utakmica, ispravljene primjedbe i dijelovi biltena (null / prazno = dio se ne ispisuje) */
 export type BulletinRequest = {
@@ -57,4 +60,14 @@ export function defaultRemarks(m: {
   });
   for (const text of [r.incidents, r.remarks]) if (text?.trim()) lines.push(text.trim());
   return lines.length > 0 ? lines.join("\n") : NO_REMARKS;
+}
+
+/** Raspored saveza po takmičenju: nominacija narednog kola kad njegove utakmice još nisu napravljene u aplikaciji */
+export const BULLETIN_FIXTURES: Record<string, Fixture[]> = { [A2_JUG_ID]: A2_JUG_FIXTURES, [A1_ZENE_ID]: A1_ZENE_FIXTURES };
+
+/** Vikend kola iz rasporeda (subota): "7./8. 11. 2026." ili "31. 10. – 1. 11. 2026." */
+export function roundWeekend(saturday: string) {
+  const sunday = addDays(saturday, 1);
+  if (saturday.slice(0, 7) !== sunday.slice(0, 7)) return `${formatDate(saturday).slice(0, -6)} – ${formatDate(sunday)}`;
+  return `${Number(saturday.slice(8))}./${formatDate(sunday)}`;
 }

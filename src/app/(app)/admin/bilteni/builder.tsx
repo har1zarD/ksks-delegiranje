@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, FileText, LoaderCircle, RotateCcw } from "lucide-react";
 import type { BulletinData, BulletinMatch } from "@/lib/data/admin";
-import { defaultRemarks, delegatedOfficials, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
 import { matchesLabel } from "@/lib/finance";
 import { isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
@@ -41,13 +41,19 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
   const own = matches.filter((m) => compIds.includes(m.competitionId));
   const rounds = [...new Set(own.map((m) => m.round))].sort((a, b) => a - b);
   const activeRound = round !== null && rounds.includes(round) ? round : (rounds.findLast((r) => own.some((m) => m.round === r && m.status === "finished")) ?? rounds[0] ?? null);
-  const nextRound = rounds.find((r) => activeRound !== null && r > activeRound) ?? null;
+  // Naredno kolo: iz utakmica u aplikaciji ili iz rasporeda saveza (A2 jug, A1 žene), kad kolo još nije napravljeno
+  const fixturesOf = (competitionId: string) => BULLETIN_FIXTURES[competitionId] ?? [];
+  const nextRound =
+    [...new Set([...rounds, ...selected.flatMap((c) => fixturesOf(c.id).map((f) => f.round))])].sort((a, b) => a - b).find((r) => activeRound !== null && r > activeRound) ?? null;
 
   const groups = selected
     .map((c) => ({ competition: c, matches: own.filter((m) => m.competitionId === c.id && m.round === activeRound).sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0) }))
     .filter((g) => g.matches.length > 0);
   const chosen = groups.flatMap((g) => g.matches.filter((m) => !excluded.has(m.id)));
-  const nominated = nextRound === null ? 0 : own.filter((m) => m.round === nextRound).length;
+  const nominated =
+    nextRound === null
+      ? 0
+      : selected.reduce((n, c) => n + (own.filter((m) => m.competitionId === c.id && m.round === nextRound).length || fixturesOf(c.id).filter((f) => f.round === nextRound).length), 0);
   const autoTitle = [...new Set(selected.map((c) => c.label))].join(" / ") || "Bilten";
 
   // FIBA statistika utakmica u izboru (jednom po utakmici)
@@ -297,7 +303,7 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
             )}
             <Toggle
               label={nextRound !== null ? `Nominacija ${nextRound}. kola` : "Nominacija narednog kola"}
-              hint={nextRound !== null ? `${matchesLabel(nominated)}, komesar i sudije (bez termina)` : "Nema narednog kola"}
+              hint={nextRound !== null ? `${matchesLabel(nominated)}: datum, dvorana (ako je upisana), komesar i sudije` : "Nema narednog kola"}
               checked={nominationsOn && nextRound !== null}
               onChange={setNominationsOn}
             />

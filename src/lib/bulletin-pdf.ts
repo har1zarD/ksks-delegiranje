@@ -6,7 +6,7 @@ import type { BulletinMatch } from "@/lib/data/admin";
 import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import type { BulletinOfficials } from "@/lib/bulletin";
-import { formatDate, MATCH_STATUS_LABEL, todayISO } from "@/lib/format";
+import { formatDate, MATCH_STATUS_LABEL, todayISO, type Position } from "@/lib/format";
 import {
   A4,
   asset,
@@ -32,6 +32,9 @@ type Group<T> = { name: string; items: T[] };
 
 /** Utakmica u registraciji: primjedbe, komesar i sudije kako ih je admin potvrdio u bilderu */
 export type RegistrationMatch = BulletinMatch & BulletinOfficials & { remarks: string };
+
+/** Utakmica narednog kola: iz aplikacije ili iz rasporeda saveza; datum bez satnice, dvorana samo kad je poznata */
+export type NominationMatch = { number: number | null; home: string; away: string; date: string; hall: string | null; officials: { position: Position; name: string | null }[] };
 
 /** Savez biltena: KSBiH lige nose logo i naziv KSBiH, ostalo KSKS */
 export type BulletinBrand = { org: string; logo: string; ksbih: boolean };
@@ -61,7 +64,7 @@ export type BulletinPdfInput = {
   registration: { round: number | null; groups: Group<RegistrationMatch>[] } | null;
   decisions: string[] | null;
   standings: Group<BulletinStanding>[] | null;
-  nominations: { round: number; names: boolean; groups: Group<BulletinMatch>[] } | null;
+  nominations: { round: number; names: boolean; groups: Group<NominationMatch>[] } | null;
 };
 
 // Blok utakmice u registraciji: broj | ekipe, komesar, sudije | rezultat; ispod primjedbe
@@ -181,7 +184,7 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   }
 
   function drawNominations(nominations: NonNullable<BulletinPdfInput["nominations"]>) {
-    const blocks = nominations.groups.map((g) => ({ name: g.name, items: g.items.map((m) => ({ m, h: nominationHeight(m) })) }));
+    const blocks = nominations.groups.map((g) => ({ name: g.name, items: g.items.map((m) => ({ m, h: nominationHeight(f, m) })) }));
     partTitle(parts[n].title, blocks[0].items[0]?.h ?? 0);
     for (const g of blocks) {
       if (nominations.groups.length > 1) groupTitle(g.name, g.items[0]?.h ?? 0);
@@ -349,28 +352,50 @@ function drawRegistrationMatch(page: PDFPage, f: Fonts, m: RegistrationMatch, y:
 // ───────── Nominacija ─────────
 
 /** Komesar i sudije koje utakmica ima (i nedelegirani: prazno polje) */
-const nominationRows = (m: BulletinMatch) => m.officials.filter((o) => OFFICIAL_LABEL[o.position]);
+const nominationRows = (m: NominationMatch) => m.officials.filter((o) => OFFICIAL_LABEL[o.position]);
 
-function nominationHeight(m: BulletinMatch) {
-  return Math.max(TEAM_ROW + nominationRows(m).length * OFFICIAL_ROW, 44);
+const COL_DATE = 112;
+const DATE_SIZE = 9.5;
+const HALL_SIZE = 8;
+const HALL_LINE = 10.5;
+
+function hallLines(f: Fonts, m: NominationMatch) {
+  return m.hall ? wrap(upper(m.hall), f.regular, HALL_SIZE, COL_DATE - 14).slice(0, 3) : [];
 }
 
-/** Utakmica narednog kola bez termina: broj | domaćin – gost, ispod komesar i sudije (imena ili prazno); y = vrh bloka */
-function drawNominationMatch(page: PDFPage, f: Fonts, m: BulletinMatch, names: boolean, y: number, h: number) {
+function nominationHeight(f: Fonts, m: NominationMatch) {
+  return Math.max(TEAM_ROW + nominationRows(m).length * OFFICIAL_ROW, 30 + hallLines(f, m).length * HALL_LINE, 44);
+}
+
+/** Utakmica narednog kola: broj | datum (i dvorana) | domaćin – gost, ispod komesar i sudije (imena ili prazno); y = vrh bloka */
+function drawNominationMatch(page: PDFPage, f: Fonts, m: NominationMatch, names: boolean, y: number, h: number) {
   const x0 = M;
-  const x1 = M + COL_NO;
+  const xd = M + COL_NO;
+  const x1 = xd + COL_DATE;
   const x3 = M + W;
   const bottom = y - h;
   const rows = nominationRows(m);
   const teamH = rows.length > 0 ? TEAM_ROW : h;
   const rowH = rows.length > 0 ? (h - teamH) / rows.length : 0;
 
-  page.drawRectangle({ x: x0, y: bottom, width: COL_NO, height: h, color: C.panel2 });
+  page.drawRectangle({ x: x0, y: bottom, width: x1 - x0, height: h, color: C.panel2 });
   page.drawRectangle({ x: x1, y: y - teamH, width: x3 - x1, height: teamH, color: C.panel2 });
 
   const midY = bottom + h / 2;
-  centeredIn(page, "UTAKMICA", f.bold, 7, x0, x1, midY + 6, C.faint);
-  centeredIn(page, m.number == null ? "" : String(m.number).padStart(2, "0"), f.bold, 18, x0, x1, midY - 13, C.fg);
+  centeredIn(page, "UTAKMICA", f.bold, 7, x0, xd, midY + 6, C.faint);
+  centeredIn(page, m.number == null ? "" : String(m.number).padStart(2, "0"), f.bold, 18, x0, xd, midY - 13, C.fg);
+
+  // Datum (bez satnice) i dvorana ispod, ako je poznata; okomito centrirano
+  const halls = hallLines(f, m);
+  const textH = DATE_SIZE * 1.35 + (halls.length > 0 ? 4 + halls.length * HALL_LINE : 0);
+  let ty = midY + textH / 2 - DATE_SIZE;
+  centeredIn(page, fit(m.date, f.bold, DATE_SIZE, COL_DATE - 10), f.bold, DATE_SIZE, xd, x1, ty, C.fg);
+  ty -= DATE_SIZE * 1.35 + 4;
+  for (const l of halls) {
+    centeredIn(page, l, f.regular, HALL_SIZE, xd, x1, ty, C.fg);
+    ty -= HALL_LINE;
+  }
+  page.drawLine({ start: { x: xd, y }, end: { x: xd, y: bottom }, thickness: 0.6, color: C.line });
 
   const half = (x3 - x1) / 2;
   const teamY = y - teamH / 2 - 3.5;

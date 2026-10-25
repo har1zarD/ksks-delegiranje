@@ -3,11 +3,29 @@
 import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
 import { bulletinBrand, bulletinPdf } from "@/lib/bulletin-pdf";
-import { defaultRemarks, delegatedOfficials, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, roundWeekend, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import type { BulletinMatch } from "@/lib/data/admin";
+import type { NominationMatch } from "@/lib/bulletin-pdf";
 import { requireRole } from "@/lib/auth";
 import { fetchFibaGame } from "@/lib/fiba";
 import { seasonLabel } from "@/lib/schedule-pdf";
-import { slug } from "@/lib/format";
+import { formatDate, isoToSarajevo, slug } from "@/lib/format";
+
+/** Raspored saveza nema sastav: prazna polja za komesara i tri sudije, kao u biltenima KSBiH */
+const FIXTURE_OFFICIALS: NominationMatch["officials"] = (["commissioner", "referee_1", "referee_2", "referee_3"] as const).map((position) => ({ position, name: null }));
+
+/** Utakmice kola za nominaciju: napravljene u aplikaciji (datum i dvorana utakmice), inače iz rasporeda saveza (vikend kola) */
+function nominationMatches(competitionId: string, round: number, matches: BulletinMatch[]): NominationMatch[] {
+  const own = matches
+    .filter((m) => m.competitionId === competitionId && m.round === round)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt) || (a.number ?? Infinity) - (b.number ?? Infinity) || 0);
+  if (own.length > 0) {
+    return own.map((m) => ({ number: m.number, home: m.home, away: m.away, date: formatDate(isoToSarajevo(m.startsAt).date), hall: m.hall, officials: m.officials }));
+  }
+  return (BULLETIN_FIXTURES[competitionId] ?? [])
+    .filter((f) => f.round === round)
+    .map((f) => ({ number: f.number, home: f.home, away: f.away, date: roundWeekend(f.roundDate), hall: f.hall, officials: FIXTURE_OFFICIALS }));
+}
 
 export type BulletinPdfResult = { pdf: string; name: string } | { error: string };
 
@@ -44,10 +62,7 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
         round: nom.round,
         names: Boolean(nom.names),
         groups: competitions
-          .map((c) => ({
-            name: c.name,
-            items: data.matches.filter((m) => m.competitionId === c.id && m.round === nom.round).sort((a, b) => a.startsAt.localeCompare(b.startsAt) || byNumber(a, b)),
-          }))
+          .map((c) => ({ name: c.name, items: nominationMatches(c.id, nom.round, data.matches) }))
           .filter((g) => g.items.length > 0),
       }
     : null;
