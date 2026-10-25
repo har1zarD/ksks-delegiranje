@@ -172,8 +172,9 @@ export function PayrollItems({ person, editable }: { person: PayrollPerson; edit
         // Telefon: utakmica preko cijele širine, iznos i isplata u redu ispod; od sm: datum lijevo, iznos desno
         <li key={i.assignmentId} className="flex flex-col gap-2 py-3 text-[14px] sm:flex-row sm:items-center sm:gap-3">
           <span className="scoreboard hidden w-12 shrink-0 whitespace-nowrap text-[17px] font-semibold text-fg-muted sm:block">{formatDayMonth(i.startsAt)}</span>
-          <span className="min-w-0 flex-1">
-            <span className="flex min-w-0 flex-col gap-1 font-semibold">
+          {/* Klik na utakmicu: admin ide na uređivanje, službeno lice na stranicu utakmice */}
+          <Link href={editable ? `/admin/utakmice/${i.matchId}` : `/utakmice/${i.matchId}`} className="group/match min-w-0 flex-1">
+            <span className="flex min-w-0 flex-col gap-1 font-semibold group-hover/match:underline group-hover/match:underline-offset-4">
               <TeamName name={i.home?.name ?? "Domaćin"} logoUrl={i.home?.club?.logo_url} />
               <TeamName name={i.away?.name ?? "Gost"} logoUrl={i.away?.club?.logo_url} />
             </span>
@@ -183,7 +184,7 @@ export function PayrollItems({ person, editable }: { person: PayrollPerson; edit
               {i.kind && ` (${i.kind})`}, {POSITION_LABEL[i.position].toLowerCase()}
               {i.position.startsWith("referee") && (i.refereeCount === 3 ? " (trojka)" : " (dvojka)")}
             </span>
-          </span>
+          </Link>
           <span className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end sm:gap-4">
             <span className={cx("scoreboard whitespace-nowrap text-[17px] font-semibold", i.amount == null && "text-[13px] text-orange")}>
               {i.amount == null ? "cijena nije određena" : formatKM(i.amount)}
