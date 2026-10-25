@@ -166,7 +166,7 @@ async function Matches({ searchParams }: { searchParams: SearchParams }) {
                           quick && "flex-wrap gap-y-0 md:flex-nowrap",
                         )}
                       >
-                        {m.status === "scheduled" && <StaffingTab match={m} staffing={m.staffing} publishedAt={m.published_at} />}
+                        {m.status === "scheduled" && <StaffingTab match={m} staffing={m.staffing} publishedAt={m.published_at} fiba={m.fiba} />}
                         {/* Datum je dugme za označavanje (aktiviranje), ostatak reda otvara utakmicu */}
                         {!past && m.status === "scheduled" && <SelectMatch id={m.id} iso={m.starts_at} label={`${m.home?.name} – ${m.away?.name}`} />}
                         <div className="flex min-w-0 flex-1 flex-col">

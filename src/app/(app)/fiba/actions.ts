@@ -42,7 +42,7 @@ export async function addFibaGame(prev: AddFibaState, formData: FormData): Promi
 
 export type FibaLinkState = { error?: string; saved?: number };
 
-/** FIBA takmičenje po kategoriji (seniori); omladinska liga KS je 47625 */
+/** FIBA takmičenje po kategoriji (seniori); omladinska liga KS 2026/27 je 50399 */
 const FIBA_COMPETITION: Record<string, number> = { plbih: 50128, plbih_z: 50228, a1: 50201 };
 
 /** FIBA kategorija naše utakmice: seniorska liga po nazivu takmičenja, omladinska liga po kategoriji (ženske varijante) */
@@ -103,7 +103,7 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
       const category = categoryOf(match?.competition);
       const { error } = await db.from("fiba_games").insert({
         id: fibaId,
-        competition_id: FIBA_COMPETITION[category ?? ""] ?? 47625,
+        competition_id: FIBA_COMPETITION[category ?? ""] ?? 50399,
         category,
         starts_at: match?.starts_at ?? null,
         status: game ? STATUS[game.state] : "SCHEDULED",

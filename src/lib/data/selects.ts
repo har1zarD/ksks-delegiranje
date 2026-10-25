@@ -20,13 +20,16 @@ export const COMPETITION_SELECT =
 const MATCH_FEE_RULES =
   "rules:competitions!matches_competition_id_fkey ( fee_referee_2_km, fee_referee_3_km, fee_table_km, fee_stats_km, fee_commissioner_km, fee_scorer_km, fee_digital_km, split_nominations )" as const;
 
+/** FIBA LiveStats utakmica: uživo i da li je statistika (box score) upisana */
+const MATCH_FIBA = "fiba:fiba_games!matches_fiba_game_id_fkey ( status, live, stats_at, team_games:fiba_team_games ( count ) )" as const;
+
 /** Rezultat po četvrtinama (box score na listi i detalju) */
 const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points )" as const;
 
-export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, assignments ( id, position, status, notified_at, paid_at, profile:profiles!assignments_profile_id_fkey ( id, full_name ) )` as const;
+export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, ${MATCH_FIBA}, assignments ( id, position, status, notified_at, paid_at, profile:profiles!assignments_profile_id_fkey ( id, full_name ) )` as const;
 
 export const DELEGATION_MATCH_SELECT =
-  `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, competition_id, home_team_id, away_team_id, hall_id, notes, finished_at, finisher:profiles!matches_finished_by_fkey ( id, full_name, role )` as const;
+  `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, ${MATCH_FIBA}, competition_id, home_team_id, away_team_id, hall_id, notes, finished_at, finisher:profiles!matches_finished_by_fkey ( id, full_name, role )` as const;
 
 export const DELEGATION_ASSIGNMENT_SELECT =
   "id, position, status, decline_reason, notified_at, responded_at, paid_at, fee_km, profile:profiles!assignments_profile_id_fkey ( id, full_name, email ), payer:profiles!assignments_paid_by_fkey ( id, full_name, role )" as const;

@@ -1,4 +1,4 @@
-import { Check, Clock, Mail, MailCheck, MailX } from "lucide-react";
+import { Check, Clock, Mail, MailCheck, MailX, Radio } from "lucide-react";
 import type { StaffingSummary } from "@/lib/data/admin";
 import { POSITION_LABEL } from "@/lib/format";
 import { cx, Status } from "@/components/ui";
@@ -34,12 +34,35 @@ export function EmailStatus({ publishedAt, unnotified, compact }: { publishedAt:
   );
 }
 
+export type FibaSync = { status: string; live: boolean; stats_at: string | null; team_games: { count: number }[] } | null;
+
+/**
+ * FIBA LiveStats na utakmici: povezana (čeka kraj), uživo ili statistika upisana u bazu.
+ * stats_at bez box scorea = FIBA nije imala podatke (sync odustaje 2 dana nakon termina).
+ */
+export function FibaStatus({ fiba, compact }: { fiba: FibaSync; compact?: boolean }) {
+  if (!fiba) return null;
+  const s = fiba.stats_at
+    ? (fiba.team_games[0]?.count ?? 0) > 0
+      ? { label: "Statistika syncana", title: `Statistika s FIBA LiveStats upisana ${sentAt(fiba.stats_at)}`, tone: "border-mint/25 bg-mint/10 text-mint" }
+      : { label: "FIBA bez statistike", title: "FIBA LiveStats nema podataka za ovu utakmicu", tone: "border-amber/40 bg-amber/15 text-amber-ink" }
+    : fiba.live || fiba.status === "IN_PROGRESS"
+      ? { label: "FIBA uživo", title: "Rezultat se svake minute prepisuje s FIBA LiveStats", tone: "border-crest/25 bg-crest/10 text-crest" }
+      : { label: "FIBA povezana", title: "Statistika se upisuje kad utakmica završi na FIBA LiveStats", tone: "border-line bg-panel text-fg-muted" };
+  return (
+    <span title={s.title} className={cx("inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border py-0.5 text-[12px] font-semibold", compact ? "px-1.5 sm:px-2" : "px-2", s.tone)}>
+      <Radio className="size-3.5" aria-hidden="true" />
+      <span className={compact ? "sr-only sm:not-sr-only" : undefined}>{s.label}</span>
+    </span>
+  );
+}
+
 /**
  * Stanje delegiranja i emaila zakazane utakmice: jezičak u samom gornjem desnom uglu kartice.
  * Telefon: lijevo u istom redu broj utakmice i takmičenje (u redu ispod se ne ponavljaju).
  * Red (li) mora biti `relative` i imati mjesta na vrhu (pt-5 sm:pt-0).
  */
-export function StaffingTab({ match, staffing, publishedAt }: { match: MatchSummary; staffing: StaffingSummary; publishedAt: string | null }) {
+export function StaffingTab({ match, staffing, publishedAt, fiba = null }: { match: MatchSummary; staffing: StaffingSummary; publishedAt: string | null; fiba?: FibaSync }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 pl-4 sm:left-auto sm:pl-0">
       <span className="min-w-0 truncate pt-1.5 text-[12px] font-semibold text-fg-faint sm:hidden">
@@ -48,6 +71,7 @@ export function StaffingTab({ match, staffing, publishedAt }: { match: MatchSumm
       <div className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-bl-lg border-b border-l border-line bg-panel-2 py-1 pl-2.5 pr-1.5">
         <StaffingBadge staffing={staffing} />
         <EmailStatus publishedAt={publishedAt} unnotified={staffing.unnotified} compact />
+        <FibaStatus fiba={fiba} compact />
       </div>
     </div>
   );

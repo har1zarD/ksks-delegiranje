@@ -34,6 +34,7 @@ import { LockMatchButton } from "@/components/lock-match-button";
 import { MatchPaidButton } from "@/components/match-paid-button";
 import { listScoresheets } from "@/lib/scoresheets";
 import { FibaMatchForm } from "@/app/(app)/fiba/link-match";
+import { FibaStatus } from "@/components/staffing-badge";
 
 export const metadata = { title: "Delegiranje — KSKS" };
 
@@ -350,6 +351,9 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
             <h2 className="mb-3 flex items-center gap-1.5 text-[13px] font-semibold text-fg-muted">
               <Radio className="size-4" aria-hidden="true" />
               FIBA LiveStats
+              <span className="ml-auto">
+                <FibaStatus fiba={match.fiba} />
+              </span>
             </h2>
             <FibaMatchForm matchId={match.id} fibaGameId={match.fiba_game_id} streamKey={match.fiba_stream_key} />
           </Panel>
