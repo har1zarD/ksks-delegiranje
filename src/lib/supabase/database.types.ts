@@ -5,7 +5,33 @@ export type Database = {
   
   "public": {
           Tables: {
-            "fiba_competitions": {
+            "bulletins": {
+                  Row: {
+                    "competition_ids": string[],"created_at": string,"created_by": string | null,"id": string,"number": string,"round": number | null,"state": Json,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "competition_ids"?: string[],"created_at"?: string,"created_by"?: string | null,"id"?: string,"number"?: string,"round"?: number | null,"state": Json,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "competition_ids"?: string[],"created_at"?: string,"created_by"?: string | null,"id"?: string,"number"?: string,"round"?: number | null,"state"?: Json,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bulletins_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "bulletins_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"fiba_competitions": {
                   Row: {
                     "active": boolean,"category": string | null,"id": number,"name": string,"sort": number
                   }

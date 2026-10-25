@@ -1,31 +1,95 @@
 import { Suspense } from "react";
-import { ScrollText } from "lucide-react";
-import { getBulletinData } from "@/lib/data/admin";
+import { Plus, ScrollText } from "lucide-react";
+import { getBulletinData, getSavedBulletin, getSavedBulletins } from "@/lib/data/admin";
+import { DECISIONS, nextBulletinNumber } from "@/lib/bulletin";
 import { Bone, Skeleton, Text, times } from "@/components/skeleton";
-import { CARD, cx, Empty, PageHeader } from "@/components/ui";
+import { ButtonLink, CARD, cx, Empty, PageHeader } from "@/components/ui";
 import { BulletinBuilder } from "./builder";
+import { SavedBulletins } from "./saved-list";
 
 export const metadata = { title: "Bilteni — KSKS" };
 
-export default function BulletinsPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+// Jedna stranica (bez novih ruta, Hobby limit funkcija): bez ?b lista sačuvanih biltena, ?b=novi novi bilten
+// (?od=<id> = kopija postojećeg), ?b=<id> otvara sačuvan bilten za prepravku
+export default function BulletinsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <>
-      <PageHeader
-        icon={<ScrollText />}
-        title="Bilteni"
-        subtitle="Jedan PDF: registracija odigranih utakmica s primjedbama komesara, odluke, tabela i nominacija narednog kola. Izaberi kolo, označi utakmice i šta ide u bilten."
-      />
-      <Suspense fallback={<BuilderSkeleton />}>
-        <Builder />
-      </Suspense>
-    </>
+    <Suspense fallback={<BuilderSkeleton />}>
+      <Bulletins searchParams={searchParams} />
+    </Suspense>
   );
 }
 
-async function Builder() {
-  const data = await getBulletinData();
-  if (data.competitions.length === 0) return <Empty icon={<ScrollText />}>Nema utakmica s kolom u ovoj sezoni. Raspored kola se pravi u Takmičenjima.</Empty>;
-  return <BulletinBuilder {...data} />;
+const param = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
+
+async function Bulletins({ searchParams }: { searchParams: SearchParams }) {
+  const sp = await searchParams;
+  const b = param(sp.b);
+  const [data, saved] = await Promise.all([getBulletinData(), getSavedBulletins()]);
+  const header = (
+    <PageHeader
+      icon={<ScrollText />}
+      title="Bilteni"
+      subtitle="Registracija odigranih utakmica s primjedbama komesara, tabela, odluke i nominacija narednog kola. Bilten se čuva i može se kasnije otvoriti i prepraviti."
+    >
+      {!b && (
+        <ButtonLink href="/admin/bilteni?b=novi">
+          <Plus className="size-4" aria-hidden="true" /> Novi bilten
+        </ButtonLink>
+      )}
+    </PageHeader>
+  );
+
+  if (!b) {
+    return (
+      <>
+        {header}
+        <SavedBulletins bulletins={saved} competitions={data.competitions} />
+      </>
+    );
+  }
+  if (data.competitions.length === 0) {
+    return (
+      <>
+        {header}
+        <Empty icon={<ScrollText />}>Nema utakmica s kolom u ovoj sezoni. Raspored kola se pravi u Takmičenjima.</Empty>
+      </>
+    );
+  }
+
+  if (b === "novi") {
+    // Kopija za naredni bilten: ista takmičenja, dijelovi, naslov i potpis, naredni broj; kolo opet zadnje odigrano,
+    // a ono što važi za jedno kolo (isključene utakmice, primjedbe, komesar i sudije, odluke) kreće ispočetka
+    const from = param(sp.od) ? await getSavedBulletin(param(sp.od)!) : null;
+    const ids = from?.draft.competitionIds ?? (data.suggested ? [data.suggested.competitionId] : data.competitions.slice(0, 1).map((c) => c.id));
+    const number = nextBulletinNumber(saved, ids);
+    const draft = from ? { ...from.draft, number, round: null, excluded: [], remarks: {}, officials: {}, decisions: DECISIONS } : null;
+    return (
+      <>
+        {header}
+        <BulletinBuilder key={`novi-${from?.id ?? ""}`} {...data} initial={{ id: null, draft, updatedAt: null, number }} />
+      </>
+    );
+  }
+
+  const bulletin = await getSavedBulletin(b);
+  if (!bulletin) {
+    return (
+      <>
+        {header}
+        <Empty icon={<ScrollText />} title="Bilten ne postoji" action={<ButtonLink href="/admin/bilteni">Svi bilteni</ButtonLink>}>
+          Možda je obrisan.
+        </Empty>
+      </>
+    );
+  }
+  return (
+    <>
+      {header}
+      <BulletinBuilder key={bulletin.id} {...data} initial={{ ...bulletin, number: bulletin.draft.number }} />
+    </>
+  );
 }
 
 /** Kao bilder biltena: koraci lijevo, pregled PDF-a desno */

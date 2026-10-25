@@ -1,41 +1,45 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, ExternalLink, FileText, LoaderCircle, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Check, Download, ExternalLink, FileText, LoaderCircle, RotateCcw, Save } from "lucide-react";
 import type { BulletinData, BulletinMatch } from "@/lib/data/admin";
-import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { BULLETIN_FIXTURES, DECISIONS, defaultRemarks, delegatedOfficials, type BulletinDraft, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
 import { matchesLabel } from "@/lib/finance";
-import { isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
+import { formatDate, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
 import { Chip, Step, Toggle } from "../utakmice/satnice/builder";
-import { getFibaOfficials, makeBulletinDocx, makeBulletinPdf } from "./actions";
+import { getFibaOfficials, makeBulletinDocx, makeBulletinPdf, saveBulletin } from "./actions";
 
 const SIGNATURE = "Takmičarska komisija";
-const DECISIONS = "Sve utakmice se registruju postignutim rezultatima.";
 
 /**
  * Bilten: takmičenje i kolo, utakmice koje se registruju (s primjedbama iz biltena komesara, mogu se ispraviti)
  * i dijelovi biltena (odluke, tabela, nominacija narednog kola). Pregled desno je pravi PDF, osvježava se nakon izmjene.
  */
-export function BulletinBuilder({ competitions, matches, suggested }: BulletinData) {
-  const [compIds, setCompIds] = useState<string[]>(() => (suggested ? [suggested.competitionId] : competitions.slice(0, 1).map((c) => c.id)));
-  const [round, setRound] = useState<number | null>(suggested?.round ?? null);
-  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+/** Sačuvan bilten koji se otvara (id null = novi, draft null = prazan bilder) i predloženi broj novog biltena */
+export type BulletinInitial = { id: string | null; draft: BulletinDraft | null; updatedAt: string | null; number: string };
+
+export function BulletinBuilder({ competitions, matches, suggested, initial }: BulletinData & { initial: BulletinInitial }) {
+  const d = initial.draft;
+  const [compIds, setCompIds] = useState<string[]>(() => d?.competitionIds ?? (suggested ? [suggested.competitionId] : competitions.slice(0, 1).map((c) => c.id)));
+  const [round, setRound] = useState<number | null>(d ? d.round : (suggested?.round ?? null));
+  const [excluded, setExcluded] = useState<Set<string>>(() => new Set(d?.excluded ?? []));
   // Ispravljene primjedbe (id → tekst); bez zapisa = automatski iz biltena komesara
-  const [remarks, setRemarks] = useState<Record<string, string>>({});
+  const [remarks, setRemarks] = useState<Record<string, string>>(d?.remarks ?? {});
   // Komesar i sudije: ručni unos (id → imena) i FIBA statistika povezanih utakmica (FIBA id → imena)
-  const [officialEdits, setOfficialEdits] = useState<Record<string, BulletinOfficials>>({});
+  const [officialEdits, setOfficialEdits] = useState<Record<string, BulletinOfficials>>(d?.officials ?? {});
   const [fibaOfficials, setFibaOfficials] = useState<Record<number, BulletinOfficials>>({});
-  const [registration, setRegistration] = useState(true);
-  const [decisionsOn, setDecisionsOn] = useState(true);
-  const [decisions, setDecisions] = useState(DECISIONS);
-  const [standings, setStandings] = useState(true);
-  const [nominationsOn, setNominationsOn] = useState(true);
-  const [names, setNames] = useState(true);
-  const [number, setNumber] = useState("");
-  const [title, setTitle] = useState("");
-  const [cover, setCover] = useState(true);
-  const [signature, setSignature] = useState(SIGNATURE);
+  const [registration, setRegistration] = useState(d?.registration ?? true);
+  const [decisionsOn, setDecisionsOn] = useState(d?.decisionsOn ?? true);
+  const [decisions, setDecisions] = useState(d?.decisions ?? DECISIONS);
+  const [standings, setStandings] = useState(d?.standings ?? true);
+  const [nominationsOn, setNominationsOn] = useState(d?.nominationsOn ?? true);
+  const [names, setNames] = useState(d?.names ?? true);
+  const [number, setNumber] = useState(d?.number ?? initial.number);
+  const [title, setTitle] = useState(d?.title ?? "");
+  const [cover, setCover] = useState(d?.cover ?? true);
+  const [signature, setSignature] = useState(d?.signature ?? SIGNATURE);
 
   const selected = competitions.filter((c) => compIds.includes(c.id));
   const own = matches.filter((m) => compIds.includes(m.competitionId));
@@ -113,6 +117,69 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
   })();
   // Pregled se pravi ponovo samo kad se zahtjev stvarno promijeni (poređenje teksta)
   const body = request ? JSON.stringify(request) : null;
+
+  // Čuvanje: stanje bildera (kolo konkretno), poređenjem teksta se zna ima li nesačuvanih izmjena
+  const draft: BulletinDraft = {
+    competitionIds: compIds,
+    round: activeRound,
+    excluded: [...excluded],
+    remarks,
+    officials: officialEdits,
+    registration,
+    decisionsOn,
+    decisions,
+    standings,
+    nominationsOn,
+    names,
+    number,
+    title,
+    cover,
+    signature,
+  };
+  const draftJson = JSON.stringify(draft);
+  const [saved, setSaved] = useState<{ id: string | null; json: string | null; at: string | null }>({ id: initial.id, json: initial.id ? draftJson : null, at: initial.updatedAt });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
+  const dirty = saved.json !== draftJson;
+
+  async function save() {
+    if (saving || compIds.length === 0) return;
+    setSaving(true);
+    setSaveError(undefined);
+    const json = draftJson;
+    try {
+      const res = await saveBulletin(saved.id, JSON.parse(json) as BulletinDraft);
+      if ("error" in res) throw new Error(res.error);
+      setSaved({ id: res.id, json, at: res.updatedAt });
+      // Novi bilten dobija svoj link (bez ponovnog učitavanja stranice)
+      if (!saved.id) window.history.replaceState(null, "", `/admin/bilteni?b=${res.id}`);
+    } catch (e) {
+      setSaveError(e instanceof Error && e.message ? e.message : "Bilten nije sačuvan.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  // Cmd/Ctrl+S čuva; upozorenje prije zatvaranja s nesačuvanim izmjenama
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void saveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => {
+    if (!dirty) return;
+    const onLeave = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [dirty]);
 
   // Pregled: PDF se pravi kad se izmjene smire (server action); stari blob se oslobađa. `pdf.body` = zahtjev od kojeg je napravljen
   const [pdf, setPdf] = useState<{ body: string; url: string; name: string } | null>(null);
@@ -202,7 +269,46 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
     return `${d}. ${MONTHS_SHORT[m - 1]}`;
   };
 
+  const savedLabel = saved.at ? `Sačuvano ${formatDate(isoToSarajevo(saved.at).date)} u ${formatTime(saved.at)}` : null;
+
   return (
+    <div className="flex flex-col gap-6">
+      <div className={cx(CARD, "sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3")}>
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/admin/bilteni"
+            onClick={(e) => {
+              if (dirty && !window.confirm("Bilten ima nesačuvane izmjene. Izaći bez čuvanja?")) e.preventDefault();
+            }}
+            className="grid size-9 shrink-0 place-items-center rounded-md text-fg-muted hover:bg-panel-2 hover:text-fg"
+            aria-label="Svi bilteni"
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </Link>
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold">
+              {number.trim() ? `Bilten br. ${number.trim()}` : "Bilten"} · {title.trim() || autoTitle}
+            </p>
+            <p className="text-[13px] text-fg-muted">
+              {saveError ? (
+                <span className="font-medium text-crest">{saveError}</span>
+              ) : saving ? (
+                "Čuvam…"
+              ) : !saved.id ? (
+                "Novi bilten, još nije sačuvan"
+              ) : dirty ? (
+                <span className="font-medium text-orange">Nesačuvane izmjene</span>
+              ) : (
+                savedLabel
+              )}
+            </p>
+          </div>
+        </div>
+        <Button onClick={save} disabled={saving || compIds.length === 0 || (!dirty && saved.id !== null)}>
+          {saving ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : !dirty && saved.id ? <Check className="size-4" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
+          {!dirty && saved.id ? "Sačuvano" : "Sačuvaj"}
+        </Button>
+      </div>
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
         <Step n={1} title="Takmičenje i kolo">
@@ -386,6 +492,7 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
           </Button>
         </div>
       </aside>
+    </div>
     </div>
   );
 }

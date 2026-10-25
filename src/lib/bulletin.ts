@@ -30,6 +30,8 @@ export type BulletinRequest = {
 export type BulletinOfficials = { commissioner: string; referees: string };
 
 export const NO_REMARKS = "Bez primjedbi.";
+/** Prva odluka svakog biltena */
+export const DECISIONS = "Sve utakmice se registruju postignutim rezultatima.";
 
 /** Delegirani komesar i sudije naše utakmice; prazno kad nisu delegirani */
 export function delegatedOfficials(officials: { position: string; name: string | null }[]): BulletinOfficials {
@@ -70,4 +72,33 @@ export function roundWeekend(saturday: string) {
   const sunday = addDays(saturday, 1);
   if (saturday.slice(0, 7) !== sunday.slice(0, 7)) return `${formatDate(saturday).slice(0, -6)} – ${formatDate(sunday)}`;
   return `${Number(saturday.slice(8))}./${formatDate(sunday)}`;
+}
+
+/** Sačuvan bilten: stanje bildera kako ga je admin ostavio (kolo je konkretno, ne "zadnje odigrano") */
+export type BulletinDraft = {
+  competitionIds: string[];
+  round: number | null;
+  /** Utakmice kola koje su isključene iz registracije */
+  excluded: string[];
+  remarks: Record<string, string>;
+  officials: Record<string, BulletinOfficials>;
+  registration: boolean;
+  decisionsOn: boolean;
+  decisions: string;
+  standings: boolean;
+  nominationsOn: boolean;
+  names: boolean;
+  number: string;
+  title: string;
+  cover: boolean;
+  signature: string;
+};
+
+/** Bilten u listi sačuvanih */
+export type SavedBulletin = { id: string; number: string; title: string; round: number | null; competitionIds: string[]; updatedAt: string; updatedBy: string | null };
+
+/** Naredni broj biltena: zadnji brojčani broj biltena istog takmičenja + 1 (prazno kad ga nema) */
+export function nextBulletinNumber(saved: SavedBulletin[], competitionIds: string[]) {
+  const numbers = saved.filter((b) => b.competitionIds.some((id) => competitionIds.includes(id))).map((b) => Number.parseInt(b.number, 10)).filter(Number.isFinite);
+  return numbers.length > 0 ? String(Math.max(...numbers) + 1) : "";
 }

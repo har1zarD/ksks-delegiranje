@@ -4,7 +4,8 @@ import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
 import { bulletinBrand, bulletinPdf, type BulletinPdfInput } from "@/lib/bulletin-pdf";
 import { bulletinDocx } from "@/lib/bulletin-docx";
-import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, roundWeekend, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, roundWeekend, type BulletinDraft, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { createClient } from "@/lib/supabase/server";
 import type { BulletinMatch } from "@/lib/data/admin";
 import type { NominationMatch } from "@/lib/bulletin-pdf";
 import { requireRole } from "@/lib/auth";
@@ -128,4 +129,37 @@ export async function getFibaOfficials(gameIds: number[]): Promise<Record<number
     };
   });
   return out;
+}
+
+export type SaveBulletinResult = { id: string; updatedAt: string } | { error: string };
+
+/** Sačuva bilten (novi kad nema id-a): stanje bildera, a broj, naslov, takmičenja i kolo i u kolone za listu */
+export async function saveBulletin(id: string | null, draft: BulletinDraft): Promise<SaveBulletinResult> {
+  const user = await requireRole("admin");
+  if (!draft || !Array.isArray(draft.competitionIds) || draft.competitionIds.length === 0) return { error: "Izaberi bar jedno takmičenje." };
+  if (JSON.stringify(draft).length > 500_000) return { error: "Bilten je prevelik za čuvanje." };
+  const values = {
+    number: String(draft.number ?? "").trim().slice(0, 20),
+    title: String(draft.title ?? "").trim().slice(0, 200) || "Bilten",
+    competition_ids: draft.competitionIds,
+    round: Number.isInteger(draft.round) ? draft.round : null,
+    state: draft,
+    updated_by: user.id,
+    updated_at: new Date().toISOString(),
+  };
+  const supabase = await createClient();
+  const { data, error } = id
+    ? await supabase.from("bulletins").update(values).eq("id", id).select("id, updated_at").maybeSingle()
+    : await supabase.from("bulletins").insert({ ...values, created_by: user.id }).select("id, updated_at").single();
+  if (error) return { error: "Bilten nije sačuvan." };
+  if (!data) return { error: "Bilten više ne postoji (obrisan je)." };
+  return { id: data.id, updatedAt: data.updated_at };
+}
+
+/** Briše sačuvan bilten */
+export async function deleteBulletin(id: string): Promise<{ error?: string }> {
+  await requireRole("admin");
+  const supabase = await createClient();
+  const { error } = await supabase.from("bulletins").delete().eq("id", id);
+  return error ? { error: "Bilten nije obrisan." } : {};
 }

@@ -3,6 +3,8 @@ import { requireRole } from "@/lib/auth";
 import { crewOf, crewPositions, nominationGroupOf, skillsFor, type Crew } from "@/lib/crew";
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import type { BulletinDraft, SavedBulletin } from "@/lib/bulletin";
 import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
@@ -574,3 +576,28 @@ export async function getBulletinData() {
 
 export type BulletinData = Awaited<ReturnType<typeof getBulletinData>>;
 export type BulletinMatch = BulletinData["matches"][number];
+
+// ───────── Sačuvani bilteni (admin) ─────────
+
+/** Sačuvani bilteni, zadnje mijenjani prvi (bez keša: lista se mijenja samo kroz bilder) */
+export async function getSavedBulletins(): Promise<SavedBulletin[]> {
+  await requireRole("admin");
+  const supabase = await createClient();
+  const list = rows(
+    await supabase
+      .from("bulletins")
+      .select("id, number, title, round, competition_ids, updated_at, editor:profiles!bulletins_updated_by_fkey ( full_name )")
+      .order("updated_at", { ascending: false })
+      .limit(200),
+  );
+  return list.map((b) => ({ id: b.id, number: b.number, title: b.title, round: b.round, competitionIds: b.competition_ids, updatedAt: b.updated_at, updatedBy: b.editor?.full_name ?? null }));
+}
+
+/** Stanje jednog sačuvanog biltena; null kad ne postoji */
+export async function getSavedBulletin(id: string): Promise<{ id: string; draft: BulletinDraft; updatedAt: string } | null> {
+  await requireRole("admin");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("bulletins").select("id, state, updated_at").eq("id", id).maybeSingle();
+  return data ? { id: data.id, draft: data.state as BulletinDraft, updatedAt: data.updated_at } : null;
+}
