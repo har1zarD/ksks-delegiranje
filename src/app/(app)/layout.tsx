@@ -46,7 +46,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Suspense fallback={<AppNavSkeleton />}>
         <UserNav />
       </Suspense>
-      <div className="flex flex-1 flex-col lg:pl-64 print:pl-0">
+      {/* overflow-x-clip: ništa šire od ekrana ne pravi vodoravni skrol (clip, ne hidden, da sticky radi) */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-clip lg:pl-64 print:pl-0">
         <main className={cx("mx-auto w-full max-w-6xl flex-1 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 sm:pt-10 lg:pb-20", GUTTER)}>
           <InstallApp dismissible floating />
           {children}

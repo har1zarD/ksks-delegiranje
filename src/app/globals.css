@@ -155,6 +155,19 @@ body {
   textarea {
     font-size: 16px; /* iOS ne zumira polja; Tailwind klase (sm:text-…) ga mogu promijeniti */
   }
+
+  /* iOS Safari daje polju datuma/vremena svoju najmanju širinu, pa izlazi iz kolone i stranica se pomjera u stranu */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+  }
 }
 
 /* Plutajući prozor (izbor datuma i vremena) */

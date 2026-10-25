@@ -55,8 +55,8 @@ export function SocialStudio({ matches, results, today, now, competition, kind: 
     <div className="flex flex-col gap-6">
       <div role="tablist" aria-label="Vrsta slike" className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:w-auto sm:self-start">
         {SOCIAL_KINDS.map(({ id, label }) => { const Icon = KIND_ICONS[id]; return (
-          <button key={id} type="button" role="tab" aria-selected={kind === id} onClick={() => pick(id)} className={cx("flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5 text-[14px] font-semibold transition-colors sm:flex-none sm:py-1.5", kind === id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg")}>
-            <Icon className="size-4" aria-hidden="true" />{label}
+          <button key={id} type="button" role="tab" aria-selected={kind === id} onClick={() => pick(id)} className={cx("flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md px-2 py-2.5 sm:px-4 text-[14px] font-semibold transition-colors sm:flex-none sm:py-1.5", kind === id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg")}>
+            <Icon className="hidden size-4 shrink-0 min-[400px]:block" aria-hidden="true" />{label}
           </button>
         ); })}
       </div>
