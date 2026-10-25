@@ -96,10 +96,11 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   const parts: { title: string; draw: () => void }[] = [];
   const reg = input.registration;
   if (reg && reg.groups.length > 0) parts.push({ title: `Registracija utakmica${roundOrdinal(reg.round).toLowerCase()}`, draw: () => drawRegistration(reg.groups) });
-  const decisions = input.decisions;
-  if (decisions && decisions.length > 0) parts.push({ title: "Odluke", draw: () => drawDecisions(decisions) });
+  // Odluke ispod tabele, kao u biltenima saveza
   const standings = input.standings;
   if (standings && standings.length > 0) parts.push({ title: "Tabela", draw: () => drawStandings(standings) });
+  const decisions = input.decisions;
+  if (decisions && decisions.length > 0) parts.push({ title: "Odluke", draw: () => drawDecisions(decisions) });
   const nom = input.nominations;
   if (nom && nom.groups.length > 0) parts.push({ title: `Nominacija utakmica${roundOrdinal(nom.round).toLowerCase()}`, draw: () => drawNominations(nom) });
 

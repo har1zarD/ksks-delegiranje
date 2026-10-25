@@ -284,7 +284,8 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
 
         <Step n={3} title="Ostali dijelovi">
           <div className="flex flex-col gap-3">
-            <Toggle label="Odluke" hint="Svaki red je jedna numerisana odluka" checked={decisionsOn} onChange={setDecisionsOn} />
+            <Toggle label="Tabela" hint={selected.length > 1 ? "Tabela svakog izabranog takmičenja" : "Iz rezultata u aplikaciji"} checked={standings} onChange={setStandings} />
+            <Toggle label="Odluke" hint="Ispod tabele; svaki red je jedna odluka, brojevi se dodaju sami" checked={decisionsOn} onChange={setDecisionsOn} />
             {decisionsOn && (
               <Textarea
                 label="Odluke"
@@ -294,7 +295,6 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
                 placeholder={"Sve utakmice se registruju postignutim rezultatima.\nKažnjava se ekipa … sa 100,00 KM po članu 55. C. 1. Propozicija takmičenja."}
               />
             )}
-            <Toggle label="Tabela" hint={selected.length > 1 ? "Tabela svakog izabranog takmičenja" : "Iz rezultata u aplikaciji"} checked={standings} onChange={setStandings} />
             <Toggle
               label={nextRound !== null ? `Nominacija ${nextRound}. kola` : "Nominacija narednog kola"}
               hint={nextRound !== null ? `${matchesLabel(nominated)}, komesar i sudije (bez termina)` : "Nema narednog kola"}

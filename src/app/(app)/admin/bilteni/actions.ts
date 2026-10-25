@@ -61,7 +61,8 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
 
   const decisions = req.decisions
     ?.split(/\r?\n/)
-    .map((l) => l.trim())
+    // PDF sam numeriše odluke: broj koji je admin upisao na početku reda ("1. ", "2) ") se izostavlja
+    .map((l) => l.trim().replace(/^\d{1,2}\s*[.)]\s*/, ""))
     .filter(Boolean);
 
   const title = req.title?.trim() || [...new Set(competitions.map((c) => c.label))].join(" / ");
