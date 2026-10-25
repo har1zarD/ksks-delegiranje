@@ -3,6 +3,7 @@
 export const SOCIAL_KINDS = [
   { id: "schedule", param: "raspored", label: "Raspored" },
   { id: "results", param: "rezultati", label: "Rezultati" },
+  { id: "round", param: "kolo", label: "Kolo" },
   { id: "standings", param: "tabela", label: "Tabela" },
   { id: "clubs", param: "klubovi", label: "Klubovi" },
 ] as const;

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Oswald } from "next/font/google";
 import { Images } from "lucide-react";
-import { getSocialResults, getSocialSchedules, type SocialMatch } from "@/lib/data/social";
+import { getSocialResults, getSocialRound, getSocialSchedules, type SocialMatch } from "@/lib/data/social";
 import { getSocialTables } from "@/lib/data/results";
 import { PageHeader } from "@/components/ui";
 import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
@@ -20,7 +20,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default function SocialPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, rezultati, tabela i klubovi za Facebook i Instagram." />
+      <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, rezultati, kolo, tabela i klubovi za Facebook i Instagram." />
       <Suspense fallback={<SocialBuilderSkeleton />}>
         <Studio searchParams={searchParams} />
       </Suspense>
@@ -35,8 +35,8 @@ const FIXTURE_ROUND = new Map<string, number>([
 ]);
 
 async function Studio({ searchParams }: { searchParams: SearchParams }) {
-  const [data, results, tables, { takmicenje, vrsta }] = await Promise.all([getSocialSchedules(), getSocialResults(), getSocialTables(), searchParams]);
+  const [data, results, round, tables, { takmicenje, vrsta }] = await Promise.all([getSocialSchedules(), getSocialResults(), getSocialRound(), getSocialTables(), searchParams]);
   const withRound = (list: SocialMatch[]) => list.map((m) => ({ ...m, round: m.round ?? FIXTURE_ROUND.get(`${m.competitionId}|${m.home}|${m.away}`) ?? null }));
   const kind = SOCIAL_KINDS.find((k) => k.param === vrsta)?.id ?? "schedule";
-  return <SocialStudio {...data} matches={withRound(data.matches)} results={withRound(results)} tables={tables} kind={kind} competition={typeof takmicenje === "string" ? takmicenje : undefined} font={poster.style.fontFamily} />;
+  return <SocialStudio {...data} matches={withRound(data.matches)} results={withRound(results)} round={withRound(round)} tables={tables} kind={kind} competition={typeof takmicenje === "string" ? takmicenje : undefined} font={poster.style.fontFamily} />;
 }

@@ -4,7 +4,7 @@ import { SocialBuilderSkeleton } from "./skeleton";
 
 export default function Loading() {
   return <>
-    <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, tabela i klubovi za Facebook i Instagram." />
+    <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, rezultati, kolo, tabela i klubovi za Facebook i Instagram." />
     <SocialBuilderSkeleton />
   </>;
 }

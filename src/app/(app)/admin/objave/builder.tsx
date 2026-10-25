@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, Search, Shield, Trophy } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, Search, Shield, Trophy } from "lucide-react";
 import { Button, CARD, cx, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import type { SocialMatch } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
 import { addDays, formatDate, formatTime, slug } from "@/lib/format";
 import {
-  brandOf, contentSize, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, templateOf,
+  brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, templateOf,
   type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions,
 } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
@@ -19,7 +19,7 @@ const DEFAULT_DESIGN: SocialDesignOptions = {
   showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true,
 };
 
-const KIND_ICONS = { schedule: CalendarDays, results: ClipboardCheck, standings: Trophy, clubs: Shield };
+const KIND_ICONS = { schedule: CalendarDays, results: ClipboardCheck, round: ListChecks, standings: Trophy, clubs: Shield };
 
 type DesignChange = <K extends keyof SocialDesignOptions>(key: K, value: SocialDesignOptions[K]) => void;
 type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: string };
@@ -28,9 +28,10 @@ type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: strin
  * Slike za objavu: raspored, rezultati, tabela i klubovi. Izgled (predložak, format, akcent) je zajednički,
  * tekst i izbor ima svaka vrsta svoj; sve ostaju otvorene, pa prelazak između njih ništa ne briše.
  */
-export function SocialStudio({ matches, results, today, now, competition, kind: initialKind, tables, font }: {
+export function SocialStudio({ matches, results, round, today, now, competition, kind: initialKind, tables, font }: {
   matches: SocialMatch[];
   results: SocialMatch[];
+  round: SocialMatch[];
   today: string;
   now: number;
   competition?: string;
@@ -55,13 +56,14 @@ export function SocialStudio({ matches, results, today, now, competition, kind: 
     <div className="flex flex-col gap-6">
       <div role="tablist" aria-label="Vrsta slike" className="flex w-full gap-0.5 rounded-lg bg-track p-[3px] sm:w-auto sm:self-start">
         {SOCIAL_KINDS.map(({ id, label }) => { const Icon = KIND_ICONS[id]; return (
-          <button key={id} type="button" role="tab" aria-selected={kind === id} onClick={() => pick(id)} className={cx("flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md px-2 py-2.5 sm:px-4 text-[14px] font-semibold transition-colors sm:flex-none sm:py-1.5", kind === id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg")}>
-            <Icon className="hidden size-4 shrink-0 min-[400px]:block" aria-hidden="true" />{label}
+          <button key={id} type="button" role="tab" aria-selected={kind === id} onClick={() => pick(id)} className={cx("flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md px-1.5 py-2.5 text-[13px] font-semibold min-[400px]:text-[14px] sm:px-4 transition-colors sm:flex-none sm:py-1.5", kind === id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg")}>
+            <Icon className="hidden size-4 shrink-0 min-[480px]:block" aria-hidden="true" />{label}
           </button>
         ); })}
       </div>
       <div role="tabpanel" hidden={kind !== "schedule"}><ScheduleBuilder {...shared} matches={matches} today={today} now={now} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "results"}><ResultsBuilder {...shared} matches={results} today={today} competition={competition} /></div>
+      <div role="tabpanel" hidden={kind !== "round"}><RoundBuilder {...shared} matches={round} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "clubs"}><ClubsBuilder {...shared} tables={tables} competition={competition} /></div>
     </div>
@@ -167,14 +169,63 @@ function ResultsBuilder({ matches, today, competition: initialCompetition, desig
   );
 }
 
-// ───────────────────────── Izbor utakmica (raspored i rezultati) ─────────────────────────
+// ───────────────────────── Kolo: odigrano i slijedi ─────────────────────────
+
+/** Odigrane utakmice prvo pa ostale, svaka grupa po terminu; odgođene na kraju */
+function roundOrder(list: SocialMatch[]) {
+  const rank = (m: SocialMatch) => (isPlayed(m) ? 0 : m.status === "postponed" ? 2 : 1);
+  return [...list].sort((a, b) => rank(a) - rank(b) || a.startsAt.localeCompare(b.startsAt));
+}
+
+/**
+ * Kolo na jednoj slici: npr. tri odigrane utakmice s rezultatom i jedna u srijedu. Početno kolo je ono u kojem
+ * je nešto odigrano, a nešto još nije; inače zadnje kolo s rezultatom. `competition` iz linka bira takmičenje.
+ */
+function RoundBuilder({ matches, today, competition: initialCompetition, design, onDesign, font }: Shared & { matches: SocialMatch[]; today: string; competition?: string }) {
+  const picker = useMatchPicker(matches, "Rezultati i raspored", () => {
+    const lastPlayed = matches.filter(isPlayed).at(-1);
+    const competition = matches.some((m) => m.competitionId === initialCompetition) ? initialCompetition! : lastPlayed?.competitionId ?? matches[0]?.competitionId ?? "";
+    const own = matches.filter((m) => m.competitionId === competition && m.round != null);
+    const rounds = [...new Set(own.map((m) => m.round!))].sort((a, b) => a - b);
+    const open = rounds.find((n) => own.some((m) => m.round === n && isPlayed(m)) && own.some((m) => m.round === n && !isPlayed(m)));
+    const lastWithResult = rounds.filter((n) => own.some((m) => m.round === n && isPlayed(m))).at(-1);
+    const round = open ?? lastWithResult ?? rounds.find((n) => own.some((m) => m.round === n && m.date >= today));
+    if (round != null) return { ...NO_FILTERS, competition, round: String(round) };
+    return { ...NO_FILTERS, competition, from: addDays(today, -6), to: addDays(today, 6) };
+  }, "split");
+  const { chosen, page, setPage, texts, setTexts } = picker;
+  const [perPage, setPerPage] = useState(8);
+  const ordered = useMemo(() => roundOrder(chosen), [chosen]);
+  const pages = useMemo<SocialContent[]>(() => chunk(ordered, perPage).map((list) => ({ kind: "round", matches: list })), [ordered, perPage]);
+  const played = chosen.filter(isPlayed).length;
+
+  return (
+    <Layout preview={<SocialPreview kind="round" pages={pages} options={{ ...design, ...texts }} font={font} page={page} onPage={setPage} empty="Označi utakmice za pregled slike." />}>
+      <Step number={1} title="Izaberi utakmice" aside={`${played} odigrano · ${chosen.length - played} slijedi`}>
+        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema utakmica u tekućoj sezoni.</p> : (
+          <MatchPicker matches={matches} picker={picker} range={{ label: "Ova i iduća sedmica", from: addDays(today, -6), to: addDays(today, 6) }} note="Sve utakmice tekuće sezone: odigrane s rezultatom, zakazane i odgođene. Za cijelo kolo izaberi takmičenje i kolo." />
+        )}
+      </Step>
+      <Step number={2} title="Izgled">
+        <LayoutPicker kind="round" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
+        <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
+        <PerPage value={perPage} onChange={(count) => { setPerPage(count); setPage(0); }} />
+      </Step>
+      <Step number={3} title="Tekst i detalji">
+        <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} schedule placeholder="Rezultati i raspored" />
+      </Step>
+    </Layout>
+  );
+}
+
+// ───────────────────────── Izbor utakmica (raspored, rezultati i kolo) ─────────────────────────
 
 /** Filteri i izbor: svaka promjena filtera označi upravo prikazane utakmice, pa se i pregled odmah mijenja; podnaslov prati takmičenje i kolo */
-function useMatchPicker(matches: SocialMatch[], title: string, initialFilters: () => Filters) {
+function useMatchPicker(matches: SocialMatch[], title: string, initialFilters: () => Filters, layout = "rows") {
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [selected, setSelected] = useState(() => new Set(filterMatches(matches, filters).map((m) => m.id)));
   const [page, setPage] = useState(0);
-  const [texts, setTexts] = useState<SocialTextOptions>(() => follow(defaultTexts(title, "rows"), "", filters.competition, headline(matches, filters)));
+  const [texts, setTexts] = useState<SocialTextOptions>(() => follow(defaultTexts(title, layout), "", filters.competition, headline(matches, filters)));
   const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
 
   function filter(patch: Partial<Filters>) {
@@ -422,7 +473,8 @@ function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
   const bar = "rounded-[2px] bg-fg-faint/40";
   const dot = "size-2.5 shrink-0 rounded-[2px] bg-fg-faint/70";
   if (kind === "schedule" && id === "cards") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1">{[0, 1].map((n) => <span key={n} className="flex flex-col items-center gap-0.5"><span className={cx(bar, "h-0.5 w-1/2")} /><span className="flex h-3.5 w-full items-center justify-between rounded-[4px] bg-fg-faint/20 px-1"><span className={dot} /><span className="h-1.5 w-4 rounded-[2px] bg-fg-faint/70" /><span className={dot} /></span></span>)}</span>;
-  if ((kind === "schedule" || kind === "results") && id === "list") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{[0, 1, 2].map((n) => <span key={n} className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
+  if (kind === "round" && id === "split") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-[3px]">{[0, 1].map((n) => <span key={n} className="flex flex-col gap-[3px]"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{Array.from({ length: n ? 1 : 2 }, (_, k) => <span key={k} className="flex h-2.5 items-center justify-between rounded-[3px] bg-fg-faint/20 px-1"><span className="size-1.5 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 w-1/4")} /><span className="size-1.5 rounded-[2px] bg-fg-faint/70" /></span>)}</span>)}</span>;
+  if ((kind === "schedule" || kind === "results" || kind === "round") && id === "list") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{[0, 1, 2].map((n) => <span key={n} className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
   if (kind === "standings" && id === "board") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-0 rounded-[4px] bg-fg-faint/15 p-1">{[0, 1, 2, 3].map((n) => <span key={n} className="flex items-center gap-1 border-b border-fg-faint/30 py-0.5 last:border-0"><span className={cx(bar, "h-1 w-1/2")} /><span className="ml-auto h-1 w-3 rounded-[2px] bg-fg-faint/60" /></span>)}</span>;
   if (kind === "clubs" && id === "grid") return <span aria-hidden="true" className="grid h-12 grid-cols-4 content-center gap-1">{Array.from({ length: 8 }, (_, n) => <span key={n} className="aspect-square rounded-[3px] bg-fg-faint/30" />)}</span>;
   if (kind === "clubs" && id === "list") return <span aria-hidden="true" className="grid h-12 grid-cols-2 content-center gap-x-2 gap-y-1">{Array.from({ length: 6 }, (_, n) => <span key={n} className="flex items-center gap-1"><span className={dot} /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
@@ -599,6 +651,7 @@ function describe(content: SocialContent, options: SocialOptions) {
   const title = options.title || "Slika za objavu";
   if (content.kind === "schedule") return `${title}: ${content.matches.map((m) => `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
   if (content.kind === "results") return `${title}: ${content.matches.map((m) => `${m.home} ${m.homeScore} : ${m.awayScore} ${m.away}, ${formatDate(m.date)}`).join("; ")}`;
+  if (content.kind === "round") return `${title}: ${content.matches.map((m) => isPlayed(m) ? `${m.home} ${m.homeScore} : ${m.awayScore} ${m.away}` : `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
   if (content.kind === "standings") return `${title}: ${content.rows.map((r, i) => `${content.firstRank + i}. ${r.name} ${r.points} bodova`).join("; ")}`;
   return `${title}: ${content.clubs.map((c) => c.name).join(", ")}`;
 }

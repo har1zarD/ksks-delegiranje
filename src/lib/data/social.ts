@@ -62,6 +62,13 @@ async function socialResultRows() {
   return socialMatches((query) => query.eq("status", "finished").not("home_score", "is", null).not("away_score", "is", null));
 }
 
+async function socialRoundRows() {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls);
+  return socialMatches((query) => query.in("status", ["scheduled", "live", "postponed", "finished"]));
+}
+
 export async function getSocialSchedules() {
   await requireRole("admin");
   const today = todayISO();
@@ -74,6 +81,12 @@ export async function getSocialSchedules() {
 export async function getSocialResults() {
   await requireRole("admin");
   return socialResultRows();
+}
+
+/** Sve neotkazane utakmice tekuće sezone (odigrane, u toku, zakazane i odgođene), za sliku kola */
+export async function getSocialRound() {
+  await requireRole("admin");
+  return socialRoundRows();
 }
 
 export type SocialMatch = Awaited<ReturnType<typeof getSocialSchedules>>["matches"][number];

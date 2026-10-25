@@ -96,6 +96,11 @@ export const SOCIAL_LAYOUTS = {
     { id: "rows", name: "Trake", description: "Grb, ime, rezultat, ime, grb" },
     { id: "list", name: "Lista", description: "Po danima, sažeto" },
   ],
+  round: [
+    { id: "split", name: "Odigrano i slijedi", description: "Rezultati gore, preostale utakmice ispod" },
+    { id: "rows", name: "Trake", description: "Redom po terminu, rezultat ili datum" },
+    { id: "list", name: "Lista", description: "Po danima, sažeto" },
+  ],
   standings: [
     { id: "bars", name: "Trake", description: "Svaka ekipa u svojoj traci" },
     { id: "board", name: "Ploča", description: "Jedan panel, tanke linije" },
@@ -109,7 +114,7 @@ export const SOCIAL_LAYOUTS = {
 export type SocialFormat = (typeof SOCIAL_FORMATS)[number]["id"];
 export type SocialTemplate = (typeof SOCIAL_TEMPLATES)[number]["id"];
 export type SocialBrand = keyof typeof SOCIAL_BRANDS;
-export type SocialKind = "schedule" | "results" | "standings" | "clubs";
+export type SocialKind = "schedule" | "results" | "round" | "standings" | "clubs";
 
 /** Izgled: zajednički za sve vrste slika */
 export type SocialDesignOptions = {
@@ -135,15 +140,22 @@ export type SocialClub = { id: string; name: string; logoUrl: string | null };
 export type SocialContent =
   | { kind: "schedule"; matches: SocialMatch[] }
   | { kind: "results"; matches: SocialMatch[] }
+  /** Kolo: odigrane utakmice s rezultatom i one koje tek slijede, na istoj slici */
+  | { kind: "round"; matches: SocialMatch[] }
   | { kind: "standings"; rows: SocialStanding[]; firstRank: number }
   | { kind: "clubs"; clubs: SocialClub[] };
+
+/** Utakmica s upisanim konačnim rezultatom */
+export function isPlayed(m: SocialMatch) {
+  return m.status === "finished" && m.homeScore != null && m.awayScore != null;
+}
 
 export function templateOf(id: SocialTemplate): Template {
   return SOCIAL_TEMPLATES.find((t) => t.id === id)!;
 }
 
 export function contentSize(content: SocialContent) {
-  return content.kind === "schedule" || content.kind === "results" ? content.matches.length : content.kind === "standings" ? content.rows.length : content.clubs.length;
+  return "matches" in content ? content.matches.length : content.kind === "standings" ? content.rows.length : content.clubs.length;
 }
 
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
@@ -237,7 +249,7 @@ const shortDate = (date: string) => {
 };
 
 const logoUrls = (content: SocialContent) =>
-  content.kind === "schedule" || content.kind === "results" ? content.matches.flatMap((m) => [m.homeLogo, m.awayLogo])
+  "matches" in content ? content.matches.flatMap((m) => [m.homeLogo, m.awayLogo])
     : content.kind === "standings" ? content.rows.map((r) => r.logoUrl)
     : content.clubs.map((c) => c.logoUrl);
 
@@ -473,6 +485,20 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   }
   const panelAlpha = watermark ? 0.8 : 1;
 
+  const dayLabel = (m: SocialMatch) => `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date)}`;
+  const hallOf = (m: SocialMatch) => (options.showHall && m.hall ? m.hall.toUpperCase() : null);
+  const postponedInk = lightPanel || theme.ink === "#0f172a" ? "#c81e1e" : "#ff6b6b";
+
+  /** Rezultat „78 : 65“ centriran na dvotački; pobjednikov broj punom bojom, poraženog prigušeno */
+  function score(m: SocialMatch, cx: number, cy: number, size: number, max: number) {
+    const home = m.homeScore ?? 0;
+    const away = m.awayScore ?? 0;
+    const side = max / 2 - size * 0.24;
+    text(String(home), cx - size * 0.24, cy, { size, color: home >= away ? theme.ink : theme.muted, max: side, weight: 700, align: "right", face: "poster" });
+    text(":", cx, cy - size * 0.05, { size: size * 0.8, color: theme.accent, max: size * 0.3, weight: 700, align: "center", face: "poster" });
+    text(String(away), cx + size * 0.24, cy, { size, color: away >= home ? theme.ink : theme.muted, max: side, weight: 700, align: "left", face: "poster" });
+  }
+
   // ── Raspored ─────────────────────────────────────────────
 
   if (content.kind === "schedule") {
@@ -645,18 +671,6 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const matches = content.matches;
     const mixed = new Set(matches.map((m) => `${m.competitionId}|${m.round ?? ""}`)).size > 1;
     const showCompetition = options.showCompetition && mixed;
-    const dayLabel = (m: SocialMatch) => `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date)}`;
-    const hallOf = (m: SocialMatch) => (options.showHall && m.hall ? m.hall.toUpperCase() : null);
-
-    /** Rezultat „78 : 65“ centriran na dvotački; pobjednikov broj punom bojom, poraženog prigušeno */
-    const score = (m: SocialMatch, cx: number, cy: number, size: number, max: number) => {
-      const home = m.homeScore ?? 0;
-      const away = m.awayScore ?? 0;
-      const side = max / 2 - size * 0.24;
-      text(String(home), cx - size * 0.24, cy, { size, color: home >= away ? theme.ink : theme.muted, max: side, weight: 700, align: "right", face: "poster" });
-      text(":", cx, cy - size * 0.05, { size: size * 0.8, color: theme.accent, max: size * 0.3, weight: 700, align: "center", face: "poster" });
-      text(String(away), cx + size * 0.24, cy, { size, color: away >= home ? theme.ink : theme.muted, max: side, weight: 700, align: "left", face: "poster" });
-    };
 
     /** Lista: zaglavlje po danu, red = grb ime · rezultat · ime grb, dvorana ispod */
     const list = () => {
@@ -760,6 +774,114 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         const detail = [dayLabel(m), hall].filter(Boolean).join("  ·  ");
         text(detail, center, withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75, { size: smallSize, color: theme.accent, max: middle + 20, weight: 600, align: "center", spacing: 0.06 });
       });
+    }
+  }
+
+  // ── Kolo: odigrano i slijedi ─────────────────────────────────────────────
+
+  if (content.kind === "round") {
+    const matches = content.matches;
+    const mixed = new Set(matches.map((m) => `${m.competitionId}|${m.round ?? ""}`)).size > 1;
+    const showCompetition = options.showCompetition && mixed;
+    const now = Date.now();
+
+    /** Sredina reda: rezultat, ODGOĐENO ili datum s terminom (ako je termin prošao, a rezultata nema: rezultat naknadno) */
+    const middle = (m: SocialMatch, center: number, y: number, rowHeight: number, max: number, withLabel: boolean, withDay: boolean) => {
+      const bigY = withLabel ? y + rowHeight * 0.5 : y + rowHeight * 0.43;
+      const bigSize = Math.min(rowHeight * (withLabel ? 0.3 : 0.36), 64);
+      const smallSize = Math.min(rowHeight * 0.13, 20);
+      const detailY = withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75;
+      const hall = hallOf(m);
+      if (isPlayed(m)) {
+        score(m, center, bigY, bigSize, max);
+        text([withDay ? dayLabel(m) : null, hall].filter(Boolean).join("  ·  "), center, detailY, { size: smallSize, color: theme.muted, max: max + 20, weight: 600, align: "center", spacing: 0.06 });
+      } else if (m.status === "postponed") {
+        text("ODGOĐENO", center, bigY, { size: bigSize * 0.6, color: postponedInk, max, weight: 700, align: "center", face: "mono", spacing: 0.08 });
+        text("NOVI TERMIN NAKNADNO", center, detailY, { size: smallSize, color: theme.muted, max: max + 20, weight: 600, align: "center", spacing: 0.06 });
+      } else {
+        const started = new Date(m.startsAt).getTime() <= now;
+        text(started ? "–  :  –" : shortDate(m.date), center, bigY, { size: bigSize, color: started ? theme.muted : theme.ink, max, weight: 700, align: "center", face: "poster" });
+        const when = started ? "REZULTAT NAKNADNO" : withDay ? `${formatWeekday(m.startsAt).toUpperCase()} ${formatTime(m.startsAt)}` : formatTime(m.startsAt);
+        text([when, started ? null : hall].filter(Boolean).join("  ·  "), center, detailY, { size: smallSize, color: theme.accent, max: max + 20, weight: 600, align: "center", spacing: 0.06 });
+      }
+    };
+
+    /** Red: grb · ime · sredina · ime · grb */
+    const row = (m: SocialMatch, x: number, y: number, cardWidth: number, rowHeight: number, last: boolean, narrow: boolean, withDay = true) => {
+      rowSurface(x, y, cardWidth, rowHeight, last, panelAlpha);
+      const center = x + cardWidth / 2;
+      const pad = Math.min(24, rowHeight * 0.14);
+      const crestSize = options.showLogos ? Math.min(rowHeight * 0.74, 150, cardWidth * 0.13) : 0;
+      const mid = cardWidth * (narrow ? 0.34 : 0.3);
+      const nameSize = Math.min(rowHeight * 0.22, narrow ? 24 : 34);
+      const homeLeft = x + pad + (crestSize ? crestSize + pad : 0);
+      const homeRight = center - mid / 2 - 10;
+      const awayLeft = center + mid / 2 + 10;
+      const awayRight = x + cardWidth - pad - (crestSize ? crestSize + pad : 0);
+      const cy = y + rowHeight / 2;
+      crest(m.home, m.homeLogo, x + pad + crestSize / 2, cy, crestSize);
+      crest(m.away, m.awayLogo, x + cardWidth - pad - crestSize / 2, cy, crestSize);
+      teamName(m.home, (homeLeft + homeRight) / 2, cy, homeRight - homeLeft, nameSize);
+      teamName(m.away, (awayLeft + awayRight) / 2, cy, awayRight - awayLeft, nameSize);
+      const withLabel = showCompetition && rowHeight >= 96;
+      if (withLabel) {
+        const competition = [m.competition, m.round == null ? null : `${m.round}. kolo`].filter(Boolean).join(" · ").toUpperCase();
+        text(competition, center, y + rowHeight * 0.2, { size: Math.min(rowHeight * 0.13, 20) * 0.9, color: theme.muted, max: mid, weight: 600, align: "center", spacing: 0.1 });
+      }
+      middle(m, center, y, rowHeight, mid, withLabel, withDay);
+    };
+
+    /** Naslov odjeljka (dan, ODIGRANO, SLIJEDI) s linijom akcenta */
+    const header = (label: string, y: number, height: number, color = theme.accent, face: Face = "poster") => {
+      text(label, margin, y + height * 0.5, { size: height * 0.46, color, max: width, weight: 700, face, spacing: face === "mono" ? 0.08 : 0.04 });
+      line(margin, y + height - 2, margin + width, y + height - 2, theme.accent, 2);
+    };
+
+    /** Redovi po grupama, svaka sa svojim naslovom; prazne grupe se preskaču */
+    const groups = (list: { label: string; matches: SocialMatch[]; postponed?: boolean }[], cap: number, byDay = false) => {
+      const filled = list.filter((g) => g.matches.length);
+      const gap = hasPanel ? 10 : 0;
+      const groupGap = 22;
+      const headerHeight = Math.min(58, available / (matches.length + filled.length) * 0.62);
+      const free = available - filled.length * headerHeight - (filled.length - 1) * groupGap - (matches.length - filled.length) * gap;
+      const rowHeight = Math.min(cap, free / Math.max(1, matches.length));
+      const block = filled.length * headerHeight + matches.length * rowHeight + (matches.length - filled.length) * gap + (filled.length - 1) * groupGap;
+      let y = contentTop + Math.max(0, (available - block) / 2) * 0.4;
+      for (const group of filled) {
+        header(group.label, y, headerHeight, group.postponed ? postponedInk : theme.accent, group.postponed ? "mono" : "poster");
+        y += headerHeight;
+        group.matches.forEach((m, i) => {
+          row(m, margin, y, width, rowHeight, i === group.matches.length - 1, false, !byDay);
+          y += rowHeight + (i < group.matches.length - 1 ? gap : 0);
+        });
+        y += groupGap;
+      }
+    };
+
+    if (options.layout === "list") {
+      // Po danima; odgođene na kraju pod svojim naslovom
+      const days = new Map<string, SocialMatch[]>();
+      for (const m of matches) {
+        const key = m.status === "postponed" && !isPlayed(m) ? "ODGOĐENO" : `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date)}`;
+        days.set(key, [...(days.get(key) ?? []), m]);
+      }
+      groups([...days].map(([label, list]) => ({ label, matches: list, postponed: label === "ODGOĐENO" })), story ? 150 : 132, true);
+    } else if (options.layout === "rows") {
+      const columns = wide && matches.length > 3 ? 2 : 1;
+      const rows = Math.ceil(matches.length / columns);
+      const gap = hasPanel ? (matches.length > 6 ? 10 : 14) : 0;
+      const rowHeight = Math.min(rows <= 2 ? 300 : story ? 230 : 210, (available - (rows - 1) * gap) / Math.max(1, rows));
+      const block = rows * rowHeight + (rows - 1) * gap;
+      const startY = contentTop + Math.max(0, (available - block) / 2) * 0.35;
+      const cardWidth = (width - (columns - 1) * 16) / columns;
+      matches.forEach((m, index) => {
+        const r = Math.floor(index / columns);
+        row(m, margin + (index % columns) * (cardWidth + 16), startY + r * (rowHeight + gap), cardWidth, rowHeight, r === rows - 1, columns > 1);
+      });
+    } else {
+      const played = matches.filter(isPlayed);
+      const rest = matches.filter((m) => !isPlayed(m));
+      groups([{ label: "ODIGRANO", matches: played }, { label: "SLIJEDI", matches: rest }], story ? 190 : 170);
     }
   }
 
