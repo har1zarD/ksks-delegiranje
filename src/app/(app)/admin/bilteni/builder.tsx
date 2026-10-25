@@ -148,7 +148,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     setSaveError(undefined);
     const json = draftJson;
     try {
-      const res = await saveBulletin(saved.id, JSON.parse(json) as BulletinDraft);
+      const res = await saveBulletin(saved.id, JSON.parse(json) as BulletinDraft, title.trim() || autoTitle);
       if ("error" in res) throw new Error(res.error);
       setSaved({ id: res.id, json, at: res.updatedAt });
       // Novi bilten dobija svoj link (bez ponovnog učitavanja stranice)

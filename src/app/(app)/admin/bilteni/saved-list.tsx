@@ -3,13 +3,13 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Copy, ScrollText, Trash2 } from "lucide-react";
+import { ChevronRight, ScrollText, Trash2 } from "lucide-react";
 import type { SavedBulletin } from "@/lib/bulletin";
 import { formatDate, formatTime, isoToSarajevo } from "@/lib/format";
 import { Button, ButtonLink, CARD, cx, Empty } from "@/components/ui";
 import { deleteBulletin } from "./actions";
 
-/** Sačuvani bilteni: otvori (nastavi pisati), kopija za naredni bilten, brisanje u dva klika */
+/** Sačuvani bilteni: otvori (nastavi pisati), brisanje u dva klika */
 export function SavedBulletins({ bulletins, competitions }: { bulletins: SavedBulletin[]; competitions: { id: string; shortName: string }[] }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -55,14 +55,6 @@ export function SavedBulletins({ bulletins, competitions }: { bulletins: SavedBu
                   </span>
                 </span>
                 <ChevronRight className="size-4 shrink-0 text-fg-faint" aria-hidden="true" />
-              </Link>
-              <Link
-                href={`/admin/bilteni?b=novi&od=${b.id}`}
-                className="grid size-9 shrink-0 place-items-center rounded-md text-fg-muted hover:bg-panel-2 hover:text-fg"
-                aria-label="Kopija za novi bilten"
-                title="Kopija za novi bilten"
-              >
-                <Copy className="size-4" aria-hidden="true" />
               </Link>
               {confirm === b.id ? (
                 <Button variant="danger" className="h-9 px-3 sm:h-9" disabled={pending} onClick={() => remove(b.id)} onBlur={() => setConfirm(null)} autoFocus>

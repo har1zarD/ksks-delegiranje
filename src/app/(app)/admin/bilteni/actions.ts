@@ -133,14 +133,14 @@ export async function getFibaOfficials(gameIds: number[]): Promise<Record<number
 
 export type SaveBulletinResult = { id: string; updatedAt: string } | { error: string };
 
-/** Sačuva bilten (novi kad nema id-a): stanje bildera, a broj, naslov, takmičenja i kolo i u kolone za listu */
-export async function saveBulletin(id: string | null, draft: BulletinDraft): Promise<SaveBulletinResult> {
+/** Sačuva bilten (novi kad nema id-a): stanje bildera, a broj, naslov (kao u PDF-u), takmičenja i kolo i u kolone za listu */
+export async function saveBulletin(id: string | null, draft: BulletinDraft, title: string): Promise<SaveBulletinResult> {
   const user = await requireRole("admin");
   if (!draft || !Array.isArray(draft.competitionIds) || draft.competitionIds.length === 0) return { error: "Izaberi bar jedno takmičenje." };
   if (JSON.stringify(draft).length > 500_000) return { error: "Bilten je prevelik za čuvanje." };
   const values = {
     number: String(draft.number ?? "").trim().slice(0, 20),
-    title: String(draft.title ?? "").trim().slice(0, 200) || "Bilten",
+    title: String(title ?? "").trim().slice(0, 200) || "Bilten",
     competition_ids: draft.competitionIds,
     round: Number.isInteger(draft.round) ? draft.round : null,
     state: draft,
