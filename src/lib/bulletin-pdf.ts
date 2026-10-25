@@ -3,6 +3,8 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, type PDFImage, type PDFPage } from "pdf-lib";
 import type { BulletinMatch } from "@/lib/data/admin";
+import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
+import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { formatDate, MATCH_STATUS_LABEL, todayISO } from "@/lib/format";
 import {
   A4,
@@ -27,7 +29,29 @@ export type BulletinStanding = { name: string; played: number; won: number; lost
 
 type Group<T> = { name: string; items: T[] };
 
+/** Savez biltena: KSBiH lige nose logo lige i naziv KSBiH, ostalo KSKS */
+export type BulletinBrand = { org: string; logo: string; ksbih: boolean };
+
+const KSBIH = "Košarkaški savez Bosne i Hercegovine";
+/** A1 liga KSBiH (takmičenje tekuće sezone) */
+const A1_KSBIH_ID = "a6358eb7-260f-48d4-95d2-7988b9bca13c";
+// Logoi lige obrezani na vidljivi dio (public/competitions/pdf), da u zaglavlju ne budu sitni
+const KSBIH_LOGO: Record<string, string> = {
+  [A1_KSBIH_ID]: "public/competitions/pdf/ksbih-a1.png",
+  [A2_JUG_ID]: "public/competitions/pdf/ksbih-a2.png",
+  [A1_ZENE_ID]: "public/competitions/pdf/ksbih-a1-zene.png",
+};
+
+/** Jedna KSBiH liga: njen logo; više KSBiH liga: logo KSBiH; ima li KSKS takmičenja: KSKS */
+export function bulletinBrand(competitionIds: string[]): BulletinBrand {
+  if (competitionIds.length === 0 || !competitionIds.every((id) => id in KSBIH_LOGO)) {
+    return { org: "Košarkaški savez Kantona Sarajevo", logo: "public/brand/ksks-logo-1024.png", ksbih: false };
+  }
+  return { org: KSBIH, logo: competitionIds.length === 1 ? KSBIH_LOGO[competitionIds[0]] : "public/competitions/pdf/ksbih.png", ksbih: true };
+}
+
 export type BulletinPdfInput = {
+  brand: BulletinBrand;
   league: string;
   season: string | null;
   number: string;
@@ -58,12 +82,12 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   doc.registerFontkit(fontkit);
   const heading = input.number.trim() ? `Bilten br. ${input.number.trim()}` : "Bilten";
   doc.setTitle(`${heading} — ${input.title}`);
-  doc.setAuthor("Košarkaški savez Kantona Sarajevo");
+  doc.setAuthor(input.brand.org);
 
   const [regular, bold, crest] = await Promise.all([
     asset("src/app/_og/Geist-500.woff").then((b) => doc.embedFont(b, { subset: true })),
     asset("src/app/_og/Geist-700.woff").then((b) => doc.embedFont(b, { subset: true })),
-    asset("public/brand/ksks-logo-1024.png").then((b) => doc.embedPng(b)),
+    asset(input.brand.logo).then((b) => doc.embedPng(b)),
   ]);
   const f = { regular, bold };
   const issued = formatDate(todayISO());
@@ -82,7 +106,8 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   if (input.cover) drawCover(doc.addPage([A4.w, A4.h]), f, crest, { ...input, heading, issued, contents: parts.map((p) => p.title) });
 
   const first = doc.getPageCount();
-  const header = { league: input.title, season: input.season, title: heading, dates: issued, dateLabel: "DATUM" };
+  // Širi logo KSBiH lige (grb + "A2") dobija širi okvir u zaglavlju
+  const header = { league: input.title, season: input.season, title: heading, dates: issued, dateLabel: "DATUM", logoW: Math.min(60, Math.max(38, (44 * crest.width) / crest.height)) };
   let page = doc.addPage([A4.w, A4.h]);
   let y = drawPageHeader(page, f, crest, header);
   const bottom = M + 24;
@@ -179,7 +204,7 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   // Podnožje (bez naslovne): savez lijevo, broj strane desno
   const pages = doc.getPages().slice(first);
   pages.forEach((p, i) => {
-    p.drawText(`Košarkaški savez Kantona Sarajevo  ·  ${heading}`, { x: M, y: M - 14, size: 7.5, font: f.regular, color: C.faint });
+    p.drawText(`${input.brand.org}  ·  ${heading}`, { x: M, y: M - 14, size: 7.5, font: f.regular, color: C.faint });
     const label = `Strana ${i + 1} / ${pages.length}`;
     p.drawText(label, { x: A4.w - M - f.regular.widthOfTextAtSize(label, 7.5), y: M - 14, size: 7.5, font: f.regular, color: C.faint });
   });
@@ -192,11 +217,19 @@ function drawCover(
   page: PDFPage,
   f: Fonts,
   crest: PDFImage,
-  { league, season, heading, title, issued, contents }: { league: string; season: string | null; heading: string; title: string; issued: string; contents: string[] },
+  {
+    brand,
+    league,
+    season,
+    heading,
+    title,
+    issued,
+    contents,
+  }: { brand: BulletinBrand; league: string; season: string | null; heading: string; title: string; issued: string; contents: string[] },
 ) {
   centered(page, upper(league), f.bold, 15, A4.h - 92, C.fg);
   if (season) centered(page, `TAKMIČARSKA SEZONA ${season}`, f.bold, 12.5, A4.h - 116, C.muted);
-  drawContained(page, crest, (A4.w - 220) / 2, A4.h - 420, 220, 260);
+  drawContained(page, crest, (A4.w - 300) / 2, A4.h - 420, 300, 260);
   centered(page, upper(heading), f.bold, 30, A4.h - 480, C.fg);
   const size = sizeToFit(upper(title), f.bold, 15, 9, W);
   centered(page, fit(upper(title), f.bold, size, W), f.bold, size, A4.h - 506, C.muted);
@@ -214,7 +247,7 @@ function drawCover(
       y -= 22;
     });
   }
-  centered(page, "Košarkaški savez Kantona Sarajevo", f.regular, 8, M, C.faint);
+  centered(page, brand.org, f.regular, 8, M, C.faint);
 }
 
 // ───────── Registracija ─────────

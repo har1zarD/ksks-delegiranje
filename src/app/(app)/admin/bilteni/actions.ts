@@ -2,7 +2,7 @@
 
 import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
-import { bulletinPdf } from "@/lib/bulletin-pdf";
+import { bulletinBrand, bulletinPdf } from "@/lib/bulletin-pdf";
 import { defaultRemarks, type BulletinRequest } from "@/lib/bulletin";
 import { seasonLabel } from "@/lib/schedule-pdf";
 import { slug } from "@/lib/format";
@@ -59,8 +59,10 @@ export async function makeBulletinPdf(req: BulletinRequest): Promise<BulletinPdf
     .filter(Boolean);
 
   const title = req.title?.trim() || [...new Set(competitions.map((c) => c.label))].join(" / ");
+  const brand = bulletinBrand(competitions.map((c) => c.id));
   const pdf = await bulletinPdf({
-    league: competitions.every((c) => c.youth) ? "Omladinska liga Kantona Sarajevo" : "Košarkaški savez Kantona Sarajevo",
+    brand,
+    league: brand.ksbih ? brand.org : competitions.every((c) => c.youth) ? "Omladinska liga Kantona Sarajevo" : brand.org,
     season: seasonLabel(competitions[0].season),
     number: String(req.number ?? "").slice(0, 20),
     title,
