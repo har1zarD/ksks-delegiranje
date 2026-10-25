@@ -36,7 +36,7 @@ export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names
   { clubId: null, logoPath: "2026-10-20/fiba/lider.png", names: ["LIDER"] },
   { clubId: null, logoPath: "2026-10-20/fiba/leotar-03.png", names: ["Leotar 03"] },
   { clubId: null, logoPath: "2026-10-20/fiba/marsonia.png", names: ["MARSONIA U18"] },
-  { clubId: "923b4c9f-85ec-473d-a927-a8fd541351a7", logoPath: null, names: ["MLADOST ILIJAS WU14", "MLADOST WU16"] },
+  { clubId: "923b4c9f-85ec-473d-a927-a8fd541351a7", logoPath: null, names: ["MLADOST ILIJAS WU14", "MLADOST WU16", "KK Mladost Ilijaš"] },
   { clubId: null, logoPath: "2026-10-20/fiba/mladi-krajisnik.png", names: ["Mladi Krajisnik"] },
   { clubId: "f69a2ed5-41f8-4e7f-acab-3434a4ce09cc", logoPath: null, names: ["OKK Slavija 1996"] },
   { clubId: "0676f2c4-143d-4341-9f3b-849f47119c09", logoPath: null, names: ["OKK Sloboda Energoinvest", "SLOBODA U16"] },
@@ -46,10 +46,20 @@ export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names
   { clubId: "25c7f34e-409e-4037-9e96-70468caa0eb7", logoPath: null, names: ["PLAY OFF WU14", "PLAY OFF WU16", "Play Off"] },
   { clubId: null, logoPath: "2026-10-20/fiba/rilski-sportist.png", names: ["RILSKI SPORTIST U16"] },
   { clubId: null, logoPath: "2026-10-20/fiba/banovici.png", names: ["RMU Banovici"] },
+  { clubId: "99aac297-8c60-440c-a03b-75b9a9d8df66", logoPath: null, names: ["KK Star Fojnica"] },
   { clubId: "dd7c7d07-09c7-4b47-a1be-e6b1a5e0b526", logoPath: null, names: ["UKK IUS FAMOS"] },
   { clubId: "a925551f-9a55-4e03-a55b-c6f59d55b945", logoPath: null, names: ["Željo 1971"] },
 ];
 
 export function fibaClubName(name: string) {
   return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** FIBA naziv bez prefiksa kluba, uzrasta i oznake ekipe: "KK Feniks U14 S" → "feniks", "ILIDŽA ORANGE U14" → "ilidza" */
+export function fibaClubBase(name: string) {
+  return fibaClubName(name)
+    .replace(/^(kk|okk|hkk|zkk|kzk|ukk)\s+/, "")
+    .replace(/\s+w?u\d{2}\b.*$/, "")
+    .replace(/\s+(w|orange|black|blue|[a-c]|\d)$/, "")
+    .trim();
 }

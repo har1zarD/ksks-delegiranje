@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser, requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
 import { fetchCompetitionFeed, fetchFibaGame, type FibaFeedGame } from "@/lib/fiba";
-import { FIBA_CLUBS, fibaClubName } from "@/lib/fiba-clubs";
+import { FIBA_CLUBS, fibaClubBase, fibaClubName } from "@/lib/fiba-clubs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { row, rows } from "./db";
 
@@ -27,13 +27,34 @@ async function clubLogos(): Promise<Record<string, string>> {
   "use cache: remote";
   cacheLife(LIFE.reference);
   cacheTag(TAG.clubs);
-  const clubs = rows(await createAdminClient().from("clubs").select("id, logo_url"));
+  const clubs = rows(await createAdminClient().from("clubs").select("id, name, short_name, logo_url"));
   const byId = new Map(clubs.map((club) => [club.id, club.logo_url]));
   const storage = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/club-logos`;
-  return Object.fromEntries(FIBA_CLUBS.flatMap((club) => {
+  // Novi FIBA nazivi (nova sezona, uzrast, ekipa) se prepoznaju po osnovi naziva kluba; ista osnova kod klubova s različitim logom se preskače
+  const auto = new Map<string, string | null>();
+  for (const club of clubs) {
+    if (!club.logo_url) continue;
+    for (const base of new Set([club.name, club.short_name].filter(Boolean).map(fibaClubBase))) {
+      auto.set(base, auto.has(base) && auto.get(base) !== club.logo_url ? null : club.logo_url);
+    }
+  }
+  const logos: Record<string, string> = {};
+  for (const [base, logo] of auto) if (logo) logos[`~${base}`] = logo;
+  // Ručna lista ima prednost, i po tačnom nazivu i po osnovi
+  for (const club of FIBA_CLUBS) {
     const logo = club.clubId ? byId.get(club.clubId) : club.logoPath ? `${storage}/${club.logoPath}` : null;
-    return logo ? club.names.map((name) => [fibaClubName(name), logo]) : [];
-  }));
+    if (!logo) continue;
+    for (const name of club.names) {
+      logos[fibaClubName(name)] = logo;
+      logos[`~${fibaClubBase(name)}`] = logo;
+    }
+  }
+  return logos;
+}
+
+/** Logo FIBA ekipe: tačan naziv s ručne liste, pa osnova naziva ("GEN U14" → GEN) */
+function logoOf(logos: Record<string, string>, name: string): string | undefined {
+  return logos[fibaClubName(name)] ?? logos[`~${fibaClubBase(name)}`];
 }
 
 function withClubLogos<T extends Pick<FibaGameRow, "home_name" | "away_name" | "home_logo" | "away_logo">>(
@@ -42,8 +63,8 @@ function withClubLogos<T extends Pick<FibaGameRow, "home_name" | "away_name" | "
 ): T {
   return {
     ...game,
-    home_logo: logos[fibaClubName(game.home_name)] ?? game.home_logo,
-    away_logo: logos[fibaClubName(game.away_name)] ?? game.away_logo,
+    home_logo: logoOf(logos, game.home_name) ?? game.home_logo,
+    away_logo: logoOf(logos, game.away_name) ?? game.away_logo,
   };
 }
 
@@ -129,7 +150,7 @@ export async function getFibaGame(matchId: number) {
   const [stored, linked, logos] = await Promise.all([storedGame(matchId), linkedMatches(), clubLogos()]);
   const game = await liveGame(matchId, stored?.starts_at ?? null);
   const logoFor = (name: string, storedName: string | undefined, fallback: string | null) =>
-    logos[fibaClubName(name)] ?? (storedName ? logos[fibaClubName(storedName)] : undefined) ?? fallback;
+    logoOf(logos, name) ?? (storedName ? logoOf(logos, storedName) : undefined) ?? fallback;
   return {
     game: game ? {
       ...game,
@@ -233,7 +254,7 @@ export async function getFibaTeamGames() {
 export async function getFibaSeason(category: string, seasonKey: string) {
   await getCurrentUser();
   const [season, logos] = await Promise.all([seasonRows(category, seasonKey), clubLogos()]);
-  return season.map((p) => ({ ...p, logo: logos[fibaClubName(p.team_name ?? "")] ?? null }));
+  return season.map((p) => ({ ...p, logo: logoOf(logos, p.team_name ?? "") ?? null }));
 }
 
 export async function getFibaAliases() {
@@ -257,5 +278,5 @@ export async function getFibaTeamPlayers(category: string, teamName: string) {
 /** Logo FIBA ekipe po nazivu */
 export async function getFibaLogo(name: string) {
   await getCurrentUser();
-  return (await clubLogos())[fibaClubName(name)] ?? null;
+  return logoOf(await clubLogos(), name) ?? null;
 }
