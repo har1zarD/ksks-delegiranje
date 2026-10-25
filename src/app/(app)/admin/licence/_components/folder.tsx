@@ -17,11 +17,11 @@ export function YouthLeagueLogo({ size = 44 }: { size?: number }) {
 type LicenseCompetition = Awaited<ReturnType<typeof getLicenseCompetitions>>["others"][number];
 
 /** Folderi takmičenja (kategorija): logo takmičenja, broj klubova i licenci */
-export function CompetitionFolders({ competitions }: { competitions: LicenseCompetition[] }) {
+export function CompetitionFolders({ competitions, base = "/admin/licence" }: { competitions: LicenseCompetition[]; base?: string }) {
   return competitions.map((c) => (
     <li key={c.id}>
       <Folder
-        href={`/admin/licence/${c.id}`}
+        href={`${base}/${c.id}`}
         logo={<CompetitionLogo name={c.name} category={c.category} size={44} />}
         title={c.name}
         meta={[c.season, `${c.clubCount} ${c.clubCount === 1 ? "klub" : "klubova"}`, `${c.count} licenci`].filter(Boolean).join(" · ")}

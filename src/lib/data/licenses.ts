@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { requireRole } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCurrentUser, homeFor, requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
@@ -77,6 +78,10 @@ function clubOf(r: FolderRow) {
 /** Folderi: takmičenja koja imaju bar jedan folder kluba, s brojem klubova i licenci; omladinska odvojeno (jedan folder) */
 export async function getLicenseCompetitions() {
   await requireRole("admin");
+  return licenseCompetitions();
+}
+
+async function licenseCompetitions() {
   const [folders, licenses] = await Promise.all([folderRows(), licenseRows()]);
   const byCompetition = new Map<string, ReturnType<typeof competitionOf> & { clubCount: number; count: number }>();
   for (const f of folders) {
@@ -103,6 +108,10 @@ export async function licenseFolderExists(competitionId: string, clubId: string)
 /** Folderi klubova u takmičenju, s brojem igrača i službenih lica */
 export async function getLicenseClubs(competitionId: string) {
   await requireRole("admin");
+  return licenseClubs(competitionId);
+}
+
+async function licenseClubs(competitionId: string) {
   const [folders, licenses] = await Promise.all([folderRows(), licenseRows()]);
   const list = folders.filter((f) => f.competition_id === competitionId);
   if (list.length === 0) return null;
@@ -119,6 +128,10 @@ export async function getLicenseClubs(competitionId: string) {
 /** Licence jednog kluba u takmičenju (folder može biti prazan), s privremenim linkom za fotografiju */
 export async function getClubLicenses(competitionId: string, clubId: string) {
   await requireRole("admin");
+  return clubLicenses(competitionId, clubId);
+}
+
+async function clubLicenses(competitionId: string, clubId: string) {
   const [folders, all] = await Promise.all([folderRows(), licenseRows()]);
   const folder = folders.find((f) => f.competition_id === competitionId && f.club_id === clubId);
   if (!folder) return null;
@@ -151,6 +164,33 @@ export async function getClubLicenses(competitionId: string, clubId: string) {
     players: licenses.filter((l) => l.kind === "player"),
     officials: licenses.filter((l) => l.kind !== "player"),
   };
+}
+
+/** Komesar (uloga ili oznaka na profilu) samo gleda licence Omladinske lige KS; savez ide na svoje stranice */
+async function requireYouthViewer() {
+  const user = await getCurrentUser();
+  if (user.role === "admin") redirect("/admin/licence");
+  if (user.role !== "commissioner" && !user.isCommissioner) redirect(homeFor(user.role));
+}
+
+/** Komesar: kategorije Omladinske lige KS */
+export async function getYouthLicenseCompetitions() {
+  await requireYouthViewer();
+  return (await licenseCompetitions()).youth;
+}
+
+/** Komesar: klubovi u kategoriji Omladinske lige KS (druga takmičenja = nema) */
+export async function getYouthLicenseClubs(competitionId: string) {
+  await requireYouthViewer();
+  const data = await licenseClubs(competitionId);
+  return data?.competition.youth ? data : null;
+}
+
+/** Komesar: licence kluba u kategoriji Omladinske lige KS */
+export async function getYouthClubLicenses(competitionId: string, clubId: string) {
+  await requireYouthViewer();
+  const data = await clubLicenses(competitionId, clubId);
+  return data?.competition.youth ? data : null;
 }
 
 export type ClubLicenses = NonNullable<Awaited<ReturnType<typeof getClubLicenses>>>;

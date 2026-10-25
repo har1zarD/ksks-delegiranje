@@ -65,6 +65,7 @@ async function UserNav() {
           ...(user.isReferee || user.isTable || user.isCommissioner ? [{ href: "/nominacije", label: "Moje nominacije", icon: "nominations" as const }] : []),
           { href: "/admin/licence", label: "Licence", icon: "licenses" },
         ]
-      : NAV[user.role];
+      : // Komesar (uloga ili oznaka na profilu) na kraju vidi licence Omladinske lige KS, samo pregled
+        [...NAV[user.role], ...(user.role === "commissioner" || user.isCommissioner ? [{ href: "/licence", label: "Licence", icon: "licenses" as const }] : [])];
   return <AppNav items={items} user={user.fullName} roleLabel={ROLE_LABEL[user.role]} logout={logout} />;
 }
