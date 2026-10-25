@@ -8,21 +8,19 @@ import {
   A4,
   asset,
   BLOCK_GAP,
-  blockHeight,
   C,
   centered,
   centeredIn,
   drawContained,
-  drawMatch,
   drawPageHeader,
   fit,
   M,
+  OFFICIAL_LABEL,
   sizeToFit,
   upper,
   W,
   wrap,
   type Fonts,
-  type ScheduleOptions,
 } from "@/lib/schedule-pdf";
 
 export type BulletinStanding = { name: string; played: number; won: number; lost: number; pointsFor: number; pointsAgainst: number; diff: number; points: number };
@@ -158,14 +156,13 @@ export async function bulletinPdf(input: BulletinPdfInput) {
   }
 
   function drawNominations(nominations: NonNullable<BulletinPdfInput["nominations"]>) {
-    const opts: ScheduleOptions = { title: "", cover: false, time: true, hall: true, officials: nominations.names ? "names" : "blank", note: "", signature: "" };
-    const blocks = nominations.groups.map((g) => ({ name: g.name, items: g.items.map((m) => ({ m, h: blockHeight(m, opts) })) }));
+    const blocks = nominations.groups.map((g) => ({ name: g.name, items: g.items.map((m) => ({ m, h: nominationHeight(m) })) }));
     partTitle(parts[n].title, blocks[0].items[0]?.h ?? 0);
     for (const g of blocks) {
       if (nominations.groups.length > 1) groupTitle(g.name, g.items[0]?.h ?? 0);
       for (const { m, h } of g.items) {
         room(h);
-        drawMatch(page, f, m, opts, y, h);
+        drawNominationMatch(page, f, m, nominations.names, y, h);
         y -= h + BLOCK_GAP;
       }
       y -= 10;
@@ -320,6 +317,57 @@ function drawRegistrationMatch(page: PDFPage, f: Fonts, m: BulletinMatch & { rem
   remarkLines(f, m, x1).forEach((l, i) => page.drawText(l, { x: x1 + 10, y: midTop - 26 - i * REMARK_LINE, size: REMARK_SIZE, font: f.regular, color: C.fg }));
 
   // Kolona broja i okvir
+  page.drawLine({ start: { x: x1, y }, end: { x: x1, y: bottom }, thickness: 0.6, color: C.line });
+  page.drawRectangle({ x: x0, y: bottom, width: W, height: h, borderColor: C.frame, borderWidth: 0.8 });
+}
+
+// ───────── Nominacija ─────────
+
+/** Komesar i sudije koje utakmica ima (i nedelegirani: prazno polje) */
+const nominationRows = (m: BulletinMatch) => m.officials.filter((o) => OFFICIAL_LABEL[o.position]);
+
+function nominationHeight(m: BulletinMatch) {
+  return Math.max(TEAM_ROW + nominationRows(m).length * OFFICIAL_ROW, 44);
+}
+
+/** Utakmica narednog kola bez termina: broj | domaćin – gost, ispod komesar i sudije (imena ili prazno); y = vrh bloka */
+function drawNominationMatch(page: PDFPage, f: Fonts, m: BulletinMatch, names: boolean, y: number, h: number) {
+  const x0 = M;
+  const x1 = M + COL_NO;
+  const x3 = M + W;
+  const bottom = y - h;
+  const rows = nominationRows(m);
+  const teamH = rows.length > 0 ? TEAM_ROW : h;
+  const rowH = rows.length > 0 ? (h - teamH) / rows.length : 0;
+
+  page.drawRectangle({ x: x0, y: bottom, width: COL_NO, height: h, color: C.panel2 });
+  page.drawRectangle({ x: x1, y: y - teamH, width: x3 - x1, height: teamH, color: C.panel2 });
+
+  const midY = bottom + h / 2;
+  centeredIn(page, "UTAKMICA", f.bold, 7, x0, x1, midY + 6, C.faint);
+  centeredIn(page, m.number == null ? "" : String(m.number).padStart(2, "0"), f.bold, 18, x0, x1, midY - 13, C.fg);
+
+  const half = (x3 - x1) / 2;
+  const teamY = y - teamH / 2 - 3.5;
+  for (const [name, from, to] of [
+    [m.home, x1, x1 + half],
+    [m.away, x1 + half, x3],
+  ] as const) {
+    const size = sizeToFit(upper(name), f.bold, 10.5, 7.5, half - 12);
+    centeredIn(page, fit(upper(name), f.bold, size, half - 12), f.bold, size, from, to, teamY, C.fg);
+  }
+  page.drawLine({ start: { x: x1 + half, y }, end: { x: x1 + half, y: y - teamH }, thickness: 0.6, color: C.line });
+
+  rows.forEach((o, i) => {
+    const top = y - teamH - i * rowH;
+    page.drawLine({ start: { x: x1, y: top }, end: { x: x3, y: top }, thickness: 0.6, color: C.line });
+    const label = OFFICIAL_LABEL[o.position]!;
+    const ly = top - rowH / 2 - 3;
+    page.drawText(label, { x: x1 + COL_LABEL + 16 - f.regular.widthOfTextAtSize(label, 8), y: ly, size: 8, font: f.regular, color: C.muted });
+    if (names && o.name) page.drawText(fit(o.name, f.regular, 9.5, x3 - x1 - COL_LABEL - 40), { x: x1 + COL_LABEL + 32, y: ly, size: 9.5, font: f.regular, color: C.fg });
+  });
+  if (rows.length > 0) page.drawLine({ start: { x: x1 + COL_LABEL + 24, y: y - teamH }, end: { x: x1 + COL_LABEL + 24, y: bottom }, thickness: 0.6, color: C.line });
+
   page.drawLine({ start: { x: x1, y }, end: { x: x1, y: bottom }, thickness: 0.6, color: C.line });
   page.drawRectangle({ x: x0, y: bottom, width: W, height: h, borderColor: C.frame, borderWidth: 0.8 });
 }

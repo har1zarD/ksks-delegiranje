@@ -46,7 +46,7 @@ export type ScheduleOptions = {
 export type ScheduleSection = { competition: ScheduleCompetition; round: number; matches: ScheduleMatch[]; free: string[] };
 
 /** Oznake kao u šablonu: prvi sudija je glavni */
-const OFFICIAL_LABEL: Partial<Record<Position, string>> = {
+export const OFFICIAL_LABEL: Partial<Record<Position, string>> = {
   commissioner: "Komesar",
   referee_1: "Glavni sudija",
   referee_2: "Sudija",
@@ -216,14 +216,14 @@ function timeLines(m: ScheduleMatch, opts: ScheduleOptions) {
 
 const lineHeight = (size: number) => size * 1.35;
 
-export function blockHeight(m: ScheduleMatch, opts: ScheduleOptions) {
+function blockHeight(m: ScheduleMatch, opts: ScheduleOptions) {
   const rows = officialRows(m, opts).length;
   const text = timeLines(m, opts).reduce((h, l) => h + lineHeight(l.size), 0) + 16;
   return Math.max(rows > 0 ? TEAM_ROW + rows * OFFICIAL_ROW : 40, text, 44);
 }
 
 /** Jedna utakmica kao u šablonu: broj | termin | domaćin – gost, ispod komesar i sudije; y = vrh bloka */
-export function drawMatch(page: PDFPage, f: Fonts, m: ScheduleMatch, opts: ScheduleOptions, y: number, h: number) {
+function drawMatch(page: PDFPage, f: Fonts, m: ScheduleMatch, opts: ScheduleOptions, y: number, h: number) {
   const rows = officialRows(m, opts);
   const x0 = M;
   const x1 = M + COL_NO;

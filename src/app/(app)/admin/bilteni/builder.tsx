@@ -251,7 +251,7 @@ export function BulletinBuilder({ competitions, matches, suggested }: BulletinDa
             <Toggle label="Tabela" hint={selected.length > 1 ? "Tabela svakog izabranog takmičenja" : "Iz rezultata u aplikaciji"} checked={standings} onChange={setStandings} />
             <Toggle
               label={nextRound !== null ? `Nominacija ${nextRound}. kola` : "Nominacija narednog kola"}
-              hint={nextRound !== null ? `${matchesLabel(nominated)}, termin, dvorana, komesar i sudije` : "Nema narednog kola"}
+              hint={nextRound !== null ? `${matchesLabel(nominated)}, komesar i sudije (bez termina)` : "Nema narednog kola"}
               checked={nominationsOn && nextRound !== null}
               onChange={setNominationsOn}
             />
