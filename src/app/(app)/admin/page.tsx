@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
 import { delegatedHere, getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
-import { dayKey, formatDayMonth, formatGroupHeading, formatTime, positionName, weekendKey } from "@/lib/format";
+import { dayKey, formatDayHeading, formatDayMonth, formatTime, positionName } from "@/lib/format";
 import { PingPending, type PingItem } from "./ping-pending";
 import { LiveRefresh } from "@/components/live-refresh";
 import { CrewLine } from "@/components/crew-line";
@@ -46,8 +46,8 @@ async function Overview() {
   const active = soon.filter((m) => (m.status === "scheduled" || m.status === "live") && delegatedHere(m));
   const open = active.filter((m) => m.staffing.missing.length > 0);
 
-  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po vikendu; neaktivirane su u Utakmicama
-  const activated = byWeekend(activatedList);
+  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po danu; neaktivirane su u Utakmicama
+  const activated = byDay(activatedList);
   // Potvrđene nominacije: prihvaćene od svih poslanih (prihvaćeno + čeka odgovor) na aktiviranim utakmicama.
   // Ista osoba na dvije utakmice su dvije nominacije; neposlana delegiranja (izmjene nakon aktiviranja) ne ulaze dok se ne objave.
   const people = activatedList.flatMap((m) => m.staffing.people);
@@ -154,7 +154,7 @@ async function Overview() {
           </Empty>
         ) : (
           <div className="flex flex-col gap-6">
-            {byWeekend(open).map(([key, list]) => (
+            {byDay(open).map(([key, list]) => (
               <div key={key}>
                 <GroupHeading groupKey={key} count={list.length} />
                 <Rows>
@@ -194,21 +194,21 @@ async function Overview() {
   );
 }
 
-/** Utakmice po grupi rasporeda: vikend (subota i nedjelja) zajedno, radni dan posebno; redom kako su došle */
-function byWeekend<T extends { starts_at: string }>(list: T[]) {
+/** Utakmice po danu (svaki datum svoja grupa); redom kako su došle */
+function byDay<T extends { starts_at: string }>(list: T[]) {
   const groups = new Map<string, T[]>();
   for (const m of list) {
-    const key = weekendKey(dayKey(m.starts_at));
+    const key = dayKey(m.starts_at);
     groups.set(key, [...(groups.get(key) ?? []), m]);
   }
   return [...groups];
 }
 
-/** "Vikend, 24. – 25. oktobar" (ili dan) i broj utakmica desno */
+/** "Subota, 31. oktobar" i broj utakmica desno */
 function GroupHeading({ groupKey, count }: { groupKey: string; count: number }) {
   return (
     <h3 className="flex items-baseline justify-between gap-3 pb-3">
-      <span className="font-display text-[17px] font-semibold tracking-[-0.02em]">{formatGroupHeading(groupKey)}</span>
+      <span className="font-display text-[17px] font-semibold tracking-[-0.02em]">{formatDayHeading(groupKey)}</span>
       <span className="text-[13px] font-semibold text-fg-faint">{matchesLabel(count)}</span>
     </h3>
   );
