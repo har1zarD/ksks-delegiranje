@@ -46,8 +46,8 @@ function allowList() {
  * Skrivena kopija SVAKOG emaila: kancelarija saveza, da ima evidenciju svega što aplikacija pošalje.
  * Nalog delegiranja nije tu: on je pošiljalac, pa sve ima u "Poslano" u Gmailu.
  */
-const ALWAYS_COPY = ["ksksarajevo@bih.net.ba"];
-/** Bez kopije: link za novu šifru (sigurnost), odbijanje (ionako ide svim adminima) i odsustvo (ide samo delegiranju) */
+export const ALWAYS_COPY = ["ksksarajevo@bih.net.ba"];
+/** Bez kopije: link za novu šifru (sigurnost), odbijanje (ide delegiranju i adminima, ali ne kancelariji) i odsustvo (ide samo delegiranju) */
 const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined", "absence"];
 
 /** Dodaje adrese saveza u skrivene primaoce, osim onih koje su već primaoci ili koje test način ne propušta */
