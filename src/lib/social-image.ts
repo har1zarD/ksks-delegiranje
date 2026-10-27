@@ -86,6 +86,12 @@ export const SOCIAL_ACCENTS = [
 ] as const;
 
 /** Raspored elemenata na slici, po vrsti slike */
+export const SOCIAL_YEARS = [
+  { id: "none", name: "Bez godine", example: "31.10." },
+  { id: "short", name: "Kratko", example: "31.10.26." },
+  { id: "full", name: "Puno", example: "31.10.2026." },
+] as const;
+
 export const SOCIAL_LAYOUTS = {
   schedule: [
     { id: "rows", name: "Trake", description: "Grb, ime, termin, ime, grb" },
@@ -114,6 +120,7 @@ export const SOCIAL_LAYOUTS = {
 export type SocialFormat = (typeof SOCIAL_FORMATS)[number]["id"];
 export type SocialTemplate = (typeof SOCIAL_TEMPLATES)[number]["id"];
 export type SocialBrand = keyof typeof SOCIAL_BRANDS;
+export type SocialYear = (typeof SOCIAL_YEARS)[number]["id"];
 export type SocialKind = "schedule" | "results" | "round" | "standings" | "clubs";
 
 /** Izgled: zajednički za sve vrste slika */
@@ -127,6 +134,8 @@ export type SocialDesignOptions = {
   crestTiles: boolean;
   showHall: boolean;
   showCompetition: boolean;
+  /** Godina uz datum: bez nje, s dvije (31.10.26.) ili četiri cifre (31.10.2026.) */
+  year: SocialYear;
 };
 
 /** Tekst i raspored elemenata: svaka vrsta slike ima svoj */
@@ -243,9 +252,9 @@ function deepen(hex: string) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-const shortDate = (date: string) => {
-  const [, m, d] = date.split("-");
-  return `${d}.${m}.`;
+const shortDate = (date: string, year: SocialYear) => {
+  const [y, m, d] = date.split("-");
+  return `${d}.${m}.${year === "full" ? `${y}.` : year === "short" ? `${y.slice(2)}.` : ""}`;
 };
 
 const logoUrls = (content: SocialContent) =>
@@ -485,7 +494,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   }
   const panelAlpha = watermark ? 0.8 : 1;
 
-  const dayLabel = (m: SocialMatch) => `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date)}`;
+  const dayLabel = (m: SocialMatch) => `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date, options.year)}`;
   const hallOf = (m: SocialMatch) => (options.showHall && m.hall ? m.hall.toUpperCase() : null);
   const postponedInk = lightPanel || theme.ink === "#0f172a" ? "#c81e1e" : "#ff6b6b";
 
@@ -556,7 +565,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         const hall = options.showHall && !postponed;
         const dateY = cy + cardHeight * (hall ? 0.24 : 0.29);
         const bigY = cy + cardHeight * (hall ? 0.55 : 0.63);
-        const dateLine = postponed ? "NOVI TERMIN NAKNADNO" : `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date)}`;
+        const dateLine = postponed ? "NOVI TERMIN NAKNADNO" : `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date, options.year)}`;
         text(dateLine, center, dateY, { size: cardHeight * 0.15, color: "#1f2937", max: middle, weight: 600, align: "center", face: "poster", spacing: 0.06 });
         if (postponed) text("ODGOĐENO", center, bigY, { size: cardHeight * 0.26, color: postponedOn(true), max: middle, weight: 700, align: "center", face: "mono", spacing: 0.08 });
         else text(formatTime(m.startsAt), center, bigY, { size: cardHeight * 0.42, color: timeColor, max: middle, weight: 700, align: "center", face: "poster" });
@@ -568,7 +577,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const list = () => {
       const groups = new Map<string, SocialMatch[]>();
       for (const m of matches) {
-        const key = m.status === "postponed" ? "ODGOĐENO" : `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date)}`;
+        const key = m.status === "postponed" ? "ODGOĐENO" : `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date, options.year)}`;
         groups.set(key, [...(groups.get(key) ?? []), m]);
       }
       const headers = groups.size;
@@ -632,7 +641,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         teamName(m.away, x + cardWidth - side, cy + nameGap, cardWidth * 0.34, 38);
         if (showCompetition) text(competition, center, y + 44, { size: 20, color: theme.muted, max: cardWidth - 80, weight: 600, align: "center", spacing: 0.12 });
         if (postponed) text("ODGOĐENO", center, cy - 14, { size: 44, color: postponedColor, max: cardWidth * 0.27, weight: 700, align: "center", face: "mono", spacing: 0.08 });
-        else text(shortDate(m.date), center, cy - 14, { size: 80, color: theme.ink, max: cardWidth * 0.27, weight: 700, align: "center", face: "poster" });
+        else text(shortDate(m.date, options.year), center, cy - 14, { size: 80, color: theme.ink, max: cardWidth * 0.27, weight: 700, align: "center", face: "poster" });
         const [time, hall] = detail.split("  ·  ");
         text(time, center, cy + 44, { size: 24, color: postponed ? theme.muted : theme.accent, max: cardWidth * 0.28, weight: 700, align: "center", spacing: 0.08 });
         if (hall) text(hall, center, cy + 76, { size: 18, color: theme.muted, max: cardWidth * 0.28, weight: 600, align: "center", spacing: 0.08 });
@@ -660,7 +669,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const smallSize = Math.min(rowHeight * 0.13, 20);
       if (withLabel) text(competition, center, y + rowHeight * 0.2, { size: smallSize * 0.9, color: theme.muted, max: middle, weight: 600, align: "center", spacing: 0.1 });
       if (postponed) text("ODGOĐENO", center, bigY, { size: bigSize * 0.6, color: postponedColor, max: middle, weight: 700, align: "center", face: "mono", spacing: 0.08 });
-      else text(shortDate(m.date), center, bigY, { size: bigSize, color: theme.ink, max: middle, weight: 700, align: "center", face: "poster" });
+      else text(shortDate(m.date, options.year), center, bigY, { size: bigSize, color: theme.ink, max: middle, weight: 700, align: "center", face: "poster" });
       text(detail, center, withLabel ? y + rowHeight * 0.79 : y + rowHeight * 0.75, { size: smallSize, color: postponed ? theme.muted : theme.accent, max: middle + 20, weight: 600, align: "center", spacing: 0.06 });
     });
   }
@@ -676,7 +685,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const list = () => {
       const groups = new Map<string, SocialMatch[]>();
       for (const m of matches) {
-        const key = `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date)}`;
+        const key = `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date, options.year)}`;
         groups.set(key, [...(groups.get(key) ?? []), m]);
       }
       const headers = groups.size;
@@ -800,7 +809,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         text("NOVI TERMIN NAKNADNO", center, detailY, { size: smallSize, color: theme.muted, max: max + 20, weight: 600, align: "center", spacing: 0.06 });
       } else {
         const started = new Date(m.startsAt).getTime() <= now;
-        text(started ? "–  :  –" : shortDate(m.date), center, bigY, { size: bigSize, color: started ? theme.muted : theme.ink, max, weight: 700, align: "center", face: "poster" });
+        text(started ? "–  :  –" : shortDate(m.date, options.year), center, bigY, { size: bigSize, color: started ? theme.muted : theme.ink, max, weight: 700, align: "center", face: "poster" });
         const when = started ? "REZULTAT NAKNADNO" : withDay ? `${formatWeekday(m.startsAt).toUpperCase()} ${formatTime(m.startsAt)}` : formatTime(m.startsAt);
         text([when, started ? null : hall].filter(Boolean).join("  ·  "), center, detailY, { size: smallSize, color: theme.accent, max: max + 20, weight: 600, align: "center", spacing: 0.06 });
       }
@@ -862,7 +871,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       // Po danima; odgođene na kraju pod svojim naslovom
       const days = new Map<string, SocialMatch[]>();
       for (const m of matches) {
-        const key = m.status === "postponed" && !isPlayed(m) ? "ODGOĐENO" : `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date)}`;
+        const key = m.status === "postponed" && !isPlayed(m) ? "ODGOĐENO" : `${formatWeekday(m.startsAt).toUpperCase()} · ${shortDate(m.date, options.year)}`;
         days.set(key, [...(days.get(key) ?? []), m]);
       }
       groups([...days].map(([label, list]) => ({ label, matches: list, postponed: label === "ODGOĐENO" })), story ? 150 : 132, true);

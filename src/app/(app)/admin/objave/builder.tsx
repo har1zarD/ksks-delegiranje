@@ -8,15 +8,15 @@ import type { SocialMatch } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
 import { addDays, formatDate, formatTime, slug } from "@/lib/format";
 import {
-  brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, templateOf,
-  type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions,
+  brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, SOCIAL_YEARS, templateOf,
+  type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions, type SocialYear,
 } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
 import { SOCIAL_KINDS } from "./kinds";
 
 const DEFAULT_DESIGN: SocialDesignOptions = {
   format: "portrait", template: "fire", accent: "",
-  showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true,
+  showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true, year: "full",
 };
 
 const KIND_ICONS = { schedule: CalendarDays, results: ClipboardCheck, round: ListChecks, standings: Trophy, clubs: Shield };
@@ -560,6 +560,11 @@ function SocialText({ texts, onText, design, onDesign, schedule, placeholder }: 
       <Field label="Naslov" value={texts.title} maxLength={40} placeholder={placeholder} onChange={(event) => onText({ title: event.target.value })} />
       <Field label="Podnaslov" value={texts.subtitle} maxLength={80} placeholder="A2 liga jug · 4. kolo" onChange={(event) => onText({ subtitle: event.target.value })} />
       <Field label="Tekst u dnu slike" value={texts.footer} maxLength={80} placeholder="Prazno = bez teksta" onChange={(event) => onText({ footer: event.target.value })} />
+      {schedule && (
+        <Select label="Godina uz datum" value={design.year} onChange={(event) => onDesign("year", event.target.value as SocialYear)} hint="Kratka godina ostavlja više mjesta imenima ekipa.">
+          {SOCIAL_YEARS.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.example})</option>)}
+        </Select>
+      )}
       <div className="flex flex-wrap gap-x-5 gap-y-3">
         {toggles.map(({ key, label }) => <label key={key} className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={design[key]} onChange={(event) => onDesign(key, event.target.checked)} className="size-4 accent-brand" />{label}</label>)}
       </div>
