@@ -43,7 +43,7 @@ function federationLogo(competition: ClubLicenses["competition"]) {
 /** Prozirnost grba saveza iza kartica (isti grb je i u zaglavlju strane i kartice) */
 const WATERMARK_OPACITY = 0.06;
 
-const asset = (p: string) => readFile(path.join(process.cwd(), p));
+const asset = (p: string) => readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), p));
 
 async function fetchBytes(url: string) {
   try {

@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Fontovi i grbovi koje PDF-ovi i OG slika čitaju s diska (bez ovoga Next uvuče cijeli projekat, i output/, u svaku funkciju)
+  outputFileTracingIncludes: {
+    "/**": ["src/app/_og/*.woff", "public/brand/ksks-logo-1024.png", "public/competitions/ksbih.png", "public/competitions/pdf/ksbih.png"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "fxdzcncfoutxunfwcyhi.supabase.co", port: "", pathname: "/storage/v1/object/public/club-logos/**", search: "" },

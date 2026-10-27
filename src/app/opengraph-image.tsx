@@ -9,7 +9,7 @@ export const alt = "KSKS Nominacije — Košarkaški savez Kantona Sarajevo";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const asset = (p: string) => readFile(path.join(process.cwd(), p));
+const asset = (p: string) => readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), p));
 
 export default async function OpenGraphImage() {
   const [logo, medium, bold] = await Promise.all([

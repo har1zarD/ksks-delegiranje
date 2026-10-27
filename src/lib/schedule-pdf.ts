@@ -55,7 +55,7 @@ export const OFFICIAL_LABEL: Partial<Record<Position, string>> = {
 
 export type Fonts = { regular: PDFFont; bold: PDFFont };
 
-export const asset = (p: string) => readFile(path.join(process.cwd(), p));
+export const asset = (p: string) => readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), p));
 export const upper = (s: string) => s.toLocaleUpperCase("bs");
 
 /** "2026/27" → "2026/2027" */
