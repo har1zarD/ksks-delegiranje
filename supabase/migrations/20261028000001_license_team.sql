@@ -8,9 +8,9 @@ set team_id = 'e3f905ca-50c7-444d-b235-f23e00223813'
 where competition_id = '9a46987b-ee80-4ad4-b956-4dd29bebaf37'
   and club_id = '2bc39e25-4b29-49e9-a2b2-255f068b5ef0';
 
--- Kadeti G2: postojeće licence BBY-a su ekipa KK BBY (druga ekipa je KK BBY 3x3)
+-- Kadeti G2: postojeće licence BBY-a su lista "Konjic 3x3 / BBY 3x3" (26.10.), ekipa KK BBY 3x3
 update public.licenses
-set team_id = 'e2070a06-faf7-4e49-ba2b-50bca06b04c1'
+set team_id = 'c551f472-0e9a-47f4-9fb7-fe8553439e43'
 where competition_id = 'efa174a7-1a9a-464c-ad1d-5c8ba0aee67b'
   and club_id = 'cc10bf84-437d-4ccf-915d-8a5e65ec5010';
 
