@@ -1,9 +1,0 @@
-[{"id":47523,"name":"A2 liga KSBiH","sort":4,"active":false,"category":null}, 
- {"id":47343,"name":"Liga KSHB","sort":5,"active":false,"category":null}, 
- {"id":47539,"name":"RS1 liga","sort":6,"active":false,"category":null}, 
- {"id":47734,"name":"RS1 liga — žene","sort":7,"active":false,"category":null}, 
- {"id":48712,"name":"Državna prvenstva mlađih","sort":9,"active":false,"category":null}, 
- {"id":47625,"name":"Omladinska liga KS","sort":0,"active":true,"category":null}, 
- {"id":50128,"name":"Premijer liga BiH","sort":1,"active":true,"category":"plbih"}, 
- {"id":50228,"name":"Premijer liga BiH — žene","sort":2,"active":true,"category":"plbih_z"}, 
- {"id":50201,"name":"A1 liga KSBiH","sort":3,"active":true,"category":"a1"}]

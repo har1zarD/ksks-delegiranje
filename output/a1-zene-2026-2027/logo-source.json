@@ -1,7 +1,0 @@
-{
-  "source_page": "https://vkl.si/clubs/zkk-rmu-banovici",
-  "source_image": "https://s3.eu-central-1.amazonaws.com/nex-to.me/e64c3a4c-aac1-4e5e-9f55-8ab4ebb2512e/e7b24b112a44fdd9ee93bdf998c6ca0e/c/blob-lg.jpg",
-  "file": "rmu-banovici.png",
-  "method": "built-in image_gen, reference restoration, transparent background",
-  "prompt": "Faithfully restore and extract the supplied ŽKK RMU Banovići basketball club logo for a sports administration app. Keep the exact original layout: curved bold black top text \"ŽENSKI KOŠARKAŠKI KLUB\"; orange basketball with dark orange seams; horizontal green banner with exact white text RMU \"BANOVIĆI\"; black basketball net below; bottom black italic text \"BANOVIĆI 1974\". Preserve proportions, colors and all lettering/diacritics; sharpen the low-resolution edges into clean flat vector-like artwork. Remove the white background to genuine transparency, including gaps between the net lines; preserve white letters inside the green banner. No redesign, no additions, no shadows, no texture, no mockup. Complete centered logo with a small transparent margin."
-}

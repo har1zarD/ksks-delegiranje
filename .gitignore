@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Claude Code (radne kopije agenata)
 .claude/
+
+# Radni fajlovi uvoza (podaci su u bazi i Storageu)
+/output/

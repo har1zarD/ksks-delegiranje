@@ -1,9 +1,0 @@
-{
-  "old_club_id": "29a704d6-7465-4dd3-851a-be3b023de1b0",
-  "new_club_id": "ff37a503-e6e8-4511-9582-6f7b1befabff",
-  "competition_id": "443667aa-44cf-4c3c-9934-5b3d426c8de4",
-  "team_id": "01f3b4a0-28bb-4bcd-b76c-eb906d29f428",
-  "logo_url": "https://fxdzcncfoutxunfwcyhi.supabase.co/storage/v1/object/public/club-logos/2026-10-22/zkk-konjic.webp",
-  "source": "/Users/tarikvelic/Downloads/images.jpeg",
-  "optimization": "cwebp -q 80 -m 6 -metadata none; original dimensions and artwork retained"
-}
