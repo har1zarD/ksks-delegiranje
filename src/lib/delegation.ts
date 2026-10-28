@@ -5,7 +5,7 @@
 // s tabelom "assignments" i utakmicom (povratne vrijednosti nose matchId).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MATCH_SELECT } from "@/lib/data/selects";
-import { ALWAYS_COPY, sendEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import { publishMatches } from "@/lib/publish";
 import { cancellationEmail, declinedEmail, DELEGATION_INBOX } from "@/lib/emails";
 import { CREW_COLUMNS, crewOf, crewPositions, skillsFor } from "@/lib/crew";
@@ -203,10 +203,9 @@ export async function respondToNomination(
     if (accept) return;
     const { data: match } = await db.from("matches").select(MATCH_SELECT).eq("id", row.match_id).single();
     if (!match) return;
-    // Nalog delegiranja i Alden, plus ostali aktivni admini (jedan email, bez duplikata), osim kancelarije saveza
+    // Nalog delegiranja i Alden, plus ostali aktivni admini (jedan email, bez duplikata); kancelariju izbacuje sendEmail (NEVER_EMAIL)
     const { data: admins } = await db.from("profiles").select("email").eq("role", "admin").eq("active", true);
-    const office = new Set(ALWAYS_COPY.map((e) => e.toLowerCase()));
-    const [to, ...bcc] = [...new Set([...DELEGATION_INBOX, ...(admins ?? []).map((a) => a.email)].map((e) => e.toLowerCase()))].filter((e) => !office.has(e));
+    const [to, ...bcc] = [...new Set([...DELEGATION_INBOX, ...(admins ?? []).map((a) => a.email)].map((e) => e.toLowerCase()))];
     const email = declinedEmail(row.profile?.full_name ?? "", row.position, why!, match);
     await sendEmail({ to, bcc, kind: "declined", assignmentId: row.id, ...email });
   };

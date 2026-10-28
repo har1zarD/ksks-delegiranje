@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Slanje emaila preko Gmail SMTP-a (od 2026-10-21): GMAIL_USER + GMAIL_APP_PASSWORD (app šifra, potvrda u 2 koraka).
 // Gmail limiti: ~500 primalaca dnevno i do 100 po poruci, pa se veliki bcc šalje u dijelovima (BCC_CHUNK).
 // Brevo put (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) je ostavljen zakomentarisan ispod ako ikad zatreba.
-// Kancelarija saveza (ALWAYS_COPY) dobija skrivenu kopiju svakog emaila osim linka za novu šifru, odbijanja i odsustva.
+// Kancelarija saveza (NEVER_EMAIL) ne prima NIKAKVE emailove (od 2026-10-28), ni kopije ni kao primalac.
 // Nalog delegiranja (pošiljalac) prima SAMO odbijanja i odsustva (DELEGATION_INBOX u emails.ts); sve ostalo ima u "Poslano".
 // Test način: EMAIL_ONLY_TO="a@x.ba,b@y.ba" — email ide SAMO na te adrese, ostali primaoci se preskaču (bilježe se u email_log).
 /**
@@ -43,19 +43,18 @@ function allowList() {
 }
 
 /**
- * Skrivena kopija SVAKOG emaila: kancelarija saveza, da ima evidenciju svega što aplikacija pošalje.
- * Nalog delegiranja nije tu: on je pošiljalac, pa sve ima u "Poslano" u Gmailu.
+ * Adrese kojima aplikacija nikad ne šalje (kancelarija saveza, od 2026-10-28: ne želi nikakve emailove).
+ * Izbacuju se iz "to" i bcc svakog emaila; ako ne ostane niko, email se samo upiše u log kao preskočen.
  */
-export const ALWAYS_COPY = ["ksksarajevo@bih.net.ba"];
-/** Bez kopije: link za novu šifru (sigurnost), odbijanje (ide delegiranju i adminima, ali ne kancelariji) i odsustvo (ide samo delegiranju) */
-const NO_OFFICE_COPY: Email["kind"][] = ["password_reset", "declined", "absence"];
+export const NEVER_EMAIL = ["ksksarajevo@bih.net.ba"];
 
-/** Dodaje adrese saveza u skrivene primaoce, osim onih koje su već primaoci ili koje test način ne propušta */
-function withOfficeCopy(email: Email, allow: Set<string> | null): Email {
-  if (NO_OFFICE_COPY.includes(email.kind)) return email;
-  const have = new Set([email.to, ...(email.bcc ?? [])].map((e) => e.toLowerCase()));
-  const extra = ALWAYS_COPY.filter((a) => !have.has(a.toLowerCase()) && (!allow || allow.has(a.toLowerCase())));
-  return extra.length ? { ...email, bcc: [...(email.bcc ?? []), ...extra] } : email;
+/** Uklanja blokirane adrese; null = nema kome poslati */
+function withoutBlocked(email: Email): Email | null {
+  const blocked = new Set(NEVER_EMAIL.map((e) => e.toLowerCase()));
+  const bcc = email.bcc?.filter((e) => !blocked.has(e.toLowerCase()));
+  if (!blocked.has(email.to.toLowerCase())) return { ...email, bcc };
+  // Glavni primalac blokiran: ostali iz bcc dobijaju masovni mail (to = pošiljalac, šalje se bez "to")
+  return bcc?.length ? { ...email, to: senderAddress(), bcc } : null;
 }
 
 export type Email = {
@@ -94,7 +93,12 @@ export async function sendEmail(email: Email): Promise<boolean> {
     }
     email = { ...email, bcc };
   }
-  email = withOfficeCopy(email, allow);
+  const unblocked = withoutBlocked(email);
+  if (!unblocked) {
+    await logEmail(email, null, "Adresa ne prima emailove (NEVER_EMAIL u src/lib/email.ts)");
+    return false;
+  }
+  email = unblocked;
 
   if (!t) {
     error = "Email nije podešen (GMAIL_USER + GMAIL_APP_PASSWORD)";
