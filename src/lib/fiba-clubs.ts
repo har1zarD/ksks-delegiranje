@@ -3,7 +3,7 @@ export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names
   { clubId: "6fa91446-f915-42ee-b2f3-e4974e07ee06", logoPath: null, names: ["BOSNA U18"] },
   { clubId: "1804b244-b0d8-4294-9a74-b0a53731e4c0", logoPath: null, names: ["Bošnjak"] },
   { clubId: null, logoPath: "2026-10-20/fiba/ceba.png", names: ["CEBA U18"] },
-  { clubId: "484c9753-58c1-4760-b30a-f886b4838b74", logoPath: null, names: ["Celik"] },
+  { clubId: "484c9753-58c1-4760-b30a-f886b4838b74", logoPath: null, names: ["Celik", "OKK Celik"] },
   { clubId: "5b0dd343-4ccd-58eb-bb19-4320462a859f", logoPath: null, names: ["Celik BH Telecom"] },
   { clubId: "f46b36a0-b494-43f4-81d0-fe0e50047c9c", logoPath: null, names: ["Drina Betin"] },
   { clubId: "7191cfa2-1708-44eb-9a2b-e2772e50fff2", logoPath: null, names: ["GEN U18"] },

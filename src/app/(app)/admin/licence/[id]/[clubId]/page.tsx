@@ -87,7 +87,7 @@ async function Licenses({ params }: { params: Params }) {
         <section>
           <SectionTitle icon={<UserPlus />}>Dodaj u folder</SectionTitle>
           <Panel className="py-4 sm:py-6">
-            <LicenseForm competitionId={competition.id} clubId={club.id} />
+            <LicenseForm competitionId={competition.id} folderId={club.id} clubId={club.clubId} />
           </Panel>
         </section>
       </div>

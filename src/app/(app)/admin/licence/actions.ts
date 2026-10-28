@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
-import { LICENSE_BUCKET, licenseFolderExists } from "@/lib/data/licenses";
+import { LICENSE_BUCKET, licenseFolder } from "@/lib/data/licenses";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LICENSE_POSITIONS, LICENSE_ROLES } from "./options";
 
@@ -54,11 +54,11 @@ export async function createLicensePhotoUpload(clubId: string, contentType: stri
   return { path: data.path, token: data.token };
 }
 
-/** Nova licenca u folderu: igrač (datum i mjesto rođenja, visina, pozicija) ili službeno lice (funkcija) */
+/** Nova licenca u folderu (klub ili ekipa): igrač (datum i mjesto rođenja, visina, pozicija) ili službeno lice (funkcija) */
 export async function addLicense(prev: LicenseState, f: FormData): Promise<LicenseState> {
   await requireRole("admin");
   const competitionId = text(f, "competition_id");
-  const clubId = text(f, "club_id");
+  const folderId = text(f, "folder_id");
   const kind = text(f, "kind");
   const lastName = text(f, "last_name");
   const firstName = text(f, "first_name");
@@ -68,7 +68,10 @@ export async function addLicense(prev: LicenseState, f: FormData): Promise<Licen
   const role = text(f, "role");
   const photoPath = text(f, "photo_path", 200);
 
-  if (!UUID.test(competitionId) || !UUID.test(clubId)) return { error: "Folder nije pronađen." };
+  if (!UUID.test(competitionId) || !UUID.test(folderId)) return { error: "Folder nije pronađen." };
+  const folder = await licenseFolder(competitionId, folderId);
+  if (!folder) return { error: "Folder nije pronađen." };
+  const { clubId, teamId } = folder;
   if (kind !== "player" && kind !== "official") return { error: "Izaberi igrač ili službeno lice." };
   if (!lastName || !firstName) return { error: "Upiši prezime i ime." };
 
@@ -83,15 +86,13 @@ export async function addLicense(prev: LicenseState, f: FormData): Promise<Licen
   if (photoPath && (!new RegExp(`^${clubId}/[\\w.-]+$`).test(photoPath) || photoPath.includes(".."))) return { error: "Nepoznata fotografija." };
 
   const db = createAdminClient();
-  const [folder, { data: last }] = await Promise.all([
-    licenseFolderExists(competitionId, clubId),
-    db.from("licenses").select("sort").eq("competition_id", competitionId).eq("club_id", clubId).eq("kind", kind).order("sort", { ascending: false }).limit(1).maybeSingle(),
-  ]);
-  if (!folder) return { error: "Folder nije pronađen." };
+  const inFolder = db.from("licenses").select("sort").eq("competition_id", competitionId).eq("kind", kind);
+  const { data: last } = await (teamId ? inFolder.eq("team_id", teamId) : inFolder.eq("club_id", clubId)).order("sort", { ascending: false }).limit(1).maybeSingle();
 
   const { error } = await db.from("licenses").insert({
     competition_id: competitionId,
     club_id: clubId,
+    team_id: teamId,
     kind,
     role: player ? null : role,
     last_name: lastName,

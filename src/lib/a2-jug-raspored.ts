@@ -5,7 +5,7 @@
 export const A2_JUG_ID = "d74bc0b4-99f1-4313-8c15-463f76d06764";
 
 /** Takmičarski brojevi iz PDF-a → naziv ekipe u takmičenju */
-const TEAMS = ["KK Vukovi", "KK Never Stop", "KK Lokomotiva", "KK Point - Richmond Park", "KK Hrasnica", "OKK Čelik 2", "KK Realway", "KK Mladost", "KK Ilidža", "KK Star Fojnica"];
+const TEAMS = ["KK Vukovi", "KK Never Stop", "KK Lokomotiva", "KK Point - Richmond Park", "KK Hrasnica", "OKK Čelik", "KK Realway", "KK Mladost", "KK Ilidža", "KK Star Fojnica"];
 
 /** Dvorana domaćina iz nominacije 1. kola */
 const HOME_HALLS: Record<string, string> = {

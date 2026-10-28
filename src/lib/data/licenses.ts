@@ -7,7 +7,9 @@ import { rows } from "./db";
 
 // Licence (admin): takmičenje → klub (folder iz license_folders) → igrači i službena lica.
 // Omladinska liga KS (juniori, kadeti, pioniri, minibasket, unobasket) je jedan folder s kategorijama; u kategoriji
-// tekuće sezone je svaki klub koji u njoj ima ekipu, bez ručnog pravljenja foldera. ŽOL, WABA i srednje škole nisu dio lige.
+// tekuće sezone je svaki klub koji u njoj ima ekipu, bez ručnog pravljenja foldera. Klub s više ekipa u kategoriji
+// (npr. Realway Plavi, Bijeli i Akademija) ima folder po ekipi: id foldera je tada id ekipe, a licence imaju team_id.
+// ŽOL, WABA i srednje škole nisu dio lige.
 // Fotografije su u privatnom bucketu "licenses"; link za pregled se pravi po zahtjevu, izvan keša.
 
 export const LICENSE_BUCKET = "licenses";
@@ -26,7 +28,7 @@ const isYouth = (category: string) => YOUTH_ORDER.includes(category);
 /** Drugi red foldera: grupe 2 i unobasket */
 const youthTier = (name: string, category: string) => (category === "unobasket" || /\b(?:grupa|g)\s*2\b/i.test(name) ? 2 : 1);
 
-/** Folderi: napravljeni (license_folders) + klub sa ekipom u omladinskom takmičenju tekuće sezone */
+/** Folderi: napravljeni (license_folders) + klub sa ekipom u omladinskom takmičenju tekuće sezone (ekipa, ako ih klub ima više) */
 async function folderRows() {
   "use cache: remote";
   cacheLife(LIFE.reference);
@@ -36,17 +38,28 @@ async function folderRows() {
     db.from("license_folders").select(`competition_id, club_id, name, ${COMPETITION}, ${CLUB}`).order("created_at"),
     db
       .from("teams")
-      .select(`competition_id, club_id, ${TEAM_COMPETITION}, ${TEAM_CLUB}`)
+      .select(`id, name, competition_id, club_id, ${TEAM_COMPETITION}, ${TEAM_CLUB}`)
       .eq("competition.season.is_current", true)
       .is("competition.parent_id", null),
   ]);
-  const folders = rows(saved);
-  const keys = new Set(folders.map((f) => `${f.competition_id}/${f.club_id}`));
-  for (const t of rows(teams)) {
+  const youthTeams = rows(teams).filter((t) => isYouth(t.competition.category));
+  const teamCount = new Map<string, number>();
+  for (const t of youthTeams) {
     const key = `${t.competition_id}/${t.club_id}`;
-    if (!isYouth(t.competition.category) || keys.has(key)) continue;
+    teamCount.set(key, (teamCount.get(key) ?? 0) + 1);
+  }
+  const perTeam = (key: string) => (teamCount.get(key) ?? 0) > 1;
+
+  const folders = rows(saved)
+    .filter((f) => !perTeam(`${f.competition_id}/${f.club_id}`))
+    .map((f) => ({ ...f, team_id: null as string | null }));
+  const keys = new Set(folders.map((f) => `${f.competition_id}/${f.club_id}`));
+  for (const t of youthTeams) {
+    const key = `${t.competition_id}/${t.club_id}`;
+    const team = perTeam(key);
+    if (!team && keys.has(key)) continue;
     keys.add(key);
-    folders.push({ competition_id: t.competition_id, club_id: t.club_id, name: null, competition: t.competition, club: t.club });
+    folders.push({ competition_id: t.competition_id, club_id: t.club_id, team_id: team ? t.id : null, name: team ? t.name : null, competition: t.competition, club: t.club });
   }
   return folders;
 }
@@ -58,12 +71,20 @@ async function licenseRows() {
   return rows(
     await createAdminClient()
       .from("licenses")
-      .select("id, competition_id, club_id, kind, role, last_name, first_name, birth_date, birth_place, height_cm, position, license_no, photo_path, sort")
+      .select("id, competition_id, club_id, team_id, kind, role, last_name, first_name, birth_date, birth_place, height_cm, position, license_no, photo_path, sort")
       .order("sort"),
   );
 }
 
 type FolderRow = Awaited<ReturnType<typeof folderRows>>[number];
+type LicenseRow = Awaited<ReturnType<typeof licenseRows>>[number];
+
+/** Id foldera u linku: ekipa kad klub ima više ekipa u takmičenju, inače klub */
+const folderId = (f: FolderRow) => f.team_id ?? f.club_id;
+
+/** Licence foldera: po ekipi ili svi iz kluba u takmičenju */
+const inFolder = (l: LicenseRow, f: FolderRow) =>
+  l.competition_id === f.competition_id && (f.team_id ? l.team_id === f.team_id : l.club_id === f.club_id);
 
 function competitionOf(r: FolderRow) {
   const c = r.competition;
@@ -71,8 +92,8 @@ function competitionOf(r: FolderRow) {
 }
 
 function clubOf(r: FolderRow) {
-  // Folder može imati svoje ime (ekipa nastupa pod drugim imenom u tom takmičenju)
-  return { id: r.club.id, name: r.name ?? r.club.name, shortName: r.name ? null : r.club.short_name, logoUrl: r.club.logo_url };
+  // Folder može imati svoje ime (ekipa nastupa pod drugim imenom u tom takmičenju, ili folder ekipe)
+  return { id: folderId(r), clubId: r.club.id, name: r.name ?? r.club.name, shortName: r.name ? null : r.club.short_name, logoUrl: r.club.logo_url };
 }
 
 /** Folderi: takmičenja koja imaju bar jedan folder kluba, s brojem klubova i licenci; omladinska odvojeno (jedan folder) */
@@ -100,9 +121,10 @@ async function licenseCompetitions() {
   return { youth, others: all.filter((c) => !c.youth) };
 }
 
-/** Postoji li folder kluba u takmičenju (napravljen ili omladinski po ekipi) */
-export async function licenseFolderExists(competitionId: string, clubId: string) {
-  return (await folderRows()).some((f) => f.competition_id === competitionId && f.club_id === clubId);
+/** Folder u takmičenju po id-u iz linka (napravljen, omladinski klub ili ekipa); klub i ekipa za novu licencu */
+export async function licenseFolder(competitionId: string, id: string) {
+  const f = (await folderRows()).find((f) => f.competition_id === competitionId && folderId(f) === id);
+  return f ? { clubId: f.club_id, teamId: f.team_id } : null;
 }
 
 /** Folderi klubova u takmičenju, s brojem igrača i službenih lica */
@@ -116,7 +138,7 @@ async function licenseClubs(competitionId: string) {
   const list = folders.filter((f) => f.competition_id === competitionId);
   if (list.length === 0) return null;
   const clubs = list.map((f) => {
-    const own = licenses.filter((l) => l.competition_id === competitionId && l.club_id === f.club_id);
+    const own = licenses.filter((l) => inFolder(l, f));
     return { ...clubOf(f), players: own.filter((l) => l.kind === "player").length, officials: own.filter((l) => l.kind !== "player").length };
   });
   return {
@@ -125,17 +147,17 @@ async function licenseClubs(competitionId: string) {
   };
 }
 
-/** Licence jednog kluba u takmičenju (folder može biti prazan), s privremenim linkom za fotografiju */
-export async function getClubLicenses(competitionId: string, clubId: string) {
+/** Licence jednog foldera (klub ili ekipa) u takmičenju (folder može biti prazan), s privremenim linkom za fotografiju */
+export async function getClubLicenses(competitionId: string, id: string) {
   await requireRole("admin");
-  return clubLicenses(competitionId, clubId);
+  return clubLicenses(competitionId, id);
 }
 
-async function clubLicenses(competitionId: string, clubId: string) {
+async function clubLicenses(competitionId: string, id: string) {
   const [folders, all] = await Promise.all([folderRows(), licenseRows()]);
-  const folder = folders.find((f) => f.competition_id === competitionId && f.club_id === clubId);
+  const folder = folders.find((f) => f.competition_id === competitionId && folderId(f) === id);
   if (!folder) return null;
-  const list = all.filter((l) => l.competition_id === competitionId && l.club_id === clubId);
+  const list = all.filter((l) => inFolder(l, folder));
 
   const paths = [...new Set(list.flatMap((r) => (r.photo_path ? [r.photo_path] : [])))];
   const { data: signed } = paths.length
@@ -187,9 +209,9 @@ export async function getYouthLicenseClubs(competitionId: string) {
 }
 
 /** Komesar: licence kluba u kategoriji Omladinske lige KS */
-export async function getYouthClubLicenses(competitionId: string, clubId: string) {
+export async function getYouthClubLicenses(competitionId: string, id: string) {
   await requireYouthViewer();
-  const data = await clubLicenses(competitionId, clubId);
+  const data = await clubLicenses(competitionId, id);
   return data?.competition.youth ? data : null;
 }
 

@@ -12,8 +12,8 @@ const BUCKET = "licenses";
 /** Duža strana fotografije nakon smanjenja: dovoljno za karticu i PDF, a upload s mobitela brz */
 const MAX_SIDE = 800;
 
-/** Nova licenca u folderu kluba: fotografija ide direktno u Storage, pa se čuva licenca s putanjom */
-export function LicenseForm({ competitionId, clubId }: { competitionId: string; clubId: string }) {
+/** Nova licenca u folderu kluba ili ekipe: fotografija ide direktno u Storage (folder kluba), pa se čuva licenca s putanjom */
+export function LicenseForm({ competitionId, folderId, clubId }: { competitionId: string; folderId: string; clubId: string }) {
   const [kind, setKind] = useState<"player" | "official">("player");
   const [state, action, pending] = useActionState<LicenseState, FormData>(async (prev, fd) => {
     const file = fd.get("photo");
@@ -42,7 +42,7 @@ export function LicenseForm({ competitionId, clubId }: { competitionId: string; 
       className="flex flex-col gap-4"
     >
       <input type="hidden" name="competition_id" value={competitionId} />
-      <input type="hidden" name="club_id" value={clubId} />
+      <input type="hidden" name="folder_id" value={folderId} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Select label="Vrsta" name="kind" value={kind} onChange={(e) => setKind(e.target.value === "official" ? "official" : "player")}>
           <option value="player">Igrač</option>
