@@ -81,9 +81,9 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   const onMatch = new Set(active.map((a) => a.profile!.id));
   // Brojač: popunjena je samo pozicija čija je nominacija prihvaćena (čeka odgovor se ne broji)
   const filled = positions.filter((p) => active.some((a) => a.position === p && a.status === "accepted")).length;
-  const cost = matchCost(match.rules, crew);
   // Naknada osobe: ručna cijena delegiranja ili pravilo takmičenja (null = nije određena); isplata po osobi kao u Naknadama
   const accepted = active.filter((a) => a.status === "accepted");
+  const cost = matchCost(match.rules, crew, Object.fromEntries(active.filter((a) => a.fee_km != null).map((a) => [a.position, Number(a.fee_km)])));
   const amountOf = (a: (typeof assignments)[number]) => (a.fee_km != null ? Number(a.fee_km) : feeFor(a.position, crew.refereeCount, match.rules, crew.digital));
   const unpaid = accepted.filter((a) => !a.paid_at);
   const paid = accepted.filter((a) => a.paid_at);

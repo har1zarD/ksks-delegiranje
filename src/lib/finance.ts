@@ -117,29 +117,46 @@ export function feeFor(position: Position, refereeCount: number, rules: FeeRules
 
 export type CostLine = { label: string; count: number; unit: number | null; total: number | null };
 
-/** Trošak utakmice po pravilima takmičenja i sastavu: sudije, sto, statistika, komesar */
-export function matchCost(rules: FeeRules | null, crew: Crew) {
+/**
+ * Trošak utakmice po pravilima takmičenja i sastavu: sudije, sto, statistika, komesar.
+ * `fees`: ručne naknade delegiranja po poziciji (npr. turnir škola), imaju prednost nad pravilom.
+ */
+export function matchCost(rules: FeeRules | null, crew: Crew, fees: Partial<Record<Position, number>> = {}) {
   const refereeCount = crew.refereeCount;
   // Zapisničar sa svojom cijenom (običan ili digitalni zapisnik) ide kao poseban red, ostatak stola po cijeni stola
   const ownScorer = crew.scorer && ((crew.digital && rules?.fee_digital_km != null) || rules?.fee_scorer_km != null);
-  const tableCount = [crew.scorer && !ownScorer, crew.assistantScorer, crew.timer, crew.assistantTimer, crew.shotClock, crew.timerShotClock].filter(Boolean).length;
-  const line = (label: string, count: number, unit: number | null): CostLine => ({
-    label,
-    count,
-    unit,
-    total: unit == null ? null : round2(unit * count),
-  });
+  const table = [
+    crew.scorer && !ownScorer && "scorer",
+    crew.assistantScorer && "assistant_scorer",
+    crew.timer && "timer",
+    crew.assistantTimer && "assistant_timer",
+    crew.shotClock && "shot_clock",
+    crew.timerShotClock && "timer_shot_clock",
+  ].filter((p): p is Position => Boolean(p));
+  // Red iz pozicija; jedinična cijena samo kad je ista za sve (ručne naknade mogu biti različite)
+  const line = (label: string, positions: Position[]): CostLine => {
+    const units = positions.map((p) => fees[p] ?? feeFor(p, refereeCount, rules, crew.digital));
+    const missing = units.some((u) => u == null);
+    const same = units.every((u) => u === units[0]);
+    return {
+      label,
+      count: positions.length,
+      unit: missing || !same ? null : units[0],
+      total: missing ? null : round2(units.reduce<number>((s, u) => s + u!, 0)),
+    };
+  };
+  const referees: Position[] = ["referee_1", "referee_2", "referee_3"].slice(0, refereeCount) as Position[];
   const lines = [
-    crew.referees && line(refereeCount === 3 ? "Sudije (trojka)" : "Sudije (dvojka)", refereeCount, feeFor("referee_1", refereeCount, rules)),
-    ownScorer && line(crew.digital ? "Dig. zapisnik" : "Zapisničar", 1, feeFor("scorer", refereeCount, rules, crew.digital)),
-    tableCount > 0 && line("Zapisnički sto", tableCount, feeFor("timer", refereeCount, rules)),
-    crew.stats > 0 && line("Statistika", crew.stats, feeFor("statistician_1", refereeCount, rules)),
-    crew.commissioner && line("Komesar", 1, feeFor("commissioner", refereeCount, rules)),
+    crew.referees && line(refereeCount === 3 ? "Sudije (trojka)" : "Sudije (dvojka)", referees),
+    ownScorer && line(crew.digital ? "Dig. zapisnik" : "Zapisničar", ["scorer"]),
+    table.length > 0 && line("Zapisnički sto", table),
+    crew.stats > 0 && line("Statistika", STATS.slice(0, crew.stats)),
+    crew.commissioner && line("Komesar", ["commissioner"]),
   ].filter((l): l is CostLine => Boolean(l));
   return {
     lines,
     total: round2(lines.reduce((s, l) => s + (l.total ?? 0), 0)),
-    missing: lines.some((l) => l.unit == null),
+    missing: lines.some((l) => l.total == null),
   };
 }
 

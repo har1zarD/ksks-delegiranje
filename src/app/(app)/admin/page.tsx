@@ -1,24 +1,26 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { ChevronRight, Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
+import { Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
 import { delegatedHere, getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatDayMonth, formatTime, positionName } from "@/lib/format";
 import { PingPending, type PingItem } from "./ping-pending";
 import { LiveRefresh } from "@/components/live-refresh";
-import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { PageIntro } from "@/components/page-intro";
-import { StaffingBadge, StaffingCrew, StaffingTab } from "@/components/staffing-badge";
-import { Bone, MatchRowsSkeleton, Skeleton, StatusSkeleton, Text } from "@/components/skeleton";
-import { ButtonLink, cx, Empty, MiniStat, Rows, SectionTitle, Status } from "@/components/ui";
+import { StaffingCrew, StaffingTab } from "@/components/staffing-badge";
+import { Skeleton, Text } from "@/components/skeleton";
+import { ButtonLink, cx, MiniStat, Rows, SectionTitle, Status } from "@/components/ui";
+import { MatchSchedule, ScheduleSkeleton, type ScheduleParams } from "./utakmice/schedule";
 
 export const metadata = { title: "Pregled — KSKS" };
 
 const DAYS_AHEAD = OVERVIEW_DAYS;
 
-export default function AdminHome() {
+type SearchParams = Promise<ScheduleParams>;
+
+export default function AdminHome({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
       <PageIntro
@@ -33,9 +35,17 @@ export default function AdminHome() {
         </Suspense>
         <ButtonLink href="/admin/utakmice/nova" className="h-8! gap-1! rounded-lg px-2.5! text-[12px]! sm:h-8!"><Plus className="size-3.5" aria-hidden="true" />Nova utakmica</ButtonLink>
       </PageIntro>
-      <Suspense fallback={<OverviewSkeleton />}>
-        <Overview />
-      </Suspense>
+      <div className="flex flex-col gap-10">
+        <Suspense fallback={null}>
+          <Overview />
+        </Suspense>
+        <section>
+          <SectionTitle icon={<ClipboardList />}>Za aktiviranje</SectionTitle>
+          <Suspense fallback={<ScheduleSkeleton segments={false} />}>
+            <ToActivate searchParams={searchParams} />
+          </Suspense>
+        </section>
+      </div>
     </>
   );
 }
@@ -43,10 +53,8 @@ export default function AdminHome() {
 async function Overview() {
   const [soon, activatedList] = await Promise.all([getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }), getActivatedMatches()]);
   const live = soon.filter((m) => m.status === "live");
-  const active = soon.filter((m) => (m.status === "scheduled" || m.status === "live") && delegatedHere(m));
-  const open = active.filter((m) => m.staffing.missing.length > 0);
 
-  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po danu; neaktivirane su u Utakmicama
+  // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po danu; neaktivirane su ispod (Za aktiviranje)
   const activated = byDay(activatedList);
   // Potvrđene nominacije: prihvaćene od svih poslanih (prihvaćeno + čeka odgovor) na aktiviranim utakmicama.
   // Ista osoba na dvije utakmice su dvije nominacije; neposlana delegiranja (izmjene nakon aktiviranja) ne ulaze dok se ne objave.
@@ -146,52 +154,13 @@ async function Overview() {
         </section>
       )}
 
-      <section>
-        <SectionTitle icon={<ClipboardList />} count={open.length}>Treba delegirati</SectionTitle>
-        {open.length === 0 ? (
-          <Empty icon={<CheckCircle2 />} title={active.length > 0 ? "Delegiranje je popunjeno" : "Nema predstojećih utakmica"} action={<ButtonLink href="/admin/utakmice" variant="secondary">Sve utakmice</ButtonLink>}>
-            {active.length > 0 ? `Sve utakmice u narednih ${DAYS_AHEAD} dana imaju popunjene pozicije.` : `Nema zakazanih utakmica u narednih ${DAYS_AHEAD} dana.`}
-          </Empty>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {byDay(open).map(([key, list]) => (
-              <div key={key}>
-                <GroupHeading groupKey={key} count={list.length} />
-                <Rows>
-                  {list.map((m) => (
-                    <li key={m.id}>
-                      <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                        <MatchLine
-                          match={m}
-                          meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />}
-                        />
-                        <ChevronRight className="size-5 shrink-0 text-fg-faint" />
-                      </Link>
-                    </li>
-                  ))}
-                </Rows>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {open.length === 0 && active.length > 0 && (
-        <section>
-          <SectionTitle icon={<CalendarDays />}>Sljedeće utakmice</SectionTitle>
-          <Rows>
-            {active.slice(0, 5).map((m) => (
-              <li key={m.id}>
-                <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
-                  <MatchLine match={m} meta={<CrewLine slots={m.slots} digital={m.digital_scoresheet} />} aside={<StaffingBadge staffing={m.staffing} />} />
-                </Link>
-              </li>
-            ))}
-          </Rows>
-        </section>
-      )}
     </div>
   );
+}
+
+/** Utakmice koje tek treba aktivirati: označavanje i aktiviranje, brzo delegiranje, termin i dvorana */
+async function ToActivate({ searchParams }: { searchParams: SearchParams }) {
+  return <MatchSchedule sp={await searchParams} mode="activate" basePath="/admin" />;
 }
 
 /** Utakmice po danu (svaki datum svoja grupa); redom kako su došle */
@@ -221,7 +190,7 @@ async function OverviewStats() {
   const open = active.filter((m) => m.staffing.missing.length > 0).length;
   const waiting = active.reduce((n, m) => n + m.staffing.pending, 0);
   const full = active.filter((m) => m.staffing.missing.length === 0).length;
-  const costs = active.map((m) => matchCost(m.rules, m.crew));
+  const costs = active.map((m) => matchCost(m.rules, m.crew, m.fees));
   const cost = costs.reduce((s, c) => s + c.total, 0);
   const costMissing = costs.some((c) => c.missing);
 
@@ -248,31 +217,6 @@ function OverviewStatsSkeleton() {
       {["w-16", "w-20", "w-12", "w-20", "w-28"].map((w, i) => (
         <Text key={i} className="text-[17px]" w={w} />
       ))}
-    </Skeleton>
-  );
-}
-
-/** Kao pregled: utakmice kojima nedostaje delegiranje */
-function OverviewSkeleton() {
-  return (
-    <Skeleton className="flex flex-col gap-10">
-      <section>
-        <SectionTitle icon={<ClipboardList />}>
-          Treba delegirati
-          <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-md border border-line bg-panel px-1.5 py-0.5 text-[12px]">
-            <Text w="w-2" />
-          </span>
-        </SectionTitle>
-        <MatchRowsSkeleton
-          meta={
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              <StatusSkeleton w="w-16" />
-              <StatusSkeleton w="w-24" />
-            </div>
-          }
-          aside={<Bone className="size-5" />}
-        />
-      </section>
     </Skeleton>
   );
 }
