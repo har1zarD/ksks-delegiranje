@@ -68,12 +68,18 @@ async function licenseRows() {
   "use cache: remote";
   cacheLife(LIFE.reference);
   cacheTag(TAG.licenses);
-  return rows(
-    await createAdminClient()
-      .from("licenses")
-      .select("id, competition_id, club_id, team_id, kind, role, last_name, first_name, birth_date, birth_place, height_cm, position, license_no, photo_path, sort")
-      .order("sort"),
-  );
+  const db = createAdminClient();
+  const SELECT = "id, competition_id, club_id, team_id, kind, role, last_name, first_name, birth_date, birth_place, height_cm, position, license_no, photo_path, sort";
+
+  // PostgREST vraća najviše 1000 redova po upitu, pa se čita po stranicama
+  const PAGE = 1000;
+  const all = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const data = rows(await db.from("licenses").select(SELECT).order("sort").range(offset, offset + PAGE - 1));
+    all.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return all;
 }
 
 type FolderRow = Awaited<ReturnType<typeof folderRows>>[number];
