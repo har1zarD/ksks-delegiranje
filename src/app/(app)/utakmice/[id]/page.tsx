@@ -68,8 +68,8 @@ async function Match({ params }: { params: Params }) {
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
   const scoresheetAccess = isAdmin || isCommissioner || isTable || isReferee;
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
-  // FIBA LiveStats link i pristupni kod: delegirani upisuju ono čega nema (savez ih mijenja na admin stranici utakmice)
-  const canFiba = open && !isAdmin && scoresheetAccess && (match.fiba_game_id == null || !match.fiba_stream_key);
+  // FIBA LiveStats link i pristupni kod: delegirani upisuju ono čega nema (savez ih mijenja na admin stranici utakmice); komesar ovo ne vidi
+  const canFiba = open && !isAdmin && !isCommissioner && scoresheetAccess && (match.fiba_game_id == null || !match.fiba_stream_key);
   // Isplata: prvi sudija (ili savez) označava; bez sudija (samo sto) bilo ko s utakmice. Isplaćena = sva prihvaćena delegiranja isplaćena
   const canPay = isAdmin || isFirstReferee || (!match.has_referees && (isTable || isCommissioner));
   const accepted = crew.filter((c) => c.status === "accepted");
@@ -247,13 +247,21 @@ async function Match({ params }: { params: Params }) {
 
       {/* Na dnu, poslije svega što se upisuje (statistika, slike, bilten) */}
       {(canPrint || canFinish) && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          {canPrint && (
-            <Link href={`/bilten/${match.id}`} className={buttonClass("secondary")}>
-              <Printer className="size-4" /> Za štampu
-            </Link>
+        <div className="flex flex-col gap-3 sm:items-end">
+          {canFinish && (
+            <p className="text-[13px] text-fg-muted sm:text-right">
+              „Završi utakmicu” je odvojeno od biltena — samo označava da je utakmica odigrana i vodi se kao završena (u prošlim utakmicama).
+              Savezu se time ne šalje nikakav mail; bilten pošalji posebno, iznad.
+            </p>
           )}
-          {canFinish && <FinishButton matchId={match.id} />}
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+            {canPrint && (
+              <Link href={`/bilten/${match.id}`} className={buttonClass("secondary")}>
+                <Printer className="size-4" /> Za štampu
+              </Link>
+            )}
+            {canFinish && <FinishButton matchId={match.id} />}
+          </div>
         </div>
       )}
     </div>

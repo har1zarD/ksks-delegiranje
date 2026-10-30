@@ -75,6 +75,43 @@ async function competitionRows() {
   return rows(await createAdminClient().from("fiba_competitions").select("id, name, sort, active, category").eq("active", true).order("sort"));
 }
 
+/**
+ * Prave grupe omladinske lige iz naše baze (takmičenja tekuće sezone te kategorije, s ekipama): FIBA feed zna samo
+ * trenutni krug, pa se tabela po samim FIBA utakmicama pogrešno dijeli na male grupe dok sve ekipe grupe ne odigraju
+ * jedna s drugom. Prazno za seniorske kategorije (plbih, a1…) — te nemamo kao takmičenja u svojoj bazi.
+ */
+async function youthGroupRows(category: string) {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.competitions, TAG.teams);
+  const db = createAdminClient();
+  const competitions = rows(
+    await db
+      .from("competitions")
+      .select("id, name, short_name, sort, season:seasons!competitions_season_id_fkey!inner ( is_current )")
+      .eq("category", category)
+      .eq("season.is_current", true)
+      .order("sort")
+      .order("name"),
+  );
+  if (competitions.length === 0) return [];
+  const teams = rows(
+    await db
+      .from("teams")
+      .select("name, competition_id, club:clubs!teams_club_id_fkey ( logo_url )")
+      .in("competition_id", competitions.map((c) => c.id)),
+  );
+  const byGroup = new Map<string, { name: string; logo: string | null }[]>();
+  for (const t of teams) byGroup.set(t.competition_id, [...(byGroup.get(t.competition_id) ?? []), { name: t.name, logo: t.club?.logo_url ?? null }]);
+  return competitions.map((c) => ({ label: c.short_name ?? c.name, teams: byGroup.get(c.id) ?? [] })).filter((g) => g.teams.length > 0);
+}
+
+/** Prave grupe omladinske lige jedne kategorije (vidi `youthGroupRows`); svaki prijavljeni korisnik */
+export async function getYouthGroups(category: string) {
+  await getCurrentUser();
+  return youthGroupRows(category);
+}
+
 /** Svježi feed svih aktivnih takmičenja (FIBA vraća samo zadnji/trenutni krug); seniorske lige nose kategoriju takmičenja */
 async function feedGames() {
   "use cache: remote";

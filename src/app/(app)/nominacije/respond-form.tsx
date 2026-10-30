@@ -39,10 +39,11 @@ export function RespondForm({ id, accepted }: { id: string; accepted?: boolean }
   }
 
   if (accepted) {
+    // Telefon: u gornjem desnom uglu kartice (iznad sadržaja) da ne vuče skrol; od sm vraća se u red pored utakmice
     return (
-      <form action={action} className="flex shrink-0 justify-end">
+      <form action={action} className="absolute right-4 top-3 sm:static sm:right-auto sm:top-auto sm:flex sm:shrink-0 sm:justify-end">
         <input type="hidden" name="id" value={id} />
-        <Button type="button" variant="destructive" onClick={() => setDeclining(true)}>
+        <Button type="button" variant="destructive" onClick={() => setDeclining(true)} className="h-auto! px-0! text-[13px]! sm:h-10! sm:px-2! sm:text-[14px]!">
           Otkaži dolazak
         </Button>
         {state.error && <p className="text-[14px] text-crest">{state.error}</p>}

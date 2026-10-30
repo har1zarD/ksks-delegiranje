@@ -134,7 +134,7 @@ async function Overview() {
                   {list.map((m) => (
                     <li key={m.id} className="relative flex items-center pt-5 transition-colors hover:bg-panel-2 sm:pt-0">
                       <StaffingTab match={m} staffing={m.staffing} publishedAt={m.published_at} fiba={m.fiba} />
-                      <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center py-4">
+                      <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center py-3 sm:py-4">
                         <MatchLine match={m} hideLabelOnMobile aside={<StaffingCrew staffing={m.staffing} />} />
                       </Link>
                     </li>

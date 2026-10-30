@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { BarChart3, Radio, Trophy } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getFibaCompetitions, getFibaGames, getFibaSeason, getFibaTeamGames, type FibaGameRow } from "@/lib/data/fiba";
+import { getFibaCompetitions, getFibaGames, getFibaSeason, getFibaTeamGames, getYouthGroups, type FibaGameRow } from "@/lib/data/fiba";
 import { FIBA_CATEGORIES, feedState, fibaCategoryLabel } from "@/lib/fiba";
-import { fibaStandings, seasonOf, seasonsOf } from "@/lib/fiba-stats";
+import { fibaStandings, matchFibaTeamNames, seasonOf, seasonsOf } from "@/lib/fiba-stats";
 import { dayKey, formatDayHeading, matchNo } from "@/lib/format";
 import { pageParam, pageRange, paginateDays } from "@/lib/paginate";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -226,16 +226,35 @@ function logosOf(games: Games) {
   return logos;
 }
 
-function Table({ all, category, season }: { all: Games; category: string; season: string }) {
+async function Table({ all, category, season }: { all: Games; category: string; season: string }) {
   const games = all.filter((g) => g.category === category);
-  const groups = fibaStandings(games.map((g) => ({ ...g, finished: stateOf(g) === "finished" })));
-  const logos = logosOf(games);
+  // Omladinska liga: prave grupe iz naše baze (FIBA feed zna samo trenutni krug, pa se inače pogrešno dijeli na male lažne grupe)
+  const ourGroups = await getYouthGroups(category);
+  const hintTeams = matchFibaTeamNames(ourGroups.map((g) => g.teams.map((t) => t.name)), games.flatMap((g) => [g.home_name, g.away_name]));
+  const groups = fibaStandings(games.map((g) => ({ ...g, finished: stateOf(g) === "finished" })), hintTeams);
+  // Logo ekipe koja još nema FIBA utakmicu (nije u logosOf) dolazi direktno iz kluba u našoj bazi
+  const ourLogos = Object.fromEntries(ourGroups.flatMap((g) => g.teams.map((t) => [t.name, t.logo])));
+  const logos = { ...ourLogos, ...logosOf(games) };
   if (groups.length === 0) return <Empty icon={<Trophy />}>Još nema odigranih utakmica u ovoj kategoriji.</Empty>;
+  // Naziv i redoslijed grupe iz naše baze (po najviše zajedničkih ekipa s FIBA grupom, npr. "Kadeti G1" prije "Kadeti G2");
+  // seniorske kategorije nemaju naše grupe pa ostaju po broju ekipa (jedina tabela)
+  const indexOf = (teamNames: string[]) => {
+    let best = -1;
+    let bestCount = 0;
+    hintTeams.forEach((hint, gi) => {
+      const count = hint.filter((n) => teamNames.includes(n)).length;
+      if (count > bestCount) { bestCount = count; best = gi; }
+    });
+    return best;
+  };
+  const ordered = groups
+    .map((rows) => ({ rows, index: indexOf(rows.map((r) => r.name)) }))
+    .sort((a, b) => (a.index === -1 ? Infinity : a.index) - (b.index === -1 ? Infinity : b.index));
   return (
     <div className="flex flex-col gap-8">
-      {groups.map((rows, i) => (
+      {ordered.map(({ rows, index }, i) => (
         <section key={i}>
-          <SectionTitle count={rows.length}>{groups.length > 1 ? `Grupa ${i + 1}` : `${fibaCategoryLabel(category)}, ${season}`}</SectionTitle>
+          <SectionTitle count={rows.length}>{groups.length > 1 ? (ourGroups[index]?.label ?? `Grupa ${i + 1}`) : `${fibaCategoryLabel(category)}, ${season}`}</SectionTitle>
           <FibaStandings rows={rows} category={category} season={season} logos={logos} />
         </section>
       ))}

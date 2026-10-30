@@ -120,11 +120,40 @@ export type FibaStandingRow = StandingRow & {
   away: { won: number; lost: number };
 };
 
+/** Naziv ekipe bez tipa kluba (KK/OKK…) i FIBA oznake uzrasta (U14, WU16…), za poređenje naše i FIBA ekipe */
+function youthTeamKey(name: string) {
+  return fibaKey(name)
+    .replace(/^(kk|okk|ukk|kzk|zkk|kos)\s+/, "")
+    .replace(/\s+w?u\d{1,2}$/, "")
+    .trim();
+}
+
+/**
+ * Naše ekipe (iz baze, po pravoj grupi takmičenja) → naziv kako stoji na FIBA LiveStats, da se mogu spojiti s
+ * FIBA ekipom u `fibaStandings`. Samo tačno poklapanje normalizovanog naziva (prefiks bi lako pogodio pogrešnu
+ * ekipu, npr. "Koš" i "Koš B"); bez poklapanja ostaje naš naziv (ekipa još nema nijednu FIBA utakmicu, tabela je
+ * ipak ispravno grupisana — samo prikazuje 0 utakmica dok se prva ne odigra na FIBA LiveStats).
+ */
+export function matchFibaTeamNames(ourGroups: string[][], fibaNames: Iterable<string>): string[][] {
+  const byKey = new Map<string, string[]>();
+  for (const n of new Set(fibaNames)) {
+    const k = youthTeamKey(n);
+    byKey.set(k, [...(byKey.get(k) ?? []), n]);
+  }
+  return ourGroups.map((group) =>
+    // flatMap: ista ekipa ponekad ima više pravopisa kroz utakmice ("Realway" / "REALWAY U14") — sve moraju
+    // ući u istu grupu (fibaStandings ih dalje spaja), inače ostane rascjepkano kao i prije
+    group.flatMap((ourName) => byKey.get(youthTeamKey(ourName)) ?? [ourName]),
+  );
+}
+
 /**
  * Tabela kategorije po FIBA pravilima. Ekipe koje se nikad ne sastaju (različite grupe iste kategorije) su
- * odvojene tabele: grupa = povezane ekipe preko odigranih i zakazanih utakmica.
+ * odvojene tabele: grupa = povezane ekipe preko odigranih i zakazanih utakmica, uz `groupHints` (prave grupe iz
+ * naše baze, vidi `matchFibaTeamNames`) za omladinsku ligu — FIBA feed tu zna samo trenutni krug, ne cijeli
+ * raspored, pa se ekipe koje još nisu igrale jedna s drugom inače pogrešno razdvoje u male lažne grupe.
  */
-export function fibaStandings(games: TableGame[]): FibaStandingRow[][] {
+export function fibaStandings(games: TableGame[], groupHints: string[][] = []): FibaStandingRow[][] {
   const parent = new Map<string, string>();
   const find = (x: string): string => {
     const p = parent.get(x) ?? x;
@@ -133,11 +162,18 @@ export function fibaStandings(games: TableGame[]): FibaStandingRow[][] {
     parent.set(x, root);
     return root;
   };
+  const union = (a: string, b: string) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
   for (const g of games) {
     for (const t of [g.home_name, g.away_name]) if (!parent.has(t)) parent.set(t, t);
-    const a = find(g.home_name);
-    const b = find(g.away_name);
-    if (a !== b) parent.set(a, b);
+    union(g.home_name, g.away_name);
+  }
+  for (const hint of groupHints) {
+    for (const t of hint) if (!parent.has(t)) parent.set(t, t);
+    for (let i = 1; i < hint.length; i++) union(hint[0], hint[i]);
   }
   const groups = new Map<string, string[]>();
   for (const t of parent.keys()) groups.set(find(t), [...(groups.get(find(t)) ?? []), t]);

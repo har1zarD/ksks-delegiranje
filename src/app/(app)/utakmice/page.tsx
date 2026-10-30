@@ -56,7 +56,7 @@ async function MyMatches() {
                     aside={<ChevronRight className="size-5 text-fg-faint" />}
                   />
                 </Link>
-                <CrewList match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
+                <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
               </li>
             ))}
           </ul>
@@ -75,7 +75,7 @@ async function MyMatches() {
                     periods={a.match.periods.length > 0 ? a.match.periods : undefined}
                   />
                 </Link>
-                <CrewList match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
+                <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
               </li>
             ))}
           </ul>
@@ -97,7 +97,7 @@ function MyMatchesSkeleton() {
               <div className="flex items-center gap-3 py-4 sm:py-5">
                 <MatchLineSkeleton i={i} meta={<StatusSkeleton w="w-24" />} aside={<Bone className="size-5" />} />
               </div>
-              <CrewListSkeleton />
+              <CrewListSkeleton collapsible />
             </li>
           ))}
         </ul>
@@ -110,7 +110,7 @@ function MyMatchesSkeleton() {
               <div className="flex py-4 sm:py-5">
                 <MatchLineSkeleton i={i} score meta={<Text w="w-24" />} />
               </div>
-              <CrewListSkeleton />
+              <CrewListSkeleton collapsible />
             </li>
           ))}
         </ul>

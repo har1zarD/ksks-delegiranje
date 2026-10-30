@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Clock, CheckCircle2 } from "lucide-react";
 import { Suspense } from "react";
 import { getCrews, getMyAssignments } from "@/lib/data/official";
@@ -40,10 +41,12 @@ async function Nominations() {
             {pending.map((a) => (
               <li key={a.id} className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
                 <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center">
-                  <MatchLine match={a.match} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                  <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 px-2 py-1">
+                    <MatchLine match={a.match} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                  </Link>
                   <RespondForm id={a.id} />
                 </div>
-                <CrewList match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
+                <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
               </li>
             ))}
           </ul>
@@ -54,12 +57,14 @@ async function Nominations() {
           <SectionTitle icon={<CheckCircle2 />} count={accepted.length}>Prihvaćene</SectionTitle>
           <ul className="flex flex-col gap-3">
             {accepted.map((a) => (
-              <li key={a.id} className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
+              <li key={a.id} className="relative overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
                 <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:py-5">
-                  <MatchLine match={a.match} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                  <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 pl-2 pr-24 py-1 sm:pr-2">
+                    <MatchLine match={a.match} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                  </Link>
                   <RespondForm id={a.id} accepted />
                 </div>
-                <CrewList match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
+                <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
               </li>
             ))}
           </ul>
@@ -89,7 +94,7 @@ function NominationsSkeleton() {
                 <ButtonSkeleton className="sm:w-32" />
               </div>
             </div>
-            <CrewListSkeleton />
+            <CrewListSkeleton collapsible />
           </li>
         ))}
       </ul>

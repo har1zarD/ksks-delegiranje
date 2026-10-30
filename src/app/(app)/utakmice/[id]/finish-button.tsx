@@ -11,7 +11,7 @@ export function FinishButton({ matchId }: { matchId: string }) {
       action={setStatus}
       onSubmit={confirmSubmit({
         title: "Završiti utakmicu?",
-        message: "Rezultat postaje konačan.",
+        message: "Rezultat postaje konačan, utakmica ide u završene. Time je tvoj dio posla gotov — savezu se ne šalje nikakav mail.",
         confirmLabel: "Završi",
         tone: "danger",
       })}

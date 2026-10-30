@@ -144,14 +144,14 @@ function BrandMark() {
   );
 }
 
-/** Donja navigacija (mobitel): do 6 mjesta (službeno lice: sve stavke); ako ima više stavki, 4 + "Više" */
+/** Donja navigacija (mobitel): stavke bez `primary` idu pod "Više"; ako su sve `primary`, stane do 6 direktno */
 function BottomNav({ items, active, logout }: { items: NavItem[]; active?: string; logout: () => Promise<void> }) {
   const pathname = usePathname();
   const [sheetAt, setSheetAt] = useState<string | null>(null);
   const sheetOpen = sheetAt === pathname; // navigacija sama zatvara listu
 
-  const overflow = items.length > 6;
-  const primary = overflow ? items.filter((i) => i.primary).slice(0, 4) : items;
+  const overflow = items.some((i) => !i.primary);
+  const primary = overflow ? items.filter((i) => i.primary).slice(0, 5) : items;
   const rest = overflow ? items.filter((i) => !primary.includes(i)) : [];
   const restActive = rest.some((i) => i.href === active);
 

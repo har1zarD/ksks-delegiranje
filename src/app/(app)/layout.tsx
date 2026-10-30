@@ -6,12 +6,12 @@ import { cx, GUTTER } from "@/components/ui";
 import { AppNav, AppNavSkeleton, type NavItem } from "./nav";
 
 const PERSONAL: NavItem[] = [
-  { href: "/nominacije", label: "Nominacije", icon: "nominations" },
-  { href: "/utakmice", label: "Utakmice", icon: "matches" },
+  { href: "/nominacije", label: "Nominacije", icon: "nominations", primary: true },
+  { href: "/utakmice", label: "Utakmice", icon: "matches", primary: true },
   { href: "/rezultati", label: "Rezultati", icon: "results" },
-  { href: "/fiba", label: "FIBA uživo", icon: "live" },
-  { href: "/odsustva", label: "Odsustva", icon: "absences" },
-  { href: "/moje-naknade", label: "Naknade", icon: "fees" },
+  { href: "/fiba", label: "FIBA uživo", icon: "live", primary: true },
+  { href: "/odsustva", label: "Odsustva", icon: "absences", primary: true },
+  { href: "/moje-naknade", label: "Naknade", icon: "fees", primary: true },
 ];
 
 const NAV: Record<Role, NavItem[]> = {

@@ -137,12 +137,19 @@ export function BiltenForm({
         </div>
       </fieldset>
 
+      {!locked && !submitted && (
+        <p className="text-[13px] text-fg-muted">
+          Bilten je obavezan izvještaj komesara savezu za svaku utakmicu. „Sačuvaj nacrt” čuva unos da nastaviš kasnije — bilten ostaje kod tebe,
+          niko ga ne vidi. „Pošalji bilten” ga šalje savezu i zaključava ga za dalje izmjene, pa pošalji tek kad je izvještaj gotov.
+        </p>
+      )}
+
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
         {!locked && (
           <>
             {!submitted && (
               <Button type="submit" name="intent" value="submit" disabled={pending}>
-                Pošalji bilten
+                Pošalji bilten savezu
               </Button>
             )}
             <Button type="submit" name="intent" value="draft" variant={submitted ? "primary" : "secondary"} disabled={pending}>
