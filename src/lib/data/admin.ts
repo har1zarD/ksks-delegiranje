@@ -197,6 +197,10 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
       staffing: staffing(crewOf(m), assignments),
       slots: crewSlots(crewOf(m), assignments),
       payment: paymentOf(assignments),
+      // Ručne naknade delegiranja (trošak utakmice)
+      fees: Object.fromEntries(
+        assignments.filter((a) => (a.status === "pending" || a.status === "accepted") && a.fee_km != null).map((a) => [a.position, Number(a.fee_km)]),
+      ) as Partial<Record<Position, number>>,
     }));
 }
 

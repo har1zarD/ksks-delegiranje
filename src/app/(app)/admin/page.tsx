@@ -221,7 +221,7 @@ async function OverviewStats() {
   const open = active.filter((m) => m.staffing.missing.length > 0).length;
   const waiting = active.reduce((n, m) => n + m.staffing.pending, 0);
   const full = active.filter((m) => m.staffing.missing.length === 0).length;
-  const costs = active.map((m) => matchCost(m.rules, m.crew));
+  const costs = active.map((m) => matchCost(m.rules, m.crew, m.fees));
   const cost = costs.reduce((s, c) => s + c.total, 0);
   const costMissing = costs.some((c) => c.missing);
 

@@ -26,7 +26,7 @@ const MATCH_FIBA = "fiba:fiba_games!matches_fiba_game_id_fkey ( status, live, st
 /** Rezultat po četvrtinama (box score na listi i detalju) */
 const MATCH_PERIODS = "periods:match_periods ( period, home_points, away_points )" as const;
 
-export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, ${MATCH_FIBA}, assignments ( id, position, status, notified_at, paid_at, profile:profiles!assignments_profile_id_fkey ( id, full_name ) )` as const;
+export const ADMIN_MATCH_SELECT = `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, ${MATCH_FIBA}, assignments ( id, position, status, notified_at, paid_at, fee_km, profile:profiles!assignments_profile_id_fkey ( id, full_name ) )` as const;
 
 export const DELEGATION_MATCH_SELECT =
   `${MATCH_SELECT}, ${MATCH_FEE_RULES}, ${MATCH_PERIODS}, ${MATCH_FIBA}, competition_id, home_team_id, away_team_id, hall_id, notes, finished_at, finisher:profiles!matches_finished_by_fkey ( id, full_name, role )` as const;
