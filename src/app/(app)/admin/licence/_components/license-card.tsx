@@ -70,7 +70,8 @@ export function LicenseGrid({ children }: { children: React.ReactNode }) {
   return <ul className={GRID}>{children}</ul>;
 }
 
-export function LicenseGridSkeleton({ count = 6 }: { count?: number }) {
+/** `kind="player"` (zadano) ima i FACTS red (datum rođenja, visina, pozicija…) kao LicenseCard igrača; `kind="official"` ga nema. */
+export function LicenseGridSkeleton({ kind = "player", count = kind === "official" ? 3 : 15 }: { kind?: "player" | "official"; count?: number }) {
   return (
     <ul className={GRID}>
       {times(count, (i) => (
@@ -87,14 +88,16 @@ export function LicenseGridSkeleton({ count = 6 }: { count?: number }) {
               <Text className="mt-1 font-display text-[22px] leading-tight" w={i % 2 ? "w-28" : "w-24"} />
             </div>
           </div>
-          <div className={FACTS}>
-            {times(4, (j) => (
-              <div key={j}>
-                <Text className="text-[11px]" w="w-20" />
-                <Text className="mt-0.5 text-[13px]" w="w-16" />
-              </div>
-            ))}
-          </div>
+          {kind === "player" && (
+            <div className={FACTS}>
+              {times(4, (j) => (
+                <div key={j}>
+                  <Text className="text-[11px]" w="w-20" />
+                  <Text className="mt-0.5 text-[13px]" w="w-16" />
+                </div>
+              ))}
+            </div>
+          )}
           <div className={FOOT}>
             <Bone className="h-8 w-12 shrink-0" />
             <Text className="text-[13px]" w="w-24" />

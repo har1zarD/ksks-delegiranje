@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { IdCard } from "lucide-react";
 import { Empty, PageHeader } from "@/components/ui";
 import { getYouthLicenseCompetitions } from "@/lib/data/licenses";
-import { CompetitionFolders, FolderGrid, FolderGridSkeleton, YOUTH_LEAGUE } from "@/app/(app)/admin/licence/_components/folder";
+import { CompetitionFolders, FolderGrid, YOUTH_LEAGUE, YouthFolderGridSkeleton } from "@/app/(app)/admin/licence/_components/folder";
 
 export const metadata = { title: "Licence — KSKS" };
 
@@ -11,7 +11,7 @@ export default function YouthLicensesViewPage() {
   return (
     <>
       <PageHeader icon={<IdCard />} title="Licence" subtitle={`${YOUTH_LEAGUE}: licencirani igrači i službena lica po kategoriji i klubu.`} />
-      <Suspense fallback={<FolderGridSkeleton />}>
+      <Suspense fallback={<YouthFolderGridSkeleton />}>
         <Categories />
       </Suspense>
     </>

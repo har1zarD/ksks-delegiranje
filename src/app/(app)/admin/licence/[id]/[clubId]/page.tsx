@@ -118,7 +118,11 @@ function LicensesSkeleton() {
         </header>
         <section>
           <SectionTitleSkeleton count icon />
-          <LicenseGridSkeleton />
+          <LicenseGridSkeleton kind="player" />
+        </section>
+        <section>
+          <SectionTitleSkeleton count icon />
+          <LicenseGridSkeleton kind="official" />
         </section>
       </div>
     </>

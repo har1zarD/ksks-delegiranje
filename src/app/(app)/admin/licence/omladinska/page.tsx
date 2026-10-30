@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import { getLicenseCompetitions } from "@/lib/data/licenses";
-import { CompetitionFolders, FolderGrid, FolderGridSkeleton, YOUTH_LEAGUE, YouthLeagueLogo } from "../_components/folder";
+import { CompetitionFolders, FolderGrid, YOUTH_LEAGUE, YouthFolderGridSkeleton, YouthLeagueLogo } from "../_components/folder";
 
 export const metadata = { title: "Omladinska liga — Licence — KSKS" };
 
@@ -24,7 +24,7 @@ export default function YouthLicensesPage() {
             <p className="mt-1 text-[14px] text-fg-muted">Kategorije omladinske lige; u svakoj su klubovi koji u njoj imaju ekipu.</p>
           </div>
         </header>
-        <Suspense fallback={<FolderGridSkeleton />}>
+        <Suspense fallback={<YouthFolderGridSkeleton />}>
           <Categories />
         </Suspense>
       </div>

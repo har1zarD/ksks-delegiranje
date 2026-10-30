@@ -12,7 +12,7 @@ export default function LicensesPage() {
     <>
       <PageHeader icon={<IdCard />} title="Licence" subtitle="Licencirani igrači i službena lica po takmičenju i klubu." />
       <div className="flex flex-col gap-12">
-        <Suspense fallback={<FolderGridSkeleton count={1} />}>
+        <Suspense fallback={<FolderGridSkeleton count={4} />}>
           <Competitions />
         </Suspense>
         <section>

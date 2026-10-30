@@ -65,7 +65,7 @@ export function FolderClubLogo({ src }: { src: string | null }) {
   );
 }
 
-export function FolderGridSkeleton({ count = 3 }: { count?: number }) {
+export function FolderGridSkeleton({ count = 9 }: { count?: number }) {
   return (
     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {times(count, (i) => (
@@ -82,6 +82,23 @@ export function FolderGridSkeleton({ count = 3 }: { count?: number }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Kao Categories u Omladinskoj ligi: dva reda foldera (tier 1, pa tier 2 — grupe 2 i unobasket)
+ * odvojena linijom. Broj kartica po redu prati stvarne kategorije tekuće sezone.
+ */
+export function YouthFolderGridSkeleton({ tier1 = 4, tier2 = 3 }: { tier1?: number; tier2?: number }) {
+  return (
+    <div className="flex flex-col gap-8">
+      <FolderGridSkeleton count={tier1} />
+      {tier2 > 0 && (
+        <div className="border-t border-line pt-8">
+          <FolderGridSkeleton count={tier2} />
+        </div>
+      )}
+    </div>
   );
 }
 
