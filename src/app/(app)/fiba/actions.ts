@@ -136,3 +136,26 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
   invalidate({ table: "matches", match: matchId }, { table: "match_periods", match: matchId }, "fiba_games");
   return { saved: Date.now() };
 }
+
+export type SyncFibaState = { error?: string; synced?: number };
+
+/**
+ * Ručno "Sinhronizuj": isto što inače radi pg_cron (sync-fiba-periods svake minute, sync-fiba-stats svake 2 minute),
+ * ali odmah; dodatno (samo ovdje, ne u pg_cron) pokuša povezati omladinsku ligu po nazivu ekipa (link_fiba_youth).
+ */
+export async function syncFiba(): Promise<SyncFibaState> {
+  await getCurrentUser();
+  const db = createAdminClient();
+  const periods = await db.rpc("sync_fiba_periods");
+  if (periods.error) return { error: periods.error.message };
+  const feed = await db.rpc("sync_fiba_feed");
+  if (feed.error) return { error: feed.error.message };
+  const link = await db.rpc("link_fiba_ksbih");
+  if (link.error) return { error: link.error.message };
+  const linkYouth = await db.rpc("link_fiba_youth");
+  if (linkYouth.error) return { error: linkYouth.error.message };
+  const stats = await db.rpc("sync_fiba_stats", { max_games: 15 });
+  if (stats.error) return { error: stats.error.message };
+  invalidate("fiba_games", "matches");
+  return { synced: Date.now() };
+}

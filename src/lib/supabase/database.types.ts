@@ -924,6 +924,12 @@ isOneToOne: false
 "is_on_match":
 { Args: { "m": string }; Returns: boolean
                            },
+"link_fiba_ksbih":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"link_fiba_youth":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "pgp_armor_headers":
 { Args: { "": string }; Returns: Record<string, unknown>[]
                            },
@@ -958,7 +964,16 @@ isOneToOne: false
         to: "matches"
         isOneToOne: true
         isSetofReturn: false
-      } }
+      } },
+"sync_fiba_feed":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"sync_fiba_periods":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"sync_fiba_stats":
+{ Args: { "max_games"?: number }; Returns: number
+                           }
           }
           Enums: {
             "assignment_position": "referee_1"|"referee_2"|"referee_3"|"scorer"|"assistant_scorer"|"timer"|"assistant_timer"|"shot_clock"|"timer_shot_clock"|"statistician_1"|"statistician_2"|"statistician_3"|"commissioner","assignment_status": "pending"|"accepted"|"declined"|"cancelled","match_kind": "league"|"friendly"|"tournament"|"custom","match_status": "scheduled"|"live"|"finished"|"postponed"|"cancelled","user_role": "admin"|"official"|"commissioner"

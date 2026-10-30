@@ -15,6 +15,7 @@ import { Empty, PageHeader, Rows, SectionTitle, Status } from "@/components/ui";
 import { AddFibaGame } from "./add-game";
 import { FibaStandings } from "./standings";
 import { Leaders, PlayersTable, seasonPlayer, teamAverages, TeamStatsTable } from "./stats-view";
+import { SyncFibaButton } from "./sync-button";
 import { Pager } from "./ui";
 
 export const metadata = { title: "FIBA uživo — KSKS" };
@@ -33,7 +34,9 @@ type View = (typeof VIEWS)[number]["key"];
 export default function FibaPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader icon={<Radio />} title="FIBA uživo" subtitle="Premijer liga BiH, A1 liga i omladinska liga KS na FIBA LiveStats: rezultati uživo, tabela, box score, lideri i statistika igrača." />
+      <PageHeader icon={<Radio />} title="FIBA uživo" subtitle="Premijer liga BiH, A1 liga i omladinska liga KS na FIBA LiveStats: rezultati uživo, tabela, box score, lideri i statistika igrača.">
+        <SyncFibaButton />
+      </PageHeader>
       <Suspense fallback={<FibaSkeleton />}>
         <Fiba searchParams={searchParams} />
       </Suspense>
