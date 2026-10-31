@@ -139,10 +139,7 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
 
 export type SyncFibaState = { error?: string; synced?: number };
 
-/**
- * Ručno "Sinhronizuj": isto što inače radi pg_cron (sync-fiba-periods svake minute, sync-fiba-stats svake 2 minute),
- * ali odmah; dodatno (samo ovdje, ne u pg_cron) pokuša povezati omladinsku ligu po nazivu ekipa (link_fiba_youth).
- */
+/** Ručno "Sinhronizuj": isto što inače radi pg_cron (sync-fiba-periods svake minute, sync-fiba-stats svake 2 minute, uključujući link_fiba_youth), ali odmah */
 export async function syncFiba(): Promise<SyncFibaState> {
   await getCurrentUser();
   const db = createAdminClient();
