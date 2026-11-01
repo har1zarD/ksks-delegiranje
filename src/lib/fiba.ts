@@ -272,6 +272,16 @@ export function properName(s: string) {
 /** Puno ime igrača ("Joshua Ola-Joseph"), inače FIBA skraćeno ("J. Ola-Joseph") */
 const fullName = (p: RawPerson) => properName([p.firstName, p.familyName].filter(Boolean).join(" ") || p.name || "");
 
+/**
+ * Naziv FIBA ekipe kako ga prikazujemo (kao public.fiba_team_renames u bazi): FIBA LiveStats u juniorima piše
+ * samo "BOSNA U18", a ekipa je Bosna Spars. Ključ: mala slova, jedan razmak.
+ */
+const FIBA_TEAM_RENAMES: Record<string, string> = { "bosna u18": "BOSNA SPARS U18" };
+
+export function fibaTeamRename(name: string) {
+  return FIBA_TEAM_RENAMES[name.toLowerCase().replace(/\s+/g, " ").trim()] ?? name;
+}
+
 function team(t: RawTeam): FibaTeam {
   const periods: number[] = [];
   for (let i = 1; t[`p${i}_score`] !== undefined; i++) periods.push(Number(t[`p${i}_score`]));
@@ -307,7 +317,7 @@ function team(t: RawTeam): FibaTeam {
     // Starteri prvi, pa po broju dresa
     .sort((a, b) => Number(b.starter) - Number(a.starter) || Number(a.number) - Number(b.number));
   return {
-    name: t.name,
+    name: fibaTeamRename(t.name),
     logo: t.logo?.url ?? null,
     score: Number(t.score ?? 0),
     coach: t.coach || null,

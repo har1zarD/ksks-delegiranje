@@ -125,6 +125,7 @@ function youthTeamKey(name: string) {
   return fibaKey(name)
     .replace(/^(kk|okk|ukk|kzk|zkk|kos)\s+/, "")
     .replace(/\s+w?u\d{1,2}$/, "")
+    .replace(/\s*-\s*/g, " ") // "KK Bosna - Spars" = "BOSNA SPARS U18"
     .trim();
 }
 

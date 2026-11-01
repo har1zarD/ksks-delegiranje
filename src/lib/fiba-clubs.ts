@@ -1,6 +1,6 @@
 export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names: string[] }[] = [
   { clubId: "2bc39e25-4b29-49e9-a2b2-255f068b5ef0", logoPath: null, names: ["AKADEMIJA REALWAY", "Realway", "KK Realway U14", "KK Realway U16", "REALWAY 1 U18", "REALWAY U14", "REALWAY U16", "REALWAY U18", "REALWAY WU13", "REALWAY WU14", "REALWAY WU16", "REALWAY AKADEMIJA", "REALWAY BIJELI", "REALWAY PLAVI"] },
-  { clubId: "6fa91446-f915-42ee-b2f3-e4974e07ee06", logoPath: null, names: ["BOSNA U18", "BOSNA SPARS", "BOSNA-SPARS U18", "KK Bosna Spars"] },
+  { clubId: "6fa91446-f915-42ee-b2f3-e4974e07ee06", logoPath: null, names: ["BOSNA U18", "BOSNA SPARS U18", "BOSNA SPARS", "BOSNA-SPARS U18", "KK Bosna Spars"] },
   { clubId: "1804b244-b0d8-4294-9a74-b0a53731e4c0", logoPath: null, names: ["Bošnjak"] },
   { clubId: null, logoPath: "2026-10-20/fiba/ceba.png", names: ["CEBA U18"] },
   { clubId: "484c9753-58c1-4760-b30a-f886b4838b74", logoPath: null, names: ["Celik", "OKK Celik"] },
