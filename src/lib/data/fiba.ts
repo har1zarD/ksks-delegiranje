@@ -199,22 +199,45 @@ export async function getFibaGame(matchId: number) {
   };
 }
 
-/** Admin: naše utakmice omladinske lige oko termina FIBA utakmice (±3 dana) koje još nemaju FIBA utakmicu */
-export async function getLinkCandidates(startsAt: string | null) {
+const SENIOR_FIBA = new Set(["plbih", "a1", "a2"]);
+const SENIOR_FIBA_Z = new Set(["plbih_z", "a1_z"]);
+
+/**
+ * Naše kategorije (competitions.category) koje odgovaraju jednoj FIBA kategoriji/takmičenju, za filter kandidata
+ * u getLinkCandidates — bez ovoga se nudi BILO KOJA nepovezana utakmica u ±3 dana (npr. omladinska Pioniri utakmica
+ * dobije kao kandidat seniorsku Premijer ligu Ž utakmicu koja slučajno pada u isti dan). `category` je često null
+ * (nova FIBA utakmica još nema podatke), zato se oslanja i na FIBA competition_id (50399 = cijela omladinska liga).
+ */
+function ourCategoriesFor(category: string | null, competitionId: number | null): string[] | null {
+  if (category) {
+    if (SENIOR_FIBA.has(category)) return ["seniori"];
+    if (SENIOR_FIBA_Z.has(category)) return ["seniorke"];
+    return [category]; // omladinska liga: isti naziv kategorije kod nas i na FIBA
+  }
+  if (competitionId === 50399) return ["pioniri", "kadeti", "juniori", "pionirke", "kadetkinje"];
+  if (competitionId === 50128 || competitionId === 50201) return ["seniori"];
+  if (competitionId === 50228) return ["seniorke"];
+  return null;
+}
+
+/** Admin: naše utakmice bez FIBA utakmice oko termina (±3 dana), suzeno na istu kategoriju (vidi ourCategoriesFor) */
+export async function getLinkCandidates(startsAt: string | null, category: string | null, competitionId: number | null) {
   await requireRole("admin");
   const at = startsAt ? Date.parse(startsAt) : Date.now();
   const day = 24 * 60 * 60 * 1000;
-  return rows(
+  const all = rows(
     await createAdminClient()
       .from("matches")
       .select(
-        "id, number, starts_at, competition:competitions!matches_competition_id_fkey ( short_name, name ), home:teams!matches_home_team_id_fkey ( name ), away:teams!matches_away_team_id_fkey ( name )",
+        "id, number, starts_at, competition:competitions!matches_competition_id_fkey ( short_name, name, category ), home:teams!matches_home_team_id_fkey ( name ), away:teams!matches_away_team_id_fkey ( name )",
       )
       .is("fiba_game_id", null)
       .gte("starts_at", new Date(at - 3 * day).toISOString())
       .lte("starts_at", new Date(at + 3 * day).toISOString())
       .order("starts_at"),
   );
+  const allowed = ourCategoriesFor(category, competitionId);
+  return allowed ? all.filter((m) => m.competition && allowed.includes(m.competition.category)) : all;
 }
 
 // ───────── Statistika (box score završenih utakmica u bazi: fiba_player_games, fiba_team_games) ─────────

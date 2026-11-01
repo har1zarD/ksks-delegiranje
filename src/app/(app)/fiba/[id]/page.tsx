@@ -44,7 +44,7 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
   if (!Number.isInteger(matchId) || matchId <= 0) notFound();
   const [{ game, stored, match }, user, aliases, all] = await Promise.all([getFibaGame(matchId), getCurrentUser(), getFibaAliases(), getFibaGames()]);
   if (!game && !stored) notFound();
-  const candidates = user.role === "admin" && !match ? await getLinkCandidates(stored?.starts_at ?? null) : [];
+  const candidates = user.role === "admin" && !match ? await getLinkCandidates(stored?.starts_at ?? null, stored?.category ?? null, stored?.competition_id ?? null) : [];
 
   const state = game?.state ?? "scheduled";
   const home = game?.home ?? null;
