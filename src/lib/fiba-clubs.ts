@@ -1,6 +1,6 @@
 export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names: string[] }[] = [
-  { clubId: "2bc39e25-4b29-49e9-a2b2-255f068b5ef0", logoPath: null, names: ["AKADEMIJA REALWAY", "Realway", "KK Realway U14", "KK Realway U16", "REALWAY 1 U18", "REALWAY U14", "REALWAY U16", "REALWAY U18", "REALWAY WU13", "REALWAY WU14", "REALWAY WU16"] },
-  { clubId: "6fa91446-f915-42ee-b2f3-e4974e07ee06", logoPath: null, names: ["BOSNA U18"] },
+  { clubId: "2bc39e25-4b29-49e9-a2b2-255f068b5ef0", logoPath: null, names: ["AKADEMIJA REALWAY", "Realway", "KK Realway U14", "KK Realway U16", "REALWAY 1 U18", "REALWAY U14", "REALWAY U16", "REALWAY U18", "REALWAY WU13", "REALWAY WU14", "REALWAY WU16", "REALWAY AKADEMIJA", "REALWAY BIJELI", "REALWAY PLAVI"] },
+  { clubId: "6fa91446-f915-42ee-b2f3-e4974e07ee06", logoPath: null, names: ["BOSNA U18", "BOSNA SPARS", "BOSNA-SPARS U18", "KK Bosna Spars"] },
   { clubId: "1804b244-b0d8-4294-9a74-b0a53731e4c0", logoPath: null, names: ["Bošnjak"] },
   { clubId: null, logoPath: "2026-10-20/fiba/ceba.png", names: ["CEBA U18"] },
   { clubId: "484c9753-58c1-4760-b30a-f886b4838b74", logoPath: null, names: ["Celik", "OKK Celik"] },
@@ -40,7 +40,7 @@ export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names
   { clubId: null, logoPath: "2026-10-20/fiba/mladi-krajisnik.png", names: ["Mladi Krajisnik"] },
   { clubId: "f69a2ed5-41f8-4e7f-acab-3434a4ce09cc", logoPath: null, names: ["OKK Slavija 1996"] },
   { clubId: "0676f2c4-143d-4341-9f3b-849f47119c09", logoPath: null, names: ["OKK Sloboda Energoinvest", "SLOBODA U16"] },
-  { clubId: "5d655778-973c-4589-849c-ab5eaf8f9ccd", logoPath: null, names: ["OKK Spars U14", "OKK Spars U16", "SPARS U18", "Spars Number 1 U16", "Spars U18", "BOSNA-SPARS U18", "KK Bosna Spars"] },
+  { clubId: "5d655778-973c-4589-849c-ab5eaf8f9ccd", logoPath: null, names: ["OKK Spars U14", "OKK Spars U16", "SPARS U18", "Spars Number 1 U16", "Spars U18"] },
   { clubId: "8c706bbf-520c-4d4a-bf5f-31c1111714b5", logoPath: null, names: ["OKK Zenica"] },
   { clubId: null, logoPath: "2026-10-20/fiba/orlovi.png", names: ["Orlovi"] },
   { clubId: "25c7f34e-409e-4037-9e96-70468caa0eb7", logoPath: null, names: ["PLAY OFF WU14", "PLAY OFF WU16", "Play Off"] },
