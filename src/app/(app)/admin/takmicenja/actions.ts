@@ -10,6 +10,17 @@ import { addDays, sarajevoToISO } from "@/lib/format";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
 import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
+import { MINIBASKET_FIXTURES, MINIBASKET_ID } from "@/lib/minibasket-raspored";
+import { KADETI_G2_FIXTURES, KADETI_G2_ID } from "@/lib/kadeti-g2-raspored";
+
+/** Takmičenja koja imaju gotov raspored saveza umjesto generatora po Bergeru */
+const FEDERATION_FIXTURE_IDS = new Set([A2_JUG_ID, A1_ZENE_ID, MINIBASKET_ID, KADETI_G2_ID]);
+const FEDERATION_FIXTURES: Record<string, (typeof A2_JUG_FIXTURES)> = {
+  [A2_JUG_ID]: A2_JUG_FIXTURES,
+  [A1_ZENE_ID]: A1_ZENE_FIXTURES,
+  [MINIBASKET_ID]: MINIBASKET_FIXTURES,
+  [KADETI_G2_ID]: KADETI_G2_FIXTURES,
+};
 
 export type FormState = { error?: string; ok?: number };
 
@@ -237,7 +248,7 @@ export async function createSystemA(_prev: FormState, f: FormData): Promise<Form
 export async function generateSchedule(_prev: FormState, f: FormData): Promise<FormState> {
   await requireRole("admin");
   const competitionId = text(f, "competition_id");
-  if (competitionId === A2_JUG_ID || competitionId === A1_ZENE_ID) return { error: "Koristi raspored saveza na stranici takmičenja." };
+  if (FEDERATION_FIXTURE_IDS.has(competitionId)) return { error: "Koristi raspored saveza na stranici takmičenja." };
   const start = text(f, "start_date");
   const time = text(f, "time") || "18:00";
   const double = f.get("double") === "on";
@@ -281,7 +292,7 @@ export async function generateSchedule(_prev: FormState, f: FormData): Promise<F
 export async function createFixtureMatch(prev: FormState, f: FormData): Promise<FormState> {
   await requireRole("admin");
   const competitionId = text(f, "competition_id");
-  const fixtures = competitionId === A2_JUG_ID ? A2_JUG_FIXTURES : competitionId === A1_ZENE_ID ? A1_ZENE_FIXTURES : null;
+  const fixtures = FEDERATION_FIXTURES[competitionId];
   if (!fixtures) return { error: "Takmičenje nema ovaj raspored." };
   const round = Number(text(f, "round"));
   const homeId = text(f, "home_team_id");

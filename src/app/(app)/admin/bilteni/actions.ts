@@ -26,7 +26,7 @@ function nominationMatches(competitionId: string, round: number, matches: Bullet
   }
   return (BULLETIN_FIXTURES[competitionId] ?? [])
     .filter((f) => f.round === round)
-    .map((f) => ({ number: f.number, home: f.home, away: f.away, date: roundWeekend(f.roundDate), hall: f.hall, officials: FIXTURE_OFFICIALS }));
+    .map((f) => ({ number: f.number, home: f.home, away: f.away, date: f.roundDate ? roundWeekend(f.roundDate) : "datum nije određen", hall: f.hall, officials: FIXTURE_OFFICIALS }));
 }
 
 export type BulletinPdfResult = { pdf: string; name: string } | { error: string };

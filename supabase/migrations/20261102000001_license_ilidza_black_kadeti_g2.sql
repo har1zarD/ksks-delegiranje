@@ -1,0 +1,28 @@
+-- Licence KK Ilidža Black, Kadeti — Grupa 2, sezona 2026/27
+-- (LISTA ZA Licenciranje + fotografije emailom 02.11.2026, Elvedin Babunović)
+insert into public.licenses (competition_id, club_id, kind, role, last_name, first_name, birth_date, birth_place, photo_path, sort)
+values
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Maričić',     'Dar',     '2011-09-17', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628631439-1105fb77.jpg', 1),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Mustafić',    'Hanan',   '2010-08-03', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628635783-b2da716c.jpg', 2),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Osmanović',   'Nedim',   '2010-04-08', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628638113-5919e785.jpg', 3),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Vlajčić',     'Adi',     '2010-05-09', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628629447-7e26c50c.jpg', 4),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Ramić',       'Harun',   '2012-06-29', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628636494-7ad78568.jpg', 5),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Kovačević',   'Aldin',   '2011-12-11', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628630556-4e6b80d6.jpg', 6),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Hajrović',    'Amar',    '2012-02-13', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628630894-14c6dbb7.jpg', 7),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Sobo',        'Džan',    '2012-05-16', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628633738-3aed475b.jpg', 8),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Jašarević',   'Tarik',   '2012-12-20', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628639328-3a56c0e0.jpg', 9),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Ećo',         'Kerim',   '2013-09-29', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628637366-799e044b.jpg', 10),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Karić',       'Ejmen',   '2011-08-16', 'St. Louis',  '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628634392-0300227a.jpg', 11),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Turković',    'Tarik',   '2011-05-04', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628639668-f63884f5.jpg', 12),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Hasanspahić', 'Hasan',   '2012-08-24', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628636855-17811874.jpg', 13),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Perenda',     'Davud',   '2012-10-04', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628632620-362e3c5f.jpg', 14),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Odobašić',    'Dino',    '2011-01-29', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628633100-2f13f075.jpg', 15),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Durmić',      'Davud',   '2013-12-01', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628631988-1069450a.jpg', 16),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Ruhotina',    'Nedim',   '2011-12-23', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628638398-46319192.jpg', 17),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Ajkunić',     'Ajdin',   '2012-12-11', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628630208-d324c755.jpg', 18),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Hasić',       'Nedim',   '2012-09-22', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628637807-ad1335d9.jpg', 19),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Kosović',     'Harun',   '2010-10-30', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628636165-21c063be.jpg', 20),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Memić',       'Hanan',   '2013-09-25', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628635457-1b232b67.jpg', 21),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'player', null, 'Suljić',      'Rijad',   '2010-04-15', 'Sarajevo',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628638950-74cd9475.jpg', 22),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'official', 'Trener', 'Babunović', 'Elvedin', '1984-10-01', 'Zenica',   '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628634794-f062297d.jpg', 1),
+  ('efa174a7-1a9a-464c-ad1d-5c8ba0aee67b', '370294d2-5ab0-4ac7-9ebb-fc1637027a82', 'official', 'Trener', 'Uzunović',  'Emir',    '1993-11-27', 'Hrasnica', '370294d2-5ab0-4ac7-9ebb-fc1637027a82/1793628635182-636043a7.jpg', 2);

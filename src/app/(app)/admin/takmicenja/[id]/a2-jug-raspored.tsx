@@ -57,7 +57,7 @@ export async function CompetitionRaspored({ teams, competitionId, competitionNam
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-[19px] font-semibold tracking-tight">{round}. kolo</span>
                     <span className="block text-[13px] text-fg-muted">
-                      {formatDate(list[0].roundDate)} · napravljeno {done}/{list.length}
+                      {list[0].roundDate ? formatDate(list[0].roundDate) : "datum nije određen"} · napravljeno {done}/{list.length}
                     </span>
                   </span>
                   <ChevronDown className="size-5 shrink-0 text-fg-faint transition-transform group-open:rotate-180" />

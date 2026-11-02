@@ -47,8 +47,8 @@ const ROUNDS: [string, [number, number][]][] = [
   ["2027-03-27", [[10, 5], [4, 6], [3, 7], [2, 8], [1, 9]]],
 ];
 
-/** roundDate = datum kola iz rasporeda; date/time = prijedlog termina (1. kolo iz nominacije) */
-export type Fixture = { round: number; roundDate: string; number: number; home: string; away: string; date: string; time: string; hall: string | null };
+/** roundDate = datum kola iz rasporeda (null = savez još nije odredio datum); date/time = prijedlog termina (1. kolo iz nominacije) */
+export type Fixture = { round: number; roundDate: string | null; number: number; home: string; away: string; date: string; time: string; hall: string | null };
 
 /** Sve utakmice po kolima; broj utakmice ide redom kao u nominaciji (1. kolo: 1–5, 2. kolo: 6–10…) */
 export const A2_JUG_FIXTURES: Fixture[] = ROUNDS.flatMap(([date, pairs], r) =>

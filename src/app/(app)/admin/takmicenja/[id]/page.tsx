@@ -17,6 +17,10 @@ import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { A2JugRaspored } from "./a2-jug-raspored";
 import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A1ZeneRaspored } from "./a1-zene-objava";
+import { MINIBASKET_ID } from "@/lib/minibasket-raspored";
+import { MinibasketRaspored } from "./minibasket-objava";
+import { KADETI_G2_ID } from "@/lib/kadeti-g2-raspored";
+import { KadetiG2Raspored } from "./kadeti-g2-objava";
 
 export const metadata = { title: "Takmičenje — KSKS" };
 
@@ -41,6 +45,9 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
   const half = Math.ceil(teams.length / 2);
   const isA1Women = c.id === A1_ZENE_ID;
   const isA2South = c.id === A2_JUG_ID;
+  const isMinibasket = c.id === MINIBASKET_ID;
+  const isKadetiG2 = c.id === KADETI_G2_ID;
+  const hasFederationSchedule = isA2South || isA1Women || isMinibasket || isKadetiG2;
 
   return (
     <div className="flex flex-col gap-10">
@@ -95,8 +102,8 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
         </p>
       </Panel>
 
-      {/* A2 jug i A1 žene imaju raspored saveza (ispod tabele) */}
-      {matchCount === 0 && teams.length >= 2 && c.id !== A2_JUG_ID && !isA1Women && (
+      {/* A2 jug, A1 žene, Minibasket i Kadeti G2 imaju raspored saveza (ispod tabele) */}
+      {matchCount === 0 && teams.length >= 2 && !hasFederationSchedule && (
         <section>
           <SectionTitle icon={<CalendarDays />}>Raspored</SectionTitle>
           <Panel className="py-4 sm:py-6">
@@ -130,6 +137,14 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
       ) : isA1Women ? (
         <Suspense fallback={<RasporedSkeleton />}>
           <A1ZeneRaspored teams={teams} />
+        </Suspense>
+      ) : isMinibasket ? (
+        <Suspense fallback={<RasporedSkeleton />}>
+          <MinibasketRaspored teams={teams} />
+        </Suspense>
+      ) : isKadetiG2 ? (
+        <Suspense fallback={<RasporedSkeleton />}>
+          <KadetiG2Raspored teams={teams} />
         </Suspense>
       ) : null}
 
