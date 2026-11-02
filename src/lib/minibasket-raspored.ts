@@ -7,7 +7,7 @@ export const MINIBASKET_ID = "ecd30198-7ae7-4856-a411-d7bb0c7e35d3";
 /** Takmičarski brojevi iz PDF-a → naziv ekipe u takmičenju */
 const TEAMS = [
   "KK Ilidža", "KK BBY", "KK BBY Jahorina", "KK Mladost", "KK Koš", "KK Realway",
-  "KK Realway B", "KK Igman", "KK MVP", "KK Spars", "KK Spars B", "KK Feniks",
+  "KK Realway B", "KK Igman", "KK MVP", "KK Bosna Spars", "KK Bosna Spars B", "KK Feniks",
 ];
 
 /** [datum kola ili null (savez još nije odredio), parovi domaćin–gost po takmičarskim brojevima] */
