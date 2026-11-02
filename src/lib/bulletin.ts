@@ -58,7 +58,7 @@ export function defaultRemarks(m: {
   if (!r) return NO_REMARKS;
   const lines = r.technicals.map((t) => {
     const when = foulTimeLabel(t);
-    return `Dosuđena ${FOUL_PHRASE[t.type]} ekipi ${t.team === "home" ? m.home : m.away}${t.player.trim() ? ` (${t.player.trim()})` : ""}${when ? `, ${when}` : ""}.`;
+    return `Dosuđena ${FOUL_PHRASE[t.type]} ekipi ${t.team === "home" ? m.home : m.away}${t.player.trim() ? ` (${t.player.trim()})` : ""}${when ? `, ${when}` : ""}${t.reason.trim() ? ` — ${t.reason.trim()}` : ""}.`;
   });
   for (const text of [r.incidents, r.remarks]) if (text?.trim()) lines.push(text.trim());
   return lines.length > 0 ? lines.join("\n") : NO_REMARKS;

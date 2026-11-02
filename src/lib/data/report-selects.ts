@@ -12,7 +12,7 @@ export const REPORT_SELECT =
   "match_id, commissioner, spectators, started_at, ended_at, technicals, incidents, remarks, submitted_at, updated_at" as const;
 
 /** Tehnička/nesportska/diskvalifikujuća greška: četvrtina (1–4, 5+ = produžetak) i minuta u toj četvrtini */
-export type TechnicalFoul = { team: "home" | "away"; player: string; period: number | null; minute: number | null; type: "T" | "U" | "D" };
+export type TechnicalFoul = { team: "home" | "away"; player: string; period: number | null; minute: number | null; type: "T" | "U" | "D"; reason: string };
 
 export const FOUL_TYPE_LABEL: Record<TechnicalFoul["type"], string> = {
   T: "Tehnička",
@@ -34,6 +34,7 @@ export function parseTechnicals(json: unknown): TechnicalFoul[] {
         period: typeof r.period === "number" && r.period >= 1 ? r.period : null,
         minute: typeof r.minute === "number" ? r.minute : null,
         type,
+        reason: typeof r.reason === "string" ? r.reason : "",
       } satisfies TechnicalFoul,
     ];
   });

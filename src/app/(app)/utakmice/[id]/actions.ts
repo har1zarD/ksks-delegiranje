@@ -124,6 +124,7 @@ export async function saveReport(_prev: ReportState, formData: FormData): Promis
         period: t.period && Number.isInteger(t.period) && t.period >= 1 && t.period <= 10 ? t.period : null,
         minute: t.minute && Number.isInteger(t.minute) && t.minute >= 1 && t.minute <= (t.period && t.period > 4 ? 5 : 10) ? t.minute : null,
         type: t.type === "U" || t.type === "D" ? t.type : "T",
+        reason: typeof t.reason === "string" ? t.reason.trim().slice(0, 300) : "",
       }));
   } catch {
     return { error: "Lista grešaka nije ispravna." };

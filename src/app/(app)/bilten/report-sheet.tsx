@@ -120,6 +120,7 @@ export function ReportBody({ match, crew, periods, report }: { match: SheetMatch
                   <th className={`${cell} text-left font-medium`}>Igrač / trener</th>
                   <th className={`${cell} text-left font-medium`}>Kad</th>
                   <th className={`${cell} text-left font-medium`}>Vrsta</th>
+                  <th className={`${cell} text-left font-medium`}>Razlog</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,6 +132,7 @@ export function ReportBody({ match, crew, periods, report }: { match: SheetMatch
                     <td className={cell}>{t.player}</td>
                     <td className={`${cell} whitespace-nowrap`}>{foulTimeLabel(t) || "—"}</td>
                     <td className={cell}>{FOUL_TYPE_LABEL[t.type]}</td>
+                    <td className={cell}>{t.reason || "—"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -101,6 +101,14 @@ export function BiltenForm({
                     ))}
                   </SelectInput>
                   <input aria-label="Minuta u četvrtini" type="number" inputMode="numeric" min={1} max={t.period != null && t.period > 4 ? 5 : 10} placeholder="Min." value={t.minute ?? ""} onChange={(e) => setFoul(i, { minute: e.target.value ? Number(e.target.value) : null })} className={cx(inputClass, "sm:order-4")} />
+                  <input
+                    aria-label="Razlog"
+                    placeholder="Razlog (npr. prigovor sudiji, simuliranje, udarac laktom)"
+                    maxLength={300}
+                    value={t.reason}
+                    onChange={(e) => setFoul(i, { reason: e.target.value })}
+                    className={cx(inputClass, "col-span-2 sm:order-7 sm:col-span-full")}
+                  />
                   {!locked && (
                     <button
                       type="button"
@@ -119,7 +127,7 @@ export function BiltenForm({
           {!locked && (
             <button
               type="button"
-              onClick={() => setTechnicals((prev) => [...prev, { team: "home", player: "", period: null, minute: null, type: "T" }])}
+              onClick={() => setTechnicals((prev) => [...prev, { team: "home", player: "", period: null, minute: null, type: "T", reason: "" }])}
               className="-mx-3 px-3 rounded-md mt-3 inline-flex h-11 items-center gap-2 rounded-md text-[15px] font-semibold text-brand hover:bg-panel-2"
             >
               <Plus className="size-5" /> Dodaj grešku
