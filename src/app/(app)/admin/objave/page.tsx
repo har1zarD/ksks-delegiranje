@@ -8,6 +8,7 @@ import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { MINIBASKET_FIXTURES, MINIBASKET_ID } from "@/lib/minibasket-raspored";
 import { KADETI_G2_FIXTURES, KADETI_G2_ID } from "@/lib/kadeti-g2-raspored";
+import { JUNIORI_FIXTURES, JUNIORI_ID } from "@/lib/juniori-raspored";
 import { SocialStudio } from "./builder";
 import { SOCIAL_KINDS } from "./kinds";
 import { SocialBuilderSkeleton } from "./skeleton";
@@ -36,6 +37,7 @@ const FIXTURE_ROUND = new Map<string, number>([
   ...A1_ZENE_FIXTURES.map((f) => [`${A1_ZENE_ID}|${f.home}|${f.away}`, f.round] as const),
   ...MINIBASKET_FIXTURES.map((f) => [`${MINIBASKET_ID}|${f.home}|${f.away}`, f.round] as const),
   ...KADETI_G2_FIXTURES.map((f) => [`${KADETI_G2_ID}|${f.home}|${f.away}`, f.round] as const),
+  ...JUNIORI_FIXTURES.map((f) => [`${JUNIORI_ID}|${f.home}|${f.away}`, f.round] as const),
 ]);
 
 async function Studio({ searchParams }: { searchParams: SearchParams }) {
