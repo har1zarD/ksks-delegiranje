@@ -5,7 +5,7 @@ import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES, crewDefaultsOf } from "@/lib/c
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
 import { todayISO } from "@/lib/format";
-import { computePayroll, feeStatus, filterPayroll, monthBounds, parseMonth, payrollRounds, payrollSelections, payrollTotals, round2, type PayrollFilter } from "@/lib/finance";
+import { computePayroll, feeStatus, payrollByMatch, filterPayroll, monthBounds, parseMonth, payrollRounds, payrollSelections, payrollTotals, round2, type PayrollFilter } from "@/lib/finance";
 
 // Selecti za finansije (selects.ts drži selecte utakmica i delegiranja)
 const FEE_COMPETITION_SELECT = `
@@ -149,8 +149,11 @@ export function resolvePeriod(value: unknown): PayrollPeriod {
   return value === "sve" ? "sve" : resolveMonth(value);
 }
 
-/** Prihvaćena delegiranja na završenim utakmicama u periodu (profileId = samo jedna osoba, inače sve); koristi i statistika */
-export async function payrollRows(period: PayrollPeriod, profileId: string | null) {
+/**
+ * Prihvaćena delegiranja na završenim utakmicama u periodu (profileId = samo jedna osoba, inače sve); koristi i statistika.
+ * `unplayed` = umjesto završenih, utakmice koje se tek igraju (zakazane ili u toku), za prikaz cijelog kola.
+ */
+export async function payrollRows(period: PayrollPeriod, profileId: string | null, unplayed = false) {
   "use cache: remote";
   cacheLife(LIFE.live);
   cacheTag(TAG.assignments, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.profiles);
@@ -160,7 +163,8 @@ export async function payrollRows(period: PayrollPeriod, profileId: string | nul
   const PAGE = 1000;
   const all = [];
   for (let offset = 0; ; offset += PAGE) {
-    let q = db.from("assignments").select(PAYROLL_SELECT).eq("status", "accepted").eq("match.status", "finished");
+    let q = db.from("assignments").select(PAYROLL_SELECT).eq("status", "accepted");
+    q = unplayed ? q.in("match.status", ["scheduled", "live"]) : q.eq("match.status", "finished");
     if (period !== "sve") {
       const { from, to } = monthBounds(period);
       q = q.gte("match.starts_at", from).lt("match.starts_at", to);
@@ -176,10 +180,31 @@ export async function payrollRows(period: PayrollPeriod, profileId: string | nul
 /** Obračun svih osoba (admin), s filterima (grupa, isplata, pretraga) i zbirom */
 export async function getPayroll(period: PayrollPeriod, filter: PayrollFilter = {}) {
   await requireRole("admin");
-  const all = await payrollRows(period, null);
+  const [all, history, unplayed] = await Promise.all([
+    payrollRows(period, null),
+    period === "sve" ? null : payrollRows("sve", null),
+    payrollRows("sve", null, true),
+  ]);
   const people = computePayroll(filterPayroll(all, filter));
-  // Selekcije iz svih delegiranja perioda, da izbor ne nestane kad se filtrira
-  return { people, totals: payrollTotals(people), selections: payrollSelections(all), rounds: payrollRounds(all, filter.selection) };
+  // Selekcije i kola iz cijele evidencije i nadolazećih utakmica: kolo traje preko kraja mjeseca
+  // (Kadeti 1. kolo 30. i 31. 10.), a izbor ne smije nestati kad se filtrira
+  const everything = [...(history ?? all), ...unplayed];
+  // Uz izabrano kolo idu i njegove neodigrane utakmice: vide se, ali ne ulaze u zbir ni isplatu
+  const upcoming = filter.round ? payrollByMatch(computePayroll(filterPayroll(inPeriod(unplayed, period), filter))) : [];
+  return {
+    people,
+    totals: payrollTotals(people),
+    selections: payrollSelections(everything),
+    rounds: payrollRounds(everything, filter.selection),
+    upcoming,
+  };
+}
+
+function inPeriod<A extends { match: { starts_at: string } }>(rows: A[], period: PayrollPeriod) {
+  if (period === "sve") return rows;
+  const { from, to } = monthBounds(period);
+  const [f, t] = [Date.parse(from), Date.parse(to)];
+  return rows.filter((r) => Date.parse(r.match.starts_at) >= f && Date.parse(r.match.starts_at) < t);
 }
 
 /** Obračun jedne osobe (admin) */

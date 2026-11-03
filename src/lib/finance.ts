@@ -191,6 +191,7 @@ export type PayrollItem = {
   competition: string;
   /** "Prijateljska", "Turnir", vlastiti naziv; prazno za ligu */
   kind: string;
+  round: number | null;
   teams: string;
   home: TeamIdentity | null;
   away: TeamIdentity | null;
@@ -352,6 +353,7 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       startsAt: a.match.starts_at,
       competition: a.match.competition?.short_name ?? a.match.competition?.name ?? "",
       kind: matchKindLabel(a.match.kind, a.match.kind_label),
+      round: a.match.round,
       teams: `${a.match.home?.name ?? ""} – ${a.match.away?.name ?? ""}`,
       home: a.match.home,
       away: a.match.away,
@@ -385,6 +387,7 @@ export type PayrollMatch = {
   startsAt: string;
   competition: string;
   kind: string;
+  round: number | null;
   home: TeamIdentity | null;
   away: TeamIdentity | null;
   /** Stavke svih osoba na utakmici, po poziciji */
@@ -406,6 +409,7 @@ export function payrollByMatch(people: PayrollPerson[]): PayrollMatch[] {
         startsAt: i.startsAt,
         competition: i.competition,
         kind: i.kind,
+        round: i.round,
         home: i.home,
         away: i.away,
         items: [],

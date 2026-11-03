@@ -126,19 +126,20 @@ export function PayrollSelections({ basePath, params, selections }: { basePath: 
   );
 }
 
-/** Kolo (1. kolo, 2. kolo…) unutar izabrane selekcije; samo kola koja postoje u periodu */
+/** Kolo (1. kolo, 2. kolo…) unutar izabrane selekcije; kola s delegiranjima u sezoni, i nadolazeća */
 export function PayrollRounds({ basePath, params, rounds }: { basePath: string; params: Params; rounds: number[] }) {
   const current = params.kolo ? Number(params.kolo) : undefined;
   // Izabrano kolo ostaje vidljivo (i kad ga u periodu nema) da se može poništiti
   const list = current && !rounds.includes(current) ? [...rounds, current].sort((a, b) => a - b) : rounds;
-  if (list.length < 2 && !current) return null;
+  if (list.length === 0) return null;
   return (
     <FilterSegments>
       <FilterSegment href={withParams(basePath, params, { kolo: undefined })} active={!current}>
         Sva kola
       </FilterSegment>
+      {/* Kolo se igra preko kraja mjeseca, pa izbor kola prikazuje cijelo kolo (period "Sve") */}
       {list.map((r) => (
-        <FilterSegment key={r} href={withParams(basePath, params, { kolo: String(r) })} active={current === r}>
+        <FilterSegment key={r} href={withParams(basePath, params, { kolo: String(r), mjesec: "sve" })} active={current === r}>
           {r}. kolo
         </FilterSegment>
       ))}
@@ -300,11 +301,11 @@ export function PayrollTable({ people, personHref, open }: { people: PayrollPers
 }
 
 /** Male kartice utakmica: ekipe, ko je radio, iznos i isplata po osobi; isplata cijele utakmice odjednom; klik na utakmicu = ručne cijene */
-export function PayrollMatches({ matches }: { matches: PayrollMatch[] }) {
+export function PayrollMatches({ matches, unplayed }: { matches: PayrollMatch[]; unplayed?: boolean }) {
   return (
     <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {matches.map((m) => (
-        <PayrollMatchCard key={m.matchId} match={m} />
+        <PayrollMatchCard key={m.matchId} match={m} unplayed={unplayed} />
       ))}
     </ul>
   );

@@ -56,7 +56,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
   await connection(); // "tekući mjesec" se računa po zahtjevu
   const period = resolvePeriod(sp.mjesec);
   const filter = parsePayrollFilter(sp);
-  const { people, totals, selections, rounds } = await getPayroll(period, filter);
+  const { people, totals, selections, rounds, upcoming } = await getPayroll(period, filter);
   const byMatch = sp.prikaz !== "osobe";
 
   // Trenutni parametri za linkove filtera (mjesec se ne upisuje kad je tekući)
@@ -103,7 +103,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
             }
           />
           {people.length === 0 ? (
-            <Empty icon={<Wallet />}>
+            upcoming.length === 0 && <Empty icon={<Wallet />}>
               Nema angažmana{describeFilter(filter)} {period === "sve" ? "na završenim utakmicama" : `u ${formatMonth(period)}`}.
             </Empty>
           ) : byMatch ? (
@@ -114,6 +114,13 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
               open={Boolean(filter.q)}
               personHref={(id) => `/admin/naknade/osoba/${id}${period === "sve" ? "?mjesec=sve" : params.mjesec ? `?mjesec=${params.mjesec}` : ""}`}
             />
+          )}
+          {upcoming.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <SectionTitle>Nije odigrano u {filter.round}. kolu</SectionTitle>
+              <p className="-mt-3 text-[14px] text-fg-muted">Delegirani su, ali utakmica još nije završena. Ne ulazi u zbir ni isplatu.</p>
+              <PayrollMatches matches={upcoming} unplayed />
+            </div>
           )}
         </FilterContent>
       </div>

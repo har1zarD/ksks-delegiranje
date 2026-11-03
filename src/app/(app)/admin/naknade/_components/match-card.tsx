@@ -23,8 +23,11 @@ function parseField(v: string): number | null | undefined {
   return Number.isFinite(n) && n >= 0 && n <= 10000 ? Math.round(n * 100) / 100 : undefined;
 }
 
-/** Kartica utakmice u obračunu: klik na utakmicu otvara ručne cijene po osobi (prazno = po pravilu takmičenja) */
-export function PayrollMatchCard({ match: m }: { match: PayrollMatch }) {
+/**
+ * Kartica utakmice u obračunu: klik na utakmicu otvara ručne cijene po osobi (prazno = po pravilu takmičenja).
+ * `unplayed` = utakmica kola koja se tek igra: iznosi su očekivani, bez isplate.
+ */
+export function PayrollMatchCard({ match: m, unplayed = false }: { match: PayrollMatch; unplayed?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string>();
@@ -65,7 +68,9 @@ export function PayrollMatchCard({ match: m }: { match: PayrollMatch }) {
           <p className="truncate text-[12px] text-fg-muted">
             <span className="font-semibold text-fg">{matchNo(m.number)}</span>, {m.competition}
             {m.kind && ` (${m.kind})`}
+            {m.round != null && <span className="font-semibold text-fg">, {m.round}. kolo</span>}
           </p>
+          {unplayed && <p className="mt-1 text-[12px] font-semibold text-orange">Nije odigrana</p>}
           <div className="mt-1 flex flex-col gap-1 text-[15px] font-semibold">
             <TeamName name={m.home?.name ?? "Domaćin"} logoUrl={m.home?.club?.logo_url} />
             <TeamName name={m.away?.name ?? "Gost"} logoUrl={m.away?.club?.logo_url} />
@@ -135,28 +140,30 @@ export function PayrollMatchCard({ match: m }: { match: PayrollMatch }) {
                 <span className={cx("scoreboard whitespace-nowrap text-[14px] font-semibold", i.amount == null && "text-[12px] text-orange")}>
                   {i.amount == null ? "bez cijene" : formatKM(i.amount)}
                 </span>
-                <PaidToggle id={i.assignmentId} paid={Boolean(i.paidAt)} />
+                {!unplayed && <PaidToggle id={i.assignmentId} paid={Boolean(i.paidAt)} />}
               </li>
             ))}
           </ul>
           <div className="mt-auto flex flex-col gap-2 border-t border-line pt-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[13px] text-fg-muted">
-                Ukupno <span className="scoreboard font-semibold text-fg">{formatKM(m.total)}</span>
+                {unplayed ? "Očekivano" : "Ukupno"} <span className="scoreboard font-semibold text-fg">{formatKM(m.total)}</span>
               </span>
-              {m.unpaidCount === 0 && <span className="text-[12px] font-semibold text-mint">Sve isplaćeno</span>}
+              {!unplayed && m.unpaidCount === 0 && <span className="text-[12px] font-semibold text-mint">Sve isplaćeno</span>}
             </div>
-            {/* Dugmad dijele red i ne izlaze iz kartice */}
-            <div className="flex gap-2 empty:hidden">
-              <MarkAllPaid ids={m.items.filter((i) => !i.paidAt).map((i) => i.assignmentId)} amount={m.unpaid} label="Isplati" className="flex-1" />
-              <MarkAllPaid
-                ids={m.items.filter((i) => i.paidAt).map((i) => i.assignmentId)}
-                amount={m.paid}
-                label="Poništi isplatu"
-                paid={false}
-                className="flex-1"
-              />
-            </div>
+            {/* Dugmad dijele red i ne izlaze iz kartice; neodigrana utakmica se ne isplaćuje */}
+            {!unplayed && (
+              <div className="flex gap-2 empty:hidden">
+                <MarkAllPaid ids={m.items.filter((i) => !i.paidAt).map((i) => i.assignmentId)} amount={m.unpaid} label="Isplati" className="flex-1" />
+                <MarkAllPaid
+                  ids={m.items.filter((i) => i.paidAt).map((i) => i.assignmentId)}
+                  amount={m.paid}
+                  label="Poništi isplatu"
+                  paid={false}
+                  className="flex-1"
+                />
+              </div>
+            )}
           </div>
         </>
       )}
