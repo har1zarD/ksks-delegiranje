@@ -17,7 +17,7 @@ import {
 import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
 import { buttonClass, CARD, cx, Empty, PageHeader, ROWS, SectionTitle } from "@/components/ui";
 import { MarkAllPaid } from "@/components/paid-toggle";
-import { describeFilter, PayrollFilters, PayrollMatches, PayrollSummary, PayrollTable, PayrollViews, PeriodPicker } from "./_components/payroll-view";
+import { describeFilter, PayrollFilters, PayrollMatches, PayrollSelections, PayrollSummary, PayrollTable, PayrollViews, PeriodPicker } from "./_components/payroll-view";
 import { RulesForm } from "./rules-form";
 
 export const metadata = { title: "Naknade — KSKS" };
@@ -56,7 +56,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
   await connection(); // "tekući mjesec" se računa po zahtjevu
   const period = resolvePeriod(sp.mjesec);
   const filter = parsePayrollFilter(sp);
-  const { people, totals } = await getPayroll(period, filter);
+  const { people, totals, selections } = await getPayroll(period, filter);
   const byMatch = sp.prikaz !== "osobe";
 
   // Trenutni parametri za linkove filtera (mjesec se ne upisuje kad je tekući)
@@ -64,11 +64,12 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
     mjesec: typeof sp.mjesec === "string" ? sp.mjesec : undefined,
     grupa: typeof sp.grupa === "string" ? sp.grupa : undefined,
     isplata: typeof sp.isplata === "string" ? sp.isplata : undefined,
+    selekcija: filter.selection,
     q: filter.q,
   };
   const csv = `/admin/naknade/csv?${new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => Boolean(e[1])))}`;
   const viewParams = { ...params, prikaz: byMatch ? undefined : "osobe" };
-  const filtered = Boolean(filter.group || filter.paid || filter.q);
+  const filtered = Boolean(filter.group || filter.paid || filter.q || filter.selection);
   const unpaidIds = people.flatMap((p) => p.items.filter((i) => !i.paidAt).map((i) => i.assignmentId));
 
   return (
@@ -78,6 +79,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
           <PeriodPicker period={period} basePath="/admin/naknade" params={viewParams}>
             <PayrollViews basePath="/admin/naknade" params={viewParams} />
           </PeriodPicker>
+          <PayrollSelections basePath="/admin/naknade" params={viewParams} selections={selections} />
           <PayrollFilters basePath="/admin/naknade" params={viewParams} />
         </div>
         {/* Klik na filter: odmah skelet zbira i liste dok server sprema novi obračun */}

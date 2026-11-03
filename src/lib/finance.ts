@@ -175,7 +175,7 @@ export type PayrollAssignment = {
     digital_scoresheet: boolean;
     kind: MatchKind;
     kind_label: string | null;
-    competition: ({ name: string; short_name: string | null } & FeeRules) | null;
+    competition: ({ name: string; short_name: string | null; category: string; sort: number } & FeeRules) | null;
     home: TeamIdentity | null;
     away: TeamIdentity | null;
   };
@@ -234,11 +234,47 @@ export function positionGroup(position: Position): PositionGroup {
 
 export type PaidFilter = "paid" | "unpaid";
 
-export type PayrollFilter = { group?: PositionGroup; paid?: PaidFilter; q?: string };
+export type PayrollFilter = { group?: PositionGroup; paid?: PaidFilter; q?: string; selection?: string };
 
 /** Pretraga bez obzira na velika slova i dijakritike (spars = Spars, cosic = Ćosić) */
 function fold(s: string) {
   return s.normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "dj").replace(/Đ/g, "dj").toLowerCase();
+}
+
+/** Slug za URL: "Pioniri G1" → "pioniri-g1", "srednje škole" → "srednje-skole" */
+function slugify(s: string) {
+  return fold(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/** Utakmice bez takmičenja (prijateljske, turniri) */
+const OTHER_SELECTION = "ostalo";
+
+/** Pripada li delegiranje selekciji: cijela kategorija ("pioniri") ili jedno takmičenje ("pioniri-g1") */
+function inSelection(c: PayrollAssignment["match"]["competition"], selection: string) {
+  if (!c) return selection === OTHER_SELECTION;
+  return slugify(c.category) === selection || slugify(c.short_name ?? c.name) === selection;
+}
+
+export type PayrollSelection = { value: string; label: string; competitions: { value: string; label: string }[] };
+
+/** Selekcije za filter, iz delegiranja perioda: kategorija (Pioniri) s takmičenjima (Pioniri G1, G2), redom takmičenja */
+export function payrollSelections(rows: PayrollAssignment[]): PayrollSelection[] {
+  // Svako takmičenje jednom, po redoslijedu; kategorija dolazi na mjesto svog prvog takmičenja
+  const competitions = new Map<string, NonNullable<PayrollAssignment["match"]["competition"]>>();
+  let other = false;
+  for (const { match } of rows) {
+    if (match.competition) competitions.set(slugify(match.competition.short_name ?? match.competition.name), match.competition);
+    else other = true;
+  }
+  const categories = new Map<string, PayrollSelection>();
+  for (const [value, c] of [...competitions].sort((x, y) => x[1].sort - y[1].sort)) {
+    const key = slugify(c.category);
+    const cat = categories.get(key) ?? { value: key, label: c.category.charAt(0).toUpperCase() + c.category.slice(1), competitions: [] };
+    cat.competitions.push({ value, label: c.short_name ?? c.name });
+    categories.set(key, cat);
+  }
+  const list = [...categories.values()];
+  return other ? [...list, { value: OTHER_SELECTION, label: "Ostalo", competitions: [] }] : list;
 }
 
 /** Filtrira delegiranja prije obračuna: grupa pozicija, isplaćeno/neisplaćeno, tekst (osoba, ekipa, takmičenje, broj utakmice) */
@@ -248,6 +284,7 @@ export function filterPayroll<A extends PayrollAssignment>(rows: A[], f: Payroll
     if (f.group && positionGroup(a.position) !== f.group) return false;
     if (f.paid === "paid" && !a.paid_at) return false;
     if (f.paid === "unpaid" && a.paid_at) return false;
+    if (f.selection && !inSelection(a.match.competition, f.selection)) return false;
     if (words.length === 0) return true;
     const hay = fold(
       [
@@ -267,13 +304,14 @@ export function filterPayroll<A extends PayrollAssignment>(rows: A[], f: Payroll
   });
 }
 
-/** Filteri iz adrese: ?grupa=sudije|sto|komesari&isplata=isplaceno|neisplaceno&q=spars */
+/** Filteri iz adrese: ?grupa=sudije|sto|komesari&isplata=isplaceno|neisplaceno&selekcija=pioniri|pioniri-g1&q=spars */
 export function parsePayrollFilter(sp: Record<string, string | string[] | undefined>): PayrollFilter {
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
   const group = ({ sudije: "referees", sto: "table", komesari: "commissioners" } as const)[one("grupa") as "sudije" | "sto" | "komesari"];
   const paid = ({ isplaceno: "paid", neisplaceno: "unpaid" } as const)[one("isplata") as "isplaceno" | "neisplaceno"];
   const q = one("q")?.trim().slice(0, 80) || undefined;
-  return { group, paid, q };
+  const selection = one("selekcija")?.trim().slice(0, 60) || undefined;
+  return { group, paid, q, selection };
 }
 
 export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[] {

@@ -9,6 +9,7 @@ import {
   type PayrollFilter,
   type PayrollMatch,
   type PayrollPerson,
+  type PayrollSelection,
 } from "@/lib/finance";
 import { formatDayMonth, matchNo, POSITION_LABEL } from "@/lib/format";
 import { cx, inputClass } from "@/components/ui";
@@ -86,6 +87,43 @@ const PAID = [
   { value: "neisplaceno", label: "Nije isplaćeno" },
   { value: "isplaceno", label: "Isplaćeno" },
 ] as const;
+
+/**
+ * Selekcija: kategorija (Pioniri = sve grupe), a kad kategorija ima više takmičenja,
+ * ispod se bira jedno (Pioniri G1, Pioniri G2). Mijenjanje selekcije čuva ostale filtere.
+ */
+export function PayrollSelections({ basePath, params, selections }: { basePath: string; params: Params; selections: PayrollSelection[] }) {
+  if (selections.length < 2) return null;
+  const current = params.selekcija;
+  const active = selections.find((s) => s.value === current || s.competitions.some((c) => c.value === current));
+  const link = (selekcija?: string) => withParams(basePath, params, { selekcija });
+  return (
+    <div className="flex flex-col gap-2">
+      <FilterSegments>
+        <FilterSegment href={link()} active={!current}>
+          Sve selekcije
+        </FilterSegment>
+        {selections.map((s) => (
+          <FilterSegment key={s.value} href={link(s.value)} active={s === active}>
+            {s.label}
+          </FilterSegment>
+        ))}
+      </FilterSegments>
+      {active && active.competitions.length > 1 && (
+        <FilterSegments>
+          <FilterSegment href={link(active.value)} active={current === active.value}>
+            Sve: {active.label}
+          </FilterSegment>
+          {active.competitions.map((c) => (
+            <FilterSegment key={c.value} href={link(c.value)} active={current === c.value}>
+              {c.label}
+            </FilterSegment>
+          ))}
+        </FilterSegments>
+      )}
+    </div>
+  );
+}
 
 /** Grupa, isplata i pretraga (ekipa, osoba, takmičenje, broj utakmice) u jednom redu. Bez JS-a: linkovi i GET forma. */
 export function PayrollFilters({ basePath, params, groups = true }: { basePath: string; params: Params; groups?: boolean }) {
