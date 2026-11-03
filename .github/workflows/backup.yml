@@ -1,7 +1,8 @@
 # Dnevni backup baze (Supabase Free nema automatske backupe).
 # Dump (uloge, šema, podaci) se šifruje (AES256, gpg) i čuva kao artifact 30 dana: Actions → Backup baze → run → Artifacts.
 # Secrets (Settings → Secrets and variables → Actions):
-#   SUPABASE_DB_URL    Session pooler adresa (Supabase → Connect → Session pooler), sa šifrom baze
+#   SUPABASE_ACCESS_TOKEN  Supabase token naloga (supabase.com/dashboard/account/tokens); šifra baze ne treba,
+#                          CLI preko tokena dobije privremeni pristup bazi (isto kao `db push` lokalno)
 #   BACKUP_PASSPHRASE  šifra za otključavanje backupa (čuvati i van GitHuba, bez nje backup je neupotrebljiv)
 # Vraćanje: gpg -d ksks-backup-<datum>.tar.gz.gpg | tar xz  → backup/roles.sql, schema.sql, data.sql
 # Slike u Storage bucketima (licence, zapisnici, grbovi) NISU dio ovog backupa.
@@ -22,16 +23,18 @@ jobs:
     steps:
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.120.0
 
       - name: Dump baze
         env:
-          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::Nedostaje secret SUPABASE_ACCESS_TOKEN"; exit 1; }
+          supabase link --project-ref fxdzcncfoutxunfwcyhi
           mkdir backup
-          supabase db dump --db-url "$DB_URL" -f backup/roles.sql --role-only
-          supabase db dump --db-url "$DB_URL" -f backup/schema.sql
-          supabase db dump --db-url "$DB_URL" -f backup/data.sql --data-only --use-copy
+          supabase db dump --linked -f backup/roles.sql --role-only
+          supabase db dump --linked -f backup/schema.sql
+          supabase db dump --linked -f backup/data.sql --data-only --use-copy
           test -s backup/schema.sql && test -s backup/data.sql
 
       - name: Šifrovanje
