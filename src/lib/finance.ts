@@ -171,6 +171,8 @@ export type PayrollAssignment = {
     id: string;
     number: number;
     starts_at: string;
+    /** Kolo u takmičenju (null = bez kola, npr. prijateljska) */
+    round: number | null;
     referee_count: number;
     digital_scoresheet: boolean;
     kind: MatchKind;
@@ -234,7 +236,7 @@ export function positionGroup(position: Position): PositionGroup {
 
 export type PaidFilter = "paid" | "unpaid";
 
-export type PayrollFilter = { group?: PositionGroup; paid?: PaidFilter; q?: string; selection?: string };
+export type PayrollFilter = { group?: PositionGroup; paid?: PaidFilter; q?: string; selection?: string; round?: number };
 
 /** Pretraga bez obzira na velika slova i dijakritike (spars = Spars, cosic = Ćosić) */
 function fold(s: string) {
@@ -277,6 +279,15 @@ export function payrollSelections(rows: PayrollAssignment[]): PayrollSelection[]
   return other ? [...list, { value: OTHER_SELECTION, label: "Ostalo", competitions: [] }] : list;
 }
 
+/** Kola za filter: ona koja postoje u delegiranjima izabrane selekcije (ili svih), rastuće */
+export function payrollRounds(rows: PayrollAssignment[], selection?: string): number[] {
+  const set = new Set<number>();
+  for (const { match } of rows) {
+    if (match.round && (!selection || inSelection(match.competition, selection))) set.add(match.round);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
 /** Filtrira delegiranja prije obračuna: grupa pozicija, isplaćeno/neisplaćeno, tekst (osoba, ekipa, takmičenje, broj utakmice) */
 export function filterPayroll<A extends PayrollAssignment>(rows: A[], f: PayrollFilter): A[] {
   const words = f.q ? fold(f.q).split(/\s+/).filter(Boolean) : [];
@@ -285,6 +296,7 @@ export function filterPayroll<A extends PayrollAssignment>(rows: A[], f: Payroll
     if (f.paid === "paid" && !a.paid_at) return false;
     if (f.paid === "unpaid" && a.paid_at) return false;
     if (f.selection && !inSelection(a.match.competition, f.selection)) return false;
+    if (f.round && a.match.round !== f.round) return false;
     if (words.length === 0) return true;
     const hay = fold(
       [
@@ -304,14 +316,16 @@ export function filterPayroll<A extends PayrollAssignment>(rows: A[], f: Payroll
   });
 }
 
-/** Filteri iz adrese: ?grupa=sudije|sto|komesari&isplata=isplaceno|neisplaceno&selekcija=pioniri|pioniri-g1&q=spars */
+/** Filteri iz adrese: ?grupa=sudije|sto|komesari&isplata=isplaceno|neisplaceno&selekcija=pioniri|pioniri-g1&kolo=1&q=spars */
 export function parsePayrollFilter(sp: Record<string, string | string[] | undefined>): PayrollFilter {
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
   const group = ({ sudije: "referees", sto: "table", komesari: "commissioners" } as const)[one("grupa") as "sudije" | "sto" | "komesari"];
   const paid = ({ isplaceno: "paid", neisplaceno: "unpaid" } as const)[one("isplata") as "isplaceno" | "neisplaceno"];
   const q = one("q")?.trim().slice(0, 80) || undefined;
   const selection = one("selekcija")?.trim().slice(0, 60) || undefined;
-  return { group, paid, q, selection };
+  const kolo = Number(one("kolo"));
+  const round = Number.isInteger(kolo) && kolo > 0 && kolo < 1000 ? kolo : undefined;
+  return { group, paid, q, selection, round };
 }
 
 export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[] {

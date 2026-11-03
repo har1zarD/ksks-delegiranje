@@ -96,7 +96,8 @@ export function PayrollSelections({ basePath, params, selections }: { basePath: 
   if (selections.length < 2) return null;
   const current = params.selekcija;
   const active = selections.find((s) => s.value === current || s.competitions.some((c) => c.value === current));
-  const link = (selekcija?: string) => withParams(basePath, params, { selekcija });
+  // Druga selekcija ima druga kola, pa se kolo poništava
+  const link = (selekcija?: string) => withParams(basePath, params, { selekcija, kolo: undefined });
   return (
     <div className="flex flex-col gap-2">
       <FilterSegments>
@@ -122,6 +123,26 @@ export function PayrollSelections({ basePath, params, selections }: { basePath: 
         </FilterSegments>
       )}
     </div>
+  );
+}
+
+/** Kolo (1. kolo, 2. kolo…) unutar izabrane selekcije; samo kola koja postoje u periodu */
+export function PayrollRounds({ basePath, params, rounds }: { basePath: string; params: Params; rounds: number[] }) {
+  const current = params.kolo ? Number(params.kolo) : undefined;
+  // Izabrano kolo ostaje vidljivo (i kad ga u periodu nema) da se može poništiti
+  const list = current && !rounds.includes(current) ? [...rounds, current].sort((a, b) => a - b) : rounds;
+  if (list.length < 2 && !current) return null;
+  return (
+    <FilterSegments>
+      <FilterSegment href={withParams(basePath, params, { kolo: undefined })} active={!current}>
+        Sva kola
+      </FilterSegment>
+      {list.map((r) => (
+        <FilterSegment key={r} href={withParams(basePath, params, { kolo: String(r) })} active={current === r}>
+          {r}. kolo
+        </FilterSegment>
+      ))}
+    </FilterSegments>
   );
 }
 
@@ -291,6 +312,10 @@ export function PayrollMatches({ matches }: { matches: PayrollMatch[] }) {
 
 /** Opis aktivnog filtera za prazno stanje */
 export function describeFilter(f: PayrollFilter) {
-  const parts = [f.paid === "paid" ? "isplaćenih" : f.paid === "unpaid" ? "neisplaćenih" : "", f.q ? `za „${f.q}”` : ""].filter(Boolean);
+  const parts = [
+    f.paid === "paid" ? "isplaćenih" : f.paid === "unpaid" ? "neisplaćenih" : "",
+    f.round ? `u ${f.round}. kolu` : "",
+    f.q ? `za „${f.q}”` : "",
+  ].filter(Boolean);
   return parts.length ? ` ${parts.join(" ")}` : "";
 }

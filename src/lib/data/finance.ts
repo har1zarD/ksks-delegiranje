@@ -5,7 +5,7 @@ import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES, crewDefaultsOf } from "@/lib/c
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
 import { todayISO } from "@/lib/format";
-import { computePayroll, feeStatus, filterPayroll, monthBounds, parseMonth, payrollSelections, payrollTotals, round2, type PayrollFilter } from "@/lib/finance";
+import { computePayroll, feeStatus, filterPayroll, monthBounds, parseMonth, payrollRounds, payrollSelections, payrollTotals, round2, type PayrollFilter } from "@/lib/finance";
 
 // Selecti za finansije (selects.ts drži selecte utakmica i delegiranja)
 const FEE_COMPETITION_SELECT = `
@@ -23,7 +23,7 @@ const RULES_COMPETITION_SELECT =
 const PAYROLL_SELECT = `
   id, position, paid_at, fee_km,
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
-  match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, status, referee_count, digital_scoresheet,
+  match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, round, status, referee_count, digital_scoresheet,
     competition:competitions!matches_competition_id_fkey ( name, short_name, category, sort, ${FEE_RULES} ),
     home:teams!matches_home_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ),
     away:teams!matches_away_team_id_fkey ( name, club:clubs!teams_club_id_fkey ( logo_url ) ) )
@@ -179,7 +179,7 @@ export async function getPayroll(period: PayrollPeriod, filter: PayrollFilter = 
   const all = await payrollRows(period, null);
   const people = computePayroll(filterPayroll(all, filter));
   // Selekcije iz svih delegiranja perioda, da izbor ne nestane kad se filtrira
-  return { people, totals: payrollTotals(people), selections: payrollSelections(all) };
+  return { people, totals: payrollTotals(people), selections: payrollSelections(all), rounds: payrollRounds(all, filter.selection) };
 }
 
 /** Obračun jedne osobe (admin) */
