@@ -117,7 +117,7 @@ async function Payroll({ searchParams }: { searchParams: SearchParams }) {
           )}
           {upcoming.length > 0 && (
             <div className="flex flex-col gap-3">
-              <SectionTitle>Nije odigrano u {filter.round}. kolu</SectionTitle>
+              <SectionTitle>{filter.round ? `Nije odigrano u ${filter.round}. kolu` : "Nije odigrano"}</SectionTitle>
               <p className="-mt-3 text-[14px] text-fg-muted">Delegirani su, ali utakmica još nije završena. Ne ulazi u zbir ni isplatu.</p>
               <PayrollMatches matches={upcoming} unplayed />
             </div>

@@ -1,7 +1,7 @@
 import type { TeamIdentity } from "@/components/team-name";
 // Čisti proračuni za kotizacije i naknade (bez Next-a i baze, testabilno).
 import type { Crew } from "@/lib/crew";
-import { matchKindLabel, MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type MatchKind, type Position } from "@/lib/format";
+import { matchKindLabel, MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type AssignmentStatus, type MatchKind, type Position } from "@/lib/format";
 
 // ───────── Kotizacije ─────────
 
@@ -163,6 +163,8 @@ export function matchCost(rules: FeeRules | null, crew: Crew, fees: Partial<Reco
 export type PayrollAssignment = {
   id: string;
   position: Position;
+  /** "accepted" ili "pending" (samo kod neodigranih utakmica; odigrane su uvijek "accepted") */
+  status: AssignmentStatus;
   paid_at: string | null;
   /** Ručna naknada za ovo delegiranje (null = po pravilu takmičenja) */
   fee_km: number | null;
@@ -196,6 +198,8 @@ export type PayrollItem = {
   home: TeamIdentity | null;
   away: TeamIdentity | null;
   position: Position;
+  /** "accepted" ili "pending" (samo kod neodigranih utakmica) */
+  status: AssignmentStatus;
   refereeCount: number;
   /** null = naknada za takmičenje i poziciju nije određena */
   amount: number | null;
@@ -358,6 +362,7 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       home: a.match.home,
       away: a.match.away,
       position: a.position,
+      status: a.status,
       refereeCount: a.match.referee_count,
       amount,
       ruleAmount,

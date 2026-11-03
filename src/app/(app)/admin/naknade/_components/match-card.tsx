@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Pencil } from "lucide-react";
 import { TeamName } from "@/components/team-name";
 import { DateTile } from "@/components/match-line";
-import { Button, CARD, cx, inputClass } from "@/components/ui";
+import { Button, CARD, cx, inputClass, Status } from "@/components/ui";
 import { formatKM, type PayrollMatch } from "@/lib/finance";
 import { matchNo, POSITION_LABEL } from "@/lib/format";
 import { setFees } from "../actions";
@@ -140,7 +140,7 @@ export function PayrollMatchCard({ match: m, unplayed = false }: { match: Payrol
                 <span className={cx("scoreboard whitespace-nowrap text-[14px] font-semibold", i.amount == null && "text-[12px] text-orange")}>
                   {i.amount == null ? "bez cijene" : formatKM(i.amount)}
                 </span>
-                {!unplayed && <PaidToggle id={i.assignmentId} paid={Boolean(i.paidAt)} />}
+                {unplayed ? i.status === "pending" && <Status tone="gold">Čeka odgovor</Status> : <PaidToggle id={i.assignmentId} paid={Boolean(i.paidAt)} />}
               </li>
             ))}
           </ul>

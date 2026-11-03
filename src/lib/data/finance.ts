@@ -21,7 +21,7 @@ const RULES_COMPETITION_SELECT =
   `id, name, short_name, ${CREW_DEFAULT_COLUMNS}, ${FEE_RULES}, season:seasons!competitions_season_id_fkey!inner ( is_current )` as const;
 
 const PAYROLL_SELECT = `
-  id, position, paid_at, fee_km,
+  id, position, status, paid_at, fee_km,
   profile:profiles!assignments_profile_id_fkey!inner ( id, full_name ),
   match:matches!assignments_match_id_fkey!inner ( id, number, kind, kind_label, starts_at, round, status, referee_count, digital_scoresheet,
     competition:competitions!matches_competition_id_fkey ( name, short_name, category, sort, ${FEE_RULES} ),
@@ -151,7 +151,8 @@ export function resolvePeriod(value: unknown): PayrollPeriod {
 
 /**
  * Prihvaćena delegiranja na završenim utakmicama u periodu (profileId = samo jedna osoba, inače sve); koristi i statistika.
- * `unplayed` = umjesto završenih, utakmice koje se tek igraju (zakazane ili u toku), za prikaz cijelog kola.
+ * `unplayed` = umjesto završenih, utakmice koje se tek igraju (zakazane ili u toku), za prikaz cijelog kola —
+ * tu se vide i nominacije koje još čekaju odgovor (ne samo prihvaćene), da se vidi ko još nije odgovorio.
  */
 export async function payrollRows(period: PayrollPeriod, profileId: string | null, unplayed = false) {
   "use cache: remote";
@@ -163,8 +164,10 @@ export async function payrollRows(period: PayrollPeriod, profileId: string | nul
   const PAGE = 1000;
   const all = [];
   for (let offset = 0; ; offset += PAGE) {
-    let q = db.from("assignments").select(PAYROLL_SELECT).eq("status", "accepted");
-    q = unplayed ? q.in("match.status", ["scheduled", "live"]) : q.eq("match.status", "finished");
+    let q = db.from("assignments").select(PAYROLL_SELECT);
+    q = unplayed
+      ? q.in("status", ["pending", "accepted"]).in("match.status", ["scheduled", "live"])
+      : q.eq("status", "accepted").eq("match.status", "finished");
     if (period !== "sve") {
       const { from, to } = monthBounds(period);
       q = q.gte("match.starts_at", from).lt("match.starts_at", to);
@@ -189,8 +192,8 @@ export async function getPayroll(period: PayrollPeriod, filter: PayrollFilter = 
   // Selekcije i kola iz cijele evidencije i nadolazećih utakmica: kolo traje preko kraja mjeseca
   // (Kadeti 1. kolo 30. i 31. 10.), a izbor ne smije nestati kad se filtrira
   const everything = [...(history ?? all), ...unplayed];
-  // Uz izabrano kolo idu i njegove neodigrane utakmice: vide se, ali ne ulaze u zbir ni isplatu
-  const upcoming = filter.round ? payrollByMatch(computePayroll(filterPayroll(inPeriod(unplayed, period), filter))) : [];
+  // Neodigrane utakmice (izabranog kola ili svih): vide se, ali ne ulaze u zbir ni isplatu
+  const upcoming = payrollByMatch(computePayroll(filterPayroll(inPeriod(unplayed, period), filter)));
   return {
     people,
     totals: payrollTotals(people),
