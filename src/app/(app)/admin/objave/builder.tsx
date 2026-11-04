@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, Search, Shield, Trophy } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, Plus, Search, Shield, Trophy, X } from "lucide-react";
 import { Button, CARD, cx, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
+import { DateField, TimeField } from "@/components/date-picker";
 import type { SocialMatch } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
-import { addDays, formatDate, formatTime, slug } from "@/lib/format";
+import { addDays, formatDate, formatTime, sarajevoToISO, slug } from "@/lib/format";
 import {
   brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, SOCIAL_YEARS, templateOf,
   type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions, type SocialYear,
@@ -61,7 +62,7 @@ export function SocialStudio({ matches, results, round, today, now, competition,
           </button>
         ); })}
       </div>
-      <div role="tabpanel" hidden={kind !== "schedule"}><ScheduleBuilder {...shared} matches={matches} today={today} now={now} competition={competition} /></div>
+      <div role="tabpanel" hidden={kind !== "schedule"}><ScheduleBuilder {...shared} matches={matches} today={today} now={now} competition={competition} tables={tables} /></div>
       <div role="tabpanel" hidden={kind !== "results"}><ResultsBuilder {...shared} matches={results} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "round"}><RoundBuilder {...shared} matches={round} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
@@ -73,9 +74,13 @@ export function SocialStudio({ matches, results, round, today, now, competition,
 // ───────────────────────── Raspored ─────────────────────────
 
 /** `competition` iz linka (`?takmicenje=`): filter na to takmičenje i njegovo prvo naredno kolo */
-function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, competition: initialCompetition, design, onDesign, font }: Shared & { matches: SocialMatch[]; today: string; now: number; competition?: string }) {
+function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, competition: initialCompetition, design, onDesign, font, tables }: Shared & { matches: SocialMatch[]; today: string; now: number; competition?: string; tables: SocialTable[] }) {
   const [now, setNow] = useState(initialNow);
-  const matches = useMemo(() => initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), [initialMatches, now]);
+  const [manual, setManual] = useState<SocialMatch[]>([]);
+  const matches = useMemo(
+    () => [...initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), ...manual],
+    [initialMatches, now, manual],
+  );
   // Početni filter: takmičenje iz linka i njegovo prvo naredno kolo; inače narednih 7 dana, a ako tada nema utakmica, 7 dana od prve naredne
   const picker = useMatchPicker(matches, "Raspored utakmica", () => {
     const own = matches.filter((m) => m.competitionId === initialCompetition);
@@ -90,6 +95,31 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
   const { chosen, page, setPage, texts, setTexts } = picker;
   const [perPage, setPerPage] = useState(7);
   const pages = useMemo<SocialContent[]>(() => chunk(chosen, perPage).map((list) => ({ kind: "schedule", matches: list })), [chosen, perPage]);
+
+  function addManual(input: ManualMatchInput) {
+    const match: SocialMatch = {
+      id: manualId(),
+      startsAt: sarajevoToISO(input.date, input.time),
+      status: "scheduled",
+      date: input.date,
+      round: input.round,
+      competitionId: input.competitionId || MANUAL_COMPETITION_ID,
+      competition: input.competition || "Prijateljska utakmica",
+      home: input.home,
+      away: input.away,
+      homeLogo: input.homeLogo,
+      awayLogo: input.awayLogo,
+      hall: input.hall || null,
+      homeScore: null,
+      awayScore: null,
+    };
+    setManual((old) => [...old, match]);
+    picker.select(new Set([...picker.selected, match.id]));
+  }
+
+  function removeManual(id: string) {
+    setManual((old) => old.filter((m) => m.id !== id));
+  }
 
   useEffect(() => {
     const refreshTime = () => setNow(Date.now());
@@ -115,9 +145,14 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
       />
     }>
       <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
-        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema budućih ni odgođenih utakmica tekuće sezone.</p> : (
-          <MatchPicker matches={matches} picker={picker} range={{ label: "Narednih 7 dana", from: today, to: addDays(today, 6) }} note="Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum." />
-        )}
+        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema budućih ni odgođenih utakmica tekuće sezone.</p> : null}
+        <MatchPicker
+          matches={matches}
+          picker={picker}
+          range={{ label: "Narednih 7 dana", from: today, to: addDays(today, 6) }}
+          note="Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum."
+          manualAdd={{ today, tables, defaultCompetitionId: picker.filters.competition || initialCompetition || tables[0]?.id || "", onAdd: addManual, onRemove: removeManual }}
+        />
       </Step>
       <Step number={2} title="Izgled">
         <LayoutPicker kind="schedule" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
@@ -220,6 +255,17 @@ function RoundBuilder({ matches, today, competition: initialCompetition, design,
 
 // ───────────────────────── Izbor utakmica (raspored, rezultati i kolo) ─────────────────────────
 
+/** Utakmica koju admin ručno dopiše (nije u rasporedu) — nosi se u listi i na slici kao i svaka druga */
+const MANUAL_PREFIX = "manual-";
+const MANUAL_COMPETITION_ID = "manual";
+const manualId = () => `${MANUAL_PREFIX}${crypto.randomUUID()}`;
+
+type ManualMatchInput = {
+  home: string; away: string; homeLogo: string | null; awayLogo: string | null;
+  date: string; time: string; hall: string; competitionId: string; competition: string; round: number | null;
+};
+type ManualAdd = { today: string; tables: SocialTable[]; defaultCompetitionId: string; onAdd: (input: ManualMatchInput) => void; onRemove: (id: string) => void };
+
 /** Filteri i izbor: svaka promjena filtera označi upravo prikazane utakmice, pa se i pregled odmah mijenja; podnaslov prati takmičenje i kolo */
 function useMatchPicker(matches: SocialMatch[], title: string, initialFilters: () => Filters, layout = "rows") {
   const [filters, setFilters] = useState<Filters>(initialFilters);
@@ -254,13 +300,16 @@ function useMatchPicker(matches: SocialMatch[], title: string, initialFilters: (
   return { filters, filter, selected, select, toggle, chosen, page, setPage, texts, setTexts };
 }
 
-function MatchPicker({ matches, picker: { filters, filter, selected, select, toggle, chosen }, range, note }: {
+function MatchPicker({ matches, picker: { filters, filter, selected, select, toggle, chosen }, range, note, manualAdd }: {
   matches: SocialMatch[];
   picker: ReturnType<typeof useMatchPicker>;
   /** Brzi filter datuma (npr. narednih ili zadnjih 7 dana) */
   range: { label: string; from: string; to: string };
   note: string;
+  /** Dopušta ručno dopisivanje utakmice na dnu liste (npr. Raspored) */
+  manualAdd?: ManualAdd;
 }) {
+  const [adding, setAdding] = useState(false);
   const { competition, round, search, from, to } = filters;
   const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
   const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
@@ -294,19 +343,151 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
       {hiddenSelected > 0 && <p className="text-[12px] text-fg-muted">Odabrano izvan trenutnog filtera: {hiddenSelected}. Te utakmice ostaju na slikama.</p>}
       {from && to && from > to && <p role="alert" className="text-[13px] text-crest">Početni datum mora biti prije završnog.</p>}
       <div className="max-h-[420px] overflow-y-auto rounded-lg border border-line">
-        {visible.length ? visible.map((m) => (
-          <label key={m.id} className={cx("flex cursor-pointer items-start gap-3 border-b border-line p-3 last:border-b-0 hover:bg-panel-2", selected.has(m.id) && "bg-panel-2")}>
-            <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">{m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}{m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}</span>
-              <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{m.homeScore} : {m.awayScore}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
-              <span className="mt-1 block text-[12px] text-fg-muted">{m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}</span>
-            </span>
-          </label>
-        )) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
+        {visible.length ? visible.map((m) => {
+          const manual = m.id.startsWith(MANUAL_PREFIX);
+          return (
+            <div key={m.id} className={cx("flex items-start gap-2 border-b border-line p-3 last:border-b-0", selected.has(m.id) && "bg-panel-2")}>
+              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 hover:text-fg">
+                <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">
+                    {m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}
+                    {m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}
+                    {manual && <span className="rounded bg-brand-soft px-1.5 py-0.5 font-semibold text-brand">RUČNO</span>}
+                  </span>
+                  <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{m.homeScore} : {m.awayScore}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
+                  <span className="mt-1 block text-[12px] text-fg-muted">{m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}</span>
+                </span>
+              </label>
+              {manual && manualAdd && (
+                <button type="button" aria-label="Ukloni ručno dodanu utakmicu" title="Ukloni" className="mt-1 shrink-0 rounded-md p-1 text-fg-faint hover:bg-panel-3 hover:text-crest" onClick={() => manualAdd.onRemove(m.id)}>
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          );
+        }) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
+        {manualAdd && (adding ? (
+          <ManualMatchFields
+            today={manualAdd.today}
+            tables={manualAdd.tables}
+            defaultCompetitionId={manualAdd.defaultCompetitionId}
+            onCancel={() => setAdding(false)}
+            onSubmit={(input) => { manualAdd.onAdd(input); setAdding(false); }}
+          />
+        ) : (
+          <button type="button" onClick={() => setAdding(true)} className="flex w-full items-center gap-2 border-t border-line p-3 text-left text-[14px] font-semibold text-brand hover:bg-panel-2">
+            <Plus className="size-4 shrink-0" aria-hidden="true" /> Dodaj utakmicu ručno
+          </button>
+        ))}
       </div>
       <p className="text-[12px] text-fg-faint">{note}</p>
     </>
+  );
+}
+
+/** Sentinel za "nije iz postojeće liste ekipa" u TeamPick */
+const OTHER_TEAM = "__other__";
+
+/** Domaćin/gost: biraj iz ekipa takmičenja (vec imaju raspored i grb), ili upiši drugi naziv */
+function TeamPick({ label, roster, value, other, onPick, onOther }: {
+  label: string;
+  roster: { teamId: string; name: string }[];
+  value: string;
+  other: string;
+  onPick: (teamId: string) => void;
+  onOther: (name: string) => void;
+}) {
+  if (value === OTHER_TEAM || roster.length === 0) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Field label={label} value={other} onChange={(event) => onOther(event.target.value)} placeholder="Naziv ekipe" />
+        {roster.length > 0 && (
+          <button type="button" className="self-start text-[12px] text-fg-muted hover:underline" onClick={() => onPick("")}>Izaberi iz takmičenja</button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <Select label={label} value={value} onChange={(event) => onPick(event.target.value)}>
+      <option value="">Izaberi ekipu</option>
+      {roster.map((t) => <option key={t.teamId} value={t.teamId}>{t.name}</option>)}
+      <option value={OTHER_TEAM}>Drugi naziv…</option>
+    </Select>
+  );
+}
+
+/** Forma za ručno dopisanu utakmicu na dnu liste: ekipe biraš iz takmičenja (već imaju raspored, grb i sve), termin je obavezan */
+function ManualMatchFields({ today, tables, defaultCompetitionId, onCancel, onSubmit }: {
+  today: string;
+  tables: SocialTable[];
+  defaultCompetitionId: string;
+  onCancel: () => void;
+  onSubmit: (input: ManualMatchInput) => void;
+}) {
+  const [competitionId, setCompetitionId] = useState(defaultCompetitionId);
+  const table = tables.find((t) => t.id === competitionId);
+  const roster = useMemo(() => [...(table?.standings ?? [])].sort((a, b) => a.name.localeCompare(b.name, "bs")), [table]);
+  const [homeTeamId, setHomeTeamId] = useState("");
+  const [homeOther, setHomeOther] = useState("");
+  const [awayTeamId, setAwayTeamId] = useState("");
+  const [awayOther, setAwayOther] = useState("");
+  const [date, setDate] = useState(today);
+  const [time, setTime] = useState("");
+  const [hall, setHall] = useState("");
+  const [round, setRound] = useState("");
+
+  function pickCompetition(id: string) {
+    setCompetitionId(id);
+    setHomeTeamId("");
+    setAwayTeamId("");
+  }
+
+  const homeTeam = roster.find((t) => t.teamId === homeTeamId);
+  const awayTeam = roster.find((t) => t.teamId === awayTeamId);
+  const home = homeTeamId === OTHER_TEAM ? homeOther.trim() : (homeTeam?.name ?? "");
+  const away = awayTeamId === OTHER_TEAM ? awayOther.trim() : (awayTeam?.name ?? "");
+  const valid = Boolean(home && away && date && time);
+
+  function submit() {
+    onSubmit({
+      home, away,
+      homeLogo: homeTeamId === OTHER_TEAM ? null : (homeTeam?.logoUrl ?? null),
+      awayLogo: awayTeamId === OTHER_TEAM ? null : (awayTeam?.logoUrl ?? null),
+      date, time,
+      hall: hall.trim(),
+      competitionId: competitionId || "",
+      competition: table?.name ?? "",
+      round: round.trim() ? Number(round) : null,
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-line bg-panel-2 p-3">
+      {tables.length > 0 && (
+        <Select label="Takmičenje" value={competitionId} onChange={(event) => pickCompetition(event.target.value)}>
+          {tables.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </Select>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TeamPick label="Domaćin" roster={roster} value={homeTeamId} other={homeOther} onPick={setHomeTeamId} onOther={setHomeOther} />
+        <TeamPick label="Gost" roster={roster} value={awayTeamId} other={awayOther} onPick={setAwayTeamId} onOther={setAwayOther} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <DateField label="Datum" name="manual-date" defaultValue={date} onChange={setDate} required />
+        <TimeField label="Vrijeme" name="manual-time" defaultValue={time} onChange={setTime} required />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Dvorana" value={hall} onChange={(event) => setHall(event.target.value)} placeholder="Nije obavezno" />
+        <Field label="Kolo" type="number" min={1} value={round} onChange={(event) => setRound(event.target.value)} placeholder="Nije obavezno" />
+      </div>
+      <div className="flex items-center gap-3">
+        <Button type="button" disabled={!valid} onClick={submit} className="h-9! px-3! text-[13px]!">
+          <Plus className="size-4" aria-hidden="true" /> Dodaj
+        </Button>
+        <button type="button" onClick={onCancel} className="text-[13px] font-semibold text-fg-muted hover:underline">Otkaži</button>
+      </div>
+    </div>
   );
 }
 
