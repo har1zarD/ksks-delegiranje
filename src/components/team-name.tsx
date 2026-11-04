@@ -15,7 +15,7 @@ export function ClubLogo({ src, eager = false }: { src?: string | null; eager?: 
   return (
     <span aria-hidden="true" className="inline-flex h-8 w-12 shrink-0 items-center justify-center">
       {src && failedSrc !== src ? (
-        <Image src={src} alt="" width={48} height={32} sizes="48px" loading={eager ? "eager" : "lazy"} className="size-full object-contain" onError={() => setFailedSrc(src)} />
+        <Image src={src} alt="" width={48} height={32} unoptimized loading={eager ? "eager" : "lazy"} className="size-full object-contain" onError={() => setFailedSrc(src)} />
       ) : (
         <Shield className="size-2/3 text-slate-400" strokeWidth={1.5} />
       )}

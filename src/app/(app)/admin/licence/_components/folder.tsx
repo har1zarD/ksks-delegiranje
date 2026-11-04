@@ -59,7 +59,7 @@ export function FolderGrid({ children }: { children: React.ReactNode }) {
 /** Grb kluba u folderu (veći od ClubLogo) */
 export function FolderClubLogo({ src }: { src: string | null }) {
   return src ? (
-    <Image src={src} alt="" width={44} height={44} sizes="44px" className="size-11 object-contain" />
+    <Image src={src} alt="" width={44} height={44} unoptimized className="size-11 object-contain" />
   ) : (
     <Shield className="size-7 text-fg-faint" strokeWidth={1.5} />
   );
