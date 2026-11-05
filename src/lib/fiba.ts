@@ -276,7 +276,7 @@ const fullName = (p: RawPerson) => properName([p.firstName, p.familyName].filter
  * Naziv FIBA ekipe kako ga prikazujemo (kao public.fiba_team_renames u bazi): FIBA LiveStats u juniorima piše
  * samo "BOSNA U18", a ekipa je Bosna Spars. Ključ: mala slova, jedan razmak.
  */
-const FIBA_TEAM_RENAMES: Record<string, string> = { "bosna u18": "BOSNA SPARS U18" };
+const FIBA_TEAM_RENAMES: Record<string, string> = { "bosna u18": "BOSNA SPARS U18", "ilidza ius": "KK Ilidža IUS" };
 
 export function fibaTeamRename(name: string) {
   return FIBA_TEAM_RENAMES[name.toLowerCase().replace(/\s+/g, " ").trim()] ?? name;
