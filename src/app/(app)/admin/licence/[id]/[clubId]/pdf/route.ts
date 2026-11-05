@@ -1,11 +1,12 @@
-import { getClubLicenses } from "@/lib/data/licenses";
+import { getPdfClubLicenses } from "@/lib/data/licenses";
 import { licensesPdf } from "@/lib/license-pdf";
 import { slug } from "@/lib/format";
 
-// PDF licenci kluba: ?preuzmi = preuzimanje, inače pregled u pregledniku. getClubLicenses provjerava admin ulogu.
+// PDF licenci kluba: ?preuzmi = preuzimanje, inače pregled u pregledniku. savez sve, komesar samo Omladinsku ligu KS (getPdfClubLicenses).
+// Ruta ostaje pod /admin jer je Vercel Hobby na limitu funkcija; koristi je i komesarska stranica /licence/[id]/[clubId].
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; clubId: string }> }) {
   const { id, clubId } = await params;
-  const data = await getClubLicenses(id, clubId);
+  const data = await getPdfClubLicenses(id, clubId);
   if (!data || data.players.length + data.officials.length === 0) return new Response("Nema licenci", { status: 404 });
 
   const pdf = await licensesPdf(data);

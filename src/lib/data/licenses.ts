@@ -221,6 +221,15 @@ export async function getYouthClubLicenses(competitionId: string, id: string) {
   return data?.competition.youth ? data : null;
 }
 
+/** PDF licenci: savez sve, komesar samo Omladinsku ligu KS (isto što vidi na stranici); ostali ništa */
+export async function getPdfClubLicenses(competitionId: string, id: string) {
+  const user = await getCurrentUser();
+  if (user.role === "admin") return clubLicenses(competitionId, id);
+  if (user.role !== "commissioner" && !user.isCommissioner) return null;
+  const data = await clubLicenses(competitionId, id);
+  return data?.competition.youth ? data : null;
+}
+
 export type ClubLicenses = NonNullable<Awaited<ReturnType<typeof getClubLicenses>>>;
 export type License = ClubLicenses["players"][number];
 
