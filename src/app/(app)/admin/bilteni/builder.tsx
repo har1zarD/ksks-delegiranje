@@ -2,9 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Download, ExternalLink, FileText, LoaderCircle, RotateCcw, Save } from "lucide-react";
+import { ArrowLeft, Check, Download, ExternalLink, FileText, LoaderCircle, Plus, RotateCcw, Save, X } from "lucide-react";
 import type { BulletinData, BulletinMatch } from "@/lib/data/admin";
-import { BULLETIN_FIXTURES, DECISIONS, defaultRemarks, delegatedOfficials, type BulletinDraft, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import {
+  BULLETIN_FIXTURES,
+  DECISIONS,
+  defaultRemarks,
+  delegatedOfficials,
+  type BulletinDraft,
+  type BulletinManualMatch,
+  type BulletinOfficials,
+  type BulletinRequest,
+  type BulletinScore,
+} from "@/lib/bulletin";
 import { matchesLabel } from "@/lib/finance";
 import { formatDate, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
@@ -12,6 +22,7 @@ import { Chip, Step, Toggle } from "../utakmice/satnice/builder";
 import { getFibaOfficials, makeBulletinDocx, makeBulletinPdf, saveBulletin } from "./actions";
 
 const SIGNATURE = "Takmičarska komisija";
+const manualId = () => `manual-${crypto.randomUUID()}`;
 
 /**
  * Bilten: takmičenje i kolo, utakmice koje se registruju (s primjedbama iz biltena komesara, mogu se ispraviti)
@@ -30,6 +41,9 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
   // Komesar i sudije: ručni unos (id → imena) i FIBA statistika povezanih utakmica (FIBA id → imena)
   const [officialEdits, setOfficialEdits] = useState<Record<string, BulletinOfficials>>(d?.officials ?? {});
   const [fibaOfficials, setFibaOfficials] = useState<Record<number, BulletinOfficials>>({});
+  // Rezultat i četvrtine ispravljeni ručno (npr. kad je FIBA statistika pala tokom utakmice) i utakmice dopisane ručno
+  const [scoreEdits, setScoreEdits] = useState<Record<string, BulletinScore>>(d?.scores ?? {});
+  const [manual, setManual] = useState<BulletinManualMatch[]>(d?.manual ?? []);
   const [registration, setRegistration] = useState(d?.registration ?? true);
   const [decisionsOn, setDecisionsOn] = useState(d?.decisionsOn ?? true);
   const [decisions, setDecisions] = useState(d?.decisions ?? DECISIONS);
@@ -50,10 +64,14 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
   const nextRound =
     [...new Set([...rounds, ...selected.flatMap((c) => fixturesOf(c.id).map((f) => f.round))])].sort((a, b) => a - b).find((r) => activeRound !== null && r > activeRound) ?? null;
 
-  const groups = selected
-    .map((c) => ({ competition: c, matches: own.filter((m) => m.competitionId === c.id && m.round === activeRound).sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0) }))
-    .filter((g) => g.matches.length > 0);
+  // Takmičenja bez utakmica ovog kola ostaju vidljiva (ručno dopisana utakmica se moze dodati i bez ičega drugog)
+  const groups = selected.map((c) => ({
+    competition: c,
+    matches: own.filter((m) => m.competitionId === c.id && m.round === activeRound).sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0),
+    manual: manual.filter((x) => x.competitionId === c.id && x.round === activeRound),
+  }));
   const chosen = groups.flatMap((g) => g.matches.filter((m) => !excluded.has(m.id)));
+  const chosenManual = groups.flatMap((g) => g.manual);
   const nominated =
     nextRound === null
       ? 0
@@ -90,11 +108,19 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     return { ...auto, ...officialEdits[m.id], source: officialEdits[m.id] ? "ručno" : source };
   };
 
+  /** Rezultat i četvrtine: ručno ispravljeni, inače iz aplikacije (FIBA statistika ili upisan rezultat) */
+  const scoreOf = (m: BulletinMatch): BulletinScore & { source: string | null } => {
+    const edit = scoreEdits[m.id];
+    if (edit) return { ...edit, source: "ručno" };
+    return { home: m.score?.home ?? 0, away: m.score?.away ?? 0, periods: m.periods, source: null };
+  };
+
   const request = ((): BulletinRequest | null => {
     const regIds = registration ? chosen.map((m) => m.id) : [];
+    const regManual = registration ? chosenManual : [];
     const decisionText = decisionsOn && decisions.trim() ? decisions : null;
     const nominations = nominationsOn && nextRound !== null && nominated > 0 ? { round: nextRound, names } : null;
-    if (compIds.length === 0 || (regIds.length === 0 && !decisionText && !standings && !nominations)) return null;
+    if (compIds.length === 0 || (regIds.length === 0 && regManual.length === 0 && !decisionText && !standings && !nominations)) return null;
     return {
       number,
       title: title.trim() || autoTitle,
@@ -110,6 +136,8 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
           return [m.id, { commissioner, referees }];
         }),
       ),
+      scores: Object.fromEntries(regIds.filter((id) => id in scoreEdits).map((id) => [id, scoreEdits[id]])),
+      manual: regManual,
       decisions: decisionText,
       standings,
       nominations,
@@ -125,6 +153,8 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     excluded: [...excluded],
     remarks,
     officials: officialEdits,
+    scores: scoreEdits,
+    manual,
     registration,
     decisionsOn,
     decisions,
@@ -256,6 +286,23 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
       return next;
     });
 
+  const addManualMatch = (competitionId: string, input: { home: string; away: string; score: BulletinScore | null }) => {
+    const match: BulletinManualMatch = {
+      id: manualId(),
+      competitionId,
+      round: activeRound,
+      number: null,
+      home: input.home,
+      away: input.away,
+      score: input.score,
+      officials: { commissioner: "", referees: "" },
+      remarks: "",
+    };
+    setManual((old) => [...old, match]);
+  };
+  const updateManualMatch = (id: string, patch: Partial<BulletinManualMatch>) => setManual((old) => old.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const removeManualMatch = (id: string) => setManual((old) => old.filter((x) => x.id !== id));
+
   // Izabrano kolo vidljivo u traci kola
   const activeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -368,23 +415,26 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
                     <h3 className="min-w-0 truncate text-[14px] font-semibold">
                       {activeRound}. kolo · {g.competition.name}
                     </h3>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExcluded((set) => {
-                          const next = new Set(set);
-                          for (const m of g.matches) {
-                            if (all) next.add(m.id);
-                            else next.delete(m.id);
-                          }
-                          return next;
-                        })
-                      }
-                      className="shrink-0 text-[13px] font-semibold text-fg-muted underline-offset-4 hover:text-fg hover:underline"
-                    >
-                      {all ? "Isključi sve" : "Označi sve"}
-                    </button>
+                    {g.matches.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExcluded((set) => {
+                            const next = new Set(set);
+                            for (const m of g.matches) {
+                              if (all) next.add(m.id);
+                              else next.delete(m.id);
+                            }
+                            return next;
+                          })
+                        }
+                        className="shrink-0 text-[13px] font-semibold text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                      >
+                        {all ? "Isključi sve" : "Označi sve"}
+                      </button>
+                    )}
                   </header>
+                  {g.matches.length === 0 && g.manual.length === 0 && <p className="px-4 py-3 text-[14px] text-fg-muted">Nema prijavljenih utakmica za ovo kolo.</p>}
                   <ul className="divide-y divide-line">
                     {g.matches.map((m) => (
                       <MatchOption
@@ -408,8 +458,21 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
                             return next;
                           })
                         }
+                        score={scoreOf(m)}
+                        onScore={(next) => setScoreEdits((s) => ({ ...s, [m.id]: next }))}
+                        onScoreReset={() =>
+                          setScoreEdits((s) => {
+                            const next = { ...s };
+                            delete next[m.id];
+                            return next;
+                          })
+                        }
                       />
                     ))}
+                    {g.manual.map((x) => (
+                      <ManualMatchOption key={x.id} match={x} onChange={(patch) => updateManualMatch(x.id, patch)} onRemove={() => removeManualMatch(x.id)} />
+                    ))}
+                    <AddManualMatch onAdd={(input) => addManualMatch(g.competition.id, input)} />
                   </ul>
                 </section>
               );
@@ -464,7 +527,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
           <h2 className="font-display text-[18px] font-semibold tracking-[-0.02em]">Pregled</h2>
           <span className="flex items-center gap-1.5 text-[13px] font-semibold text-fg-faint">
             {loading && <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />}
-            {registration ? matchesLabel(chosen.length) : ""}
+            {registration ? matchesLabel(chosen.length + chosenManual.length) : ""}
           </span>
         </div>
         <div className="relative hidden aspect-[210/297] w-full overflow-hidden rounded-md border border-line bg-white lg:block">
@@ -497,7 +560,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
   );
 }
 
-/** Utakmica s kvačicom: ekipe, rezultat, stanje biltena komesara; komesar, sudije i primjedbe koje idu u bilten (mogu se ispraviti) */
+/** Utakmica s kvačicom: ekipe, rezultat, stanje biltena komesara; komesar, sudije, rezultat i primjedbe koje idu u bilten (mogu se ispraviti) */
 function MatchOption({
   match: m,
   on,
@@ -507,6 +570,9 @@ function MatchOption({
   remarks,
   onRemarks,
   onReset,
+  score,
+  onScore,
+  onScoreReset,
 }: {
   match: BulletinMatch;
   on: boolean;
@@ -516,9 +582,13 @@ function MatchOption({
   remarks: string | undefined;
   onRemarks: (text: string) => void;
   onReset: () => void;
+  score: BulletinScore & { source: string | null };
+  onScore: (next: BulletinScore) => void;
+  onScoreReset: () => void;
 }) {
   const auto = defaultRemarks(m);
   const text = remarks ?? auto;
+  const [editingScore, setEditingScore] = useState(score.source !== null);
   return (
     <li className={cx("flex flex-col gap-3 px-4 py-3", !on && "opacity-55")}>
       <label className="flex cursor-pointer items-start gap-3">
@@ -529,7 +599,7 @@ function MatchOption({
               {m.home} – {m.away}
             </span>
             <span className="scoreboard whitespace-nowrap text-[17px] font-semibold">
-              {m.score ? `${m.score.home} : ${m.score.away}` : <span className="text-[13px] text-fg-muted">{MATCH_STATUS_LABEL[m.status]}</span>}
+              {score.source || m.score ? `${score.home} : ${score.away}` : <span className="text-[13px] text-fg-muted">{MATCH_STATUS_LABEL[m.status]}</span>}
             </span>
           </span>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-fg-muted">
@@ -543,6 +613,24 @@ function MatchOption({
           </span>
         </span>
       </label>
+      {on && (
+        <div className="flex flex-col gap-1.5 sm:pl-8">
+          <span className="flex items-center justify-between gap-3 text-[13px] font-medium text-fg-muted">
+            Rezultat
+            <button type="button" onClick={() => setEditingScore((v) => !v)} className="inline-flex items-center gap-1 text-[12px] font-semibold underline-offset-4 hover:text-fg hover:underline">
+              {editingScore ? "Sakrij" : "Ispravi rezultat"}
+            </button>
+          </span>
+          {editingScore && (
+            <ScoreEditor
+              score={{ home: score.home, away: score.away, periods: score.periods }}
+              onChange={onScore}
+              onReset={score.source ? onScoreReset : undefined}
+              hint={score.source ? "Ručno ispravljen" : m.fibaGameId ? "Iz FIBA statistike" : "Zbir iz aplikacije"}
+            />
+          )}
+        </div>
+      )}
       {on && (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:pl-8">
           <Field
@@ -574,6 +662,192 @@ function MatchOption({
           />
         </div>
       )}
+    </li>
+  );
+}
+
+/** Rezultat i, kad su upisane, četvrtine: upisan zbir kad nema četvrtina, inače se zbir računa iz njih */
+function ScoreEditor({
+  score,
+  onChange,
+  onReset,
+  hint,
+}: {
+  score: BulletinScore;
+  onChange: (next: BulletinScore) => void;
+  onReset?: () => void;
+  hint?: string;
+}) {
+  const [open, setOpen] = useState(score.periods.length > 0);
+  const sumOf = (periods: BulletinScore["periods"]) => periods.reduce((t, p) => ({ home: t.home + p.home, away: t.away + p.away }), { home: 0, away: 0 });
+  const setPeriod = (i: number, side: "home" | "away", v: number) => {
+    const periods = score.periods.map((p, idx) => (idx === i ? { ...p, [side]: v } : p));
+    onChange({ ...sumOf(periods), periods });
+  };
+  const addPeriod = () => onChange({ ...score, periods: [...score.periods, { home: 0, away: 0 }] });
+  const removePeriod = () => {
+    const periods = score.periods.slice(0, -1);
+    onChange(periods.length > 0 ? { ...sumOf(periods), periods } : { ...score, periods });
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          min={0}
+          max={300}
+          value={score.home}
+          disabled={score.periods.length > 0}
+          onChange={(e) => onChange({ ...score, home: Number(e.target.value) || 0 })}
+          aria-label="Poeni domaćina"
+          className={cx(inputClass, "h-9 w-16 px-2 text-center")}
+        />
+        <span className="text-fg-muted">:</span>
+        <input
+          type="number"
+          min={0}
+          max={300}
+          value={score.away}
+          disabled={score.periods.length > 0}
+          onChange={(e) => onChange({ ...score, away: Number(e.target.value) || 0 })}
+          aria-label="Poeni gosta"
+          className={cx(inputClass, "h-9 w-16 px-2 text-center")}
+        />
+        <button type="button" onClick={() => setOpen((v) => !v)} className="text-[12px] font-semibold text-fg-muted underline-offset-4 hover:text-fg hover:underline">
+          {open ? "Sakrij četvrtine" : "Po četvrtinama"}
+        </button>
+        {onReset && (
+          <button type="button" onClick={onReset} className="inline-flex items-center gap-1 text-[12px] font-semibold underline-offset-4 hover:text-fg hover:underline">
+            <RotateCcw className="size-3" aria-hidden="true" /> Vrati originalni rezultat
+          </button>
+        )}
+        {hint && <span className="text-[12px] text-fg-faint">{hint}</span>}
+      </div>
+      {open && (
+        <div className="flex flex-wrap items-center gap-2 pl-1">
+          {score.periods.map((p, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className="text-[11px] text-fg-faint">{i + 1}.</span>
+              <input
+                type="number"
+                min={0}
+                max={200}
+                value={p.home}
+                onChange={(e) => setPeriod(i, "home", Number(e.target.value) || 0)}
+                aria-label={`${i + 1}. četvrtina, domaćin`}
+                className={cx(inputClass, "h-8 w-12 px-1 text-center text-[13px]")}
+              />
+              <span className="text-fg-faint">:</span>
+              <input
+                type="number"
+                min={0}
+                max={200}
+                value={p.away}
+                onChange={(e) => setPeriod(i, "away", Number(e.target.value) || 0)}
+                aria-label={`${i + 1}. četvrtina, gost`}
+                className={cx(inputClass, "h-8 w-12 px-1 text-center text-[13px]")}
+              />
+            </div>
+          ))}
+          <button type="button" onClick={addPeriod} className="text-[12px] font-semibold text-brand hover:underline">
+            + Dodaj
+          </button>
+          {score.periods.length > 0 && (
+            <button type="button" onClick={removePeriod} className="text-[12px] font-semibold text-fg-muted hover:underline">
+              Ukloni zadnju
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Utakmica ručno dopisana u registraciju: ekipe, rezultat, komesar, sudije i primjedbe se upisuju direktno (nema izvora iz aplikacije) */
+function ManualMatchOption({ match: x, onChange, onRemove }: { match: BulletinManualMatch; onChange: (patch: Partial<BulletinManualMatch>) => void; onRemove: () => void }) {
+  return (
+    <li className="flex flex-col gap-3 bg-brand-soft/40 px-4 py-3">
+      <div className="flex items-start gap-3">
+        <span className="mt-1.5 shrink-0 rounded bg-brand-soft px-1.5 py-0.5 text-[11px] font-semibold text-brand">RUČNO</span>
+        <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+          <input value={x.home} onChange={(e) => onChange({ home: e.target.value })} placeholder="Domaćin" aria-label="Domaćin" className={inputClass} />
+          <input value={x.away} onChange={(e) => onChange({ away: e.target.value })} placeholder="Gost" aria-label="Gost" className={inputClass} />
+        </div>
+        <button type="button" aria-label="Ukloni ručno dodanu utakmicu" title="Ukloni" onClick={onRemove} className="mt-1 shrink-0 rounded-md p-1 text-fg-faint hover:bg-panel-3 hover:text-crest">
+          <X className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+      <div className="flex flex-col gap-1.5 sm:pl-8">
+        <span className="text-[13px] font-medium text-fg-muted">Rezultat</span>
+        <ScoreEditor score={x.score ?? { home: 0, away: 0, periods: [] }} onChange={(score) => onChange({ score })} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:pl-8">
+        <Field label="Komesar" value={x.officials.commissioner} onChange={(e) => onChange({ officials: { ...x.officials, commissioner: e.target.value } })} placeholder="Ime i prezime" />
+        <Field label="Sudije" value={x.officials.referees} onChange={(e) => onChange({ officials: { ...x.officials, referees: e.target.value } })} placeholder="Imena, razdvojena zarezom" />
+      </div>
+      <div className="flex flex-col gap-1.5 sm:pl-8">
+        <span className="text-[13px] font-medium text-fg-muted">Primjedbe</span>
+        <textarea
+          aria-label={`Primjedbe, ${x.home} – ${x.away}`}
+          value={x.remarks}
+          onChange={(e) => onChange({ remarks: e.target.value })}
+          rows={Math.max(2, x.remarks.split("\n").length)}
+          className={cx(inputClass, "h-auto py-2.5 text-[14px] sm:text-[13px]")}
+        />
+      </div>
+    </li>
+  );
+}
+
+/** Dugme i forma za dopisivanje utakmice koja nije u rasporedu (npr. prijateljska ili bez upisa u aplikaciju) */
+function AddManualMatch({ onAdd }: { onAdd: (input: { home: string; away: string; score: BulletinScore | null }) => void }) {
+  const [open, setOpen] = useState(false);
+  const [home, setHome] = useState("");
+  const [away, setAway] = useState("");
+  const [homeScore, setHomeScore] = useState("");
+  const [awayScore, setAwayScore] = useState("");
+
+  if (!open) {
+    return (
+      <li>
+        <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-2 px-4 py-3 text-left text-[14px] font-semibold text-brand hover:bg-panel-2">
+          <Plus className="size-4 shrink-0" aria-hidden="true" /> Dodaj utakmicu ručno
+        </button>
+      </li>
+    );
+  }
+  const submit = () => {
+    if (!home.trim() || !away.trim()) return;
+    const h = Number(homeScore);
+    const a = Number(awayScore);
+    const score = homeScore.trim() && awayScore.trim() && Number.isInteger(h) && Number.isInteger(a) ? { home: h, away: a, periods: [] } : null;
+    onAdd({ home: home.trim(), away: away.trim(), score });
+    setHome("");
+    setAway("");
+    setHomeScore("");
+    setAwayScore("");
+    setOpen(false);
+  };
+  return (
+    <li className="flex flex-col gap-3 border-t border-line px-4 py-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input value={home} onChange={(e) => setHome(e.target.value)} placeholder="Domaćin" aria-label="Domaćin" className={inputClass} autoFocus />
+        <input value={away} onChange={(e) => setAway(e.target.value)} placeholder="Gost" aria-label="Gost" className={inputClass} />
+      </div>
+      <div className="flex items-center gap-2">
+        <input value={homeScore} onChange={(e) => setHomeScore(e.target.value)} type="number" min={0} max={300} placeholder="0" aria-label="Poeni domaćina" className={cx(inputClass, "h-9 w-16 px-2 text-center")} />
+        <span className="text-fg-muted">:</span>
+        <input value={awayScore} onChange={(e) => setAwayScore(e.target.value)} type="number" min={0} max={300} placeholder="0" aria-label="Poeni gosta" className={cx(inputClass, "h-9 w-16 px-2 text-center")} />
+        <span className="text-[12px] text-fg-faint">Rezultat (prazno = nije odigrana)</span>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" onClick={submit} disabled={!home.trim() || !away.trim()}>
+          <Plus className="size-4" aria-hidden="true" /> Dodaj
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          Odustani
+        </Button>
+      </div>
     </li>
   );
 }

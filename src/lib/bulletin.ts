@@ -18,6 +18,10 @@ export type BulletinRequest = {
   remarks: Record<string, string>;
   /** Komesar i sudije po utakmici kako idu u bilten (delegiranje, FIBA statistika ili ručni unos) */
   officials: Record<string, BulletinOfficials>;
+  /** Rezultat i četvrtine, ručno ispravljeni (id → rezultat); inače rezultat iz aplikacije */
+  scores: Record<string, BulletinScore>;
+  /** Utakmice ručno dopisane u registraciju (nisu u rasporedu) */
+  manual: BulletinManualMatch[];
   /** Odluke: jedna po redu */
   decisions: string | null;
   /** Tabela izabranih takmičenja */
@@ -28,6 +32,22 @@ export type BulletinRequest = {
 
 /** Komesar i sudije u biltenu (sudije razdvojene zarezom) */
 export type BulletinOfficials = { commissioner: string; referees: string };
+
+/** Rezultat utakmice u biltenu: zbir četvrtina kad su upisane, inače upisan rezultat bez njih */
+export type BulletinScore = { home: number; away: number; periods: { home: number; away: number }[] };
+
+/** Utakmica koju admin ručno dopiše u registraciju (npr. prijateljska ili utakmica bez upisa u aplikaciju) */
+export type BulletinManualMatch = {
+  id: string;
+  competitionId: string;
+  round: number | null;
+  number: number | null;
+  home: string;
+  away: string;
+  score: BulletinScore | null;
+  officials: BulletinOfficials;
+  remarks: string;
+};
 
 export const NO_REMARKS = "Bez primjedbi.";
 /** Prva odluka svakog biltena */
@@ -82,6 +102,8 @@ export type BulletinDraft = {
   excluded: string[];
   remarks: Record<string, string>;
   officials: Record<string, BulletinOfficials>;
+  scores: Record<string, BulletinScore>;
+  manual: BulletinManualMatch[];
   registration: boolean;
   decisionsOn: boolean;
   decisions: string;

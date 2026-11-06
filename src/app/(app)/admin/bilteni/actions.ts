@@ -2,7 +2,7 @@
 
 import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
-import { bulletinBrand, bulletinPdf, type BulletinPdfInput } from "@/lib/bulletin-pdf";
+import { bulletinBrand, bulletinPdf, type BulletinPdfInput, type RegistrationMatch } from "@/lib/bulletin-pdf";
 import { bulletinDocx } from "@/lib/bulletin-docx";
 import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, roundWeekend, type BulletinDraft, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
 import { createClient } from "@/lib/supabase/server";
@@ -59,18 +59,51 @@ async function bulletinInput(req: BulletinRequest): Promise<{ input: BulletinPdf
   const byNumber = (a: { number: number | null }, b: { number: number | null }) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0;
 
   const chosen = new Set(req.matchIds);
+  // Utakmice ručno dopisane u bilten, grupisane po takmičenju (nisu u data.matches)
+  const manualByComp = new Map<string, typeof req.manual>();
+  for (const x of req.manual ?? []) {
+    if (!manualByComp.has(x.competitionId)) manualByComp.set(x.competitionId, []);
+    manualByComp.get(x.competitionId)!.push(x);
+  }
   const registration = competitions
-    .map((c) => ({
-      name: c.name,
-      items: data.matches
+    .map((c) => {
+      const real: RegistrationMatch[] = data.matches
         .filter((m) => m.competitionId === c.id && chosen.has(m.id))
-        .sort(byNumber)
         .map((m) => {
           const sent = req.officials?.[m.id];
           const officials = sent && typeof sent.commissioner === "string" && typeof sent.referees === "string" ? sent : delegatedOfficials(m.officials);
-          return { ...m, ...officials, remarks: typeof req.remarks?.[m.id] === "string" ? req.remarks[m.id] : defaultRemarks(m) };
-        }),
-    }))
+          const score = req.scores?.[m.id];
+          return {
+            ...m,
+            score: score ? { home: score.home, away: score.away } : m.score,
+            periods: score ? score.periods : m.periods,
+            ...officials,
+            remarks: typeof req.remarks?.[m.id] === "string" ? req.remarks[m.id] : defaultRemarks(m),
+          };
+        });
+      const manual: RegistrationMatch[] = (manualByComp.get(c.id) ?? []).map((x) => ({
+        id: x.id,
+        number: x.number,
+        round: req.round ?? 0,
+        startsAt: new Date().toISOString(),
+        status: x.score ? "finished" : "scheduled",
+        competitionId: x.competitionId,
+        homeId: "",
+        awayId: "",
+        home: x.home,
+        away: x.away,
+        hall: null,
+        fibaGameId: null,
+        score: x.score ? { home: x.score.home, away: x.score.away } : null,
+        periods: x.score?.periods ?? [],
+        officials: [],
+        report: null,
+        commissioner: x.officials.commissioner,
+        referees: x.officials.referees,
+        remarks: x.remarks,
+      }));
+      return { name: c.name, items: [...real, ...manual].sort(byNumber) };
+    })
     .filter((g) => g.items.length > 0);
 
   const nom = req.nominations;
