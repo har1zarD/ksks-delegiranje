@@ -12,7 +12,8 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { flushSync } from "react-dom";
+import { Check, ChevronDown, LoaderCircle, Plus, Search } from "lucide-react";
 import { Popover } from "@/components/popover";
 import { cx, inputClass, Label } from "@/components/ui";
 
@@ -25,6 +26,9 @@ import { cx, inputClass, Label } from "@/components/ui";
 
 type Option = { value: string; label: string; disabled: boolean; icon?: ReactNode; hint?: ReactNode; group?: string };
 
+/** Rezultat kreiranja nove opcije (npr. dvorane) iz pretrage; { error } ostaje u listi da korisnik pokuša ponovo */
+type CreateResult = { value: string; label: string } | { error: string };
+
 /** Lista se može pretraživati kad ima više opcija od ovoga */
 const SEARCH_FROM = 8;
 
@@ -34,7 +38,7 @@ export function Select({
   hint,
   className,
   ...props
-}: ComponentProps<"select"> & { label: string; hint?: string; searchable?: boolean }) {
+}: ComponentProps<"select"> & { label: string; hint?: string; searchable?: boolean; onCreate?: (query: string) => Promise<CreateResult> }) {
   return (
     <Label label={label} hint={hint} className={className}>
       <SelectInput {...props} aria-label={props["aria-label"] ?? label} />
@@ -50,9 +54,13 @@ export function SelectInput({
   onChange,
   className,
   searchable,
+  onCreate,
   ...props
-}: ComponentProps<"select"> & { searchable?: boolean }) {
-  const options = parseOptions(children);
+}: ComponentProps<"select"> & { searchable?: boolean; onCreate?: (query: string) => Promise<CreateResult> }) {
+  const parsed = parseOptions(children);
+  // Opcije napravljene u ovoj sesiji (npr. nova dvorana) dok se lista s servera ne osvježi
+  const [created, setCreated] = useState<Option[]>([]);
+  const options = created.length ? [...parsed, ...created.filter((c) => !parsed.some((p) => p.value === c.value))] : parsed;
   const controlled = value !== undefined;
   const [inner, setInner] = useState(() => String(defaultValue ?? options.find((o) => !o.disabled)?.value ?? ""));
   const current = controlled ? String(value) : inner;
@@ -82,6 +90,18 @@ export function SelectInput({
     }
     close();
   };
+
+  // Upisani naziv ne postoji u listi: napravi ga (npr. dvoranu), pa izaberi. Sinhrono (flushSync) da <option>
+  // postoji u pravom <select> prije nego pick postavi vrijednost (inače browser ne prepozna nepostojeću vrijednost).
+  const handleCreate = onCreate
+    ? async (query: string): Promise<{ error: string } | undefined> => {
+        const result = await onCreate(query);
+        if ("error" in result) return result;
+        flushSync(() => setCreated((c) => [...c, { value: result.value, label: result.label, disabled: false }]));
+        pick(result.value);
+        return undefined;
+      }
+    : undefined;
 
   return (
     <span ref={anchor} className={cx("relative block min-w-0", className)}>
@@ -138,6 +158,7 @@ export function SelectInput({
             searchable={searchable ?? choices.length > SEARCH_FROM}
             label={label}
             onPick={pick}
+            onCreate={handleCreate}
           />
         </Popover>
       )}
@@ -151,18 +172,36 @@ function OptionList({
   searchable,
   label,
   onPick,
+  onCreate,
 }: {
   options: Option[];
   current: string;
   searchable: boolean;
   label: string;
   onPick: (value: string) => void;
+  onCreate?: (query: string) => Promise<{ error: string } | undefined>;
 }) {
   const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string>();
   const list = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const q = fold(query.trim());
   const shown = q ? options.filter((o) => fold(o.label).includes(q)) : options;
+  // Nema pogotka: ponuđeno je napraviti novu opciju s upisanim nazivom
+  const offerCreate = Boolean(onCreate) && query.trim() !== "" && shown.length === 0;
+
+  const doCreate = async () => {
+    if (!onCreate || creating) return;
+    setCreating(true);
+    setCreateError(undefined);
+    const result = await onCreate(query.trim());
+    // Uspjeh zatvara prozor (onPick unutar onCreate), pa ovaj komponent nestaje — ne diraj state poslije toga
+    if (result) {
+      setCreating(false);
+      setCreateError(result.error);
+    }
+  };
 
   // Izabrana opcija na sredinu liste; fokus na pretragu (samo s mišem: na telefonu bi odmah iskočila tastatura) ili izabranu opciju
   useLayoutEffect(() => {
@@ -203,6 +242,7 @@ function OptionList({
                 e.preventDefault();
                 const first = shown.find((o) => !o.disabled);
                 if (first) onPick(first.value);
+                else if (offerCreate) void doCreate();
               }
             }}
             placeholder="Pretraži…"
@@ -213,7 +253,32 @@ function OptionList({
         </div>
       )}
       <div ref={list} role="listbox" aria-label={label} className="relative max-h-72 overflow-y-auto overscroll-contain p-0.5">
-        {shown.length === 0 && <p className="px-3 py-6 text-center text-[14px] text-fg-muted">Nema rezultata.</p>}
+        {shown.length === 0 && !offerCreate && <p className="px-3 py-6 text-center text-[14px] text-fg-muted">Nema rezultata.</p>}
+        {offerCreate && (
+          <div className="p-0.5">
+            <button
+              type="button"
+              onClick={() => void doCreate()}
+              disabled={creating}
+              className={cx(
+                "flex min-h-11 w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[15px] font-medium transition-colors sm:min-h-9 sm:text-[14px]",
+                "hover:bg-panel-2 focus-visible:bg-panel-2 focus-visible:outline-none disabled:opacity-60",
+              )}
+            >
+              {creating ? (
+                <LoaderCircle aria-hidden className="size-4 shrink-0 animate-spin text-fg-muted" />
+              ) : (
+                <Plus aria-hidden className="size-4 shrink-0 text-fg-muted" />
+              )}
+              <span className="min-w-0 flex-1 truncate">{creating ? "Dodajem…" : `Dodaj „${query.trim()}“`}</span>
+            </button>
+            {createError && (
+              <p role="alert" className="px-2.5 pt-1 text-[13px] text-crest">
+                {createError}
+              </p>
+            )}
+          </div>
+        )}
         {shown.map((o) => {
           const header = o.group !== lastGroup && o.group;
           lastGroup = o.group;

@@ -5,6 +5,7 @@ import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { BulletinDraft, SavedBulletin } from "@/lib/bulletin";
+import type { ScheduleDraft } from "@/lib/social-image";
 import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
@@ -604,4 +605,31 @@ export async function getSavedBulletin(id: string): Promise<{ id: string; draft:
   const supabase = await createClient();
   const { data } = await supabase.from("bulletins").select("id, state, updated_at").eq("id", id).maybeSingle();
   return data ? { id: data.id, draft: data.state as BulletinDraft, updatedAt: data.updated_at } : null;
+}
+
+// ───────── Sačuvani rasporedi (admin, "Slike za objavu") ─────────
+
+export type SavedSocialSchedule = { id: string; title: string; updatedAt: string; updatedBy: string | null };
+
+/** Sačuvani rasporedi, zadnje mijenjani prvi (bez keša: lista se mijenja samo kroz bilder) */
+export async function getSavedSocialSchedules(): Promise<SavedSocialSchedule[]> {
+  await requireRole("admin");
+  const supabase = await createClient();
+  const list = rows(
+    await supabase
+      .from("social_schedules")
+      .select("id, title, updated_at, editor:profiles!social_schedules_updated_by_fkey ( full_name )")
+      .order("updated_at", { ascending: false })
+      .limit(200),
+  );
+  return list.map((s) => ({ id: s.id, title: s.title, updatedAt: s.updated_at, updatedBy: s.editor?.full_name ?? null }));
+}
+
+/** Stanje jednog sačuvanog rasporeda; null kad ne postoji */
+export async function getSavedSocialSchedule(id: string): Promise<{ id: string; draft: ScheduleDraft; updatedAt: string } | null> {
+  await requireRole("admin");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("social_schedules").select("id, state, updated_at").eq("id", id).maybeSingle();
+  return data ? { id: data.id, draft: data.state as ScheduleDraft, updatedAt: data.updated_at } : null;
 }

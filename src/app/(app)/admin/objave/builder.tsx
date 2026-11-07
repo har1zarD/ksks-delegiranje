@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, Plus, Search, Shield, Trophy, X } from "lucide-react";
-import { Button, CARD, cx, Field, inputClass } from "@/components/ui";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, LoaderCircle, Pencil, Plus, Save, Search, Shield, Trophy, X } from "lucide-react";
+import { Button, ButtonLink, CARD, cx, Empty, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import { DateField, TimeField } from "@/components/date-picker";
 import type { SocialMatch } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
-import { addDays, formatDate, formatTime, sarajevoToISO, slug } from "@/lib/format";
+import type { SavedSocialSchedule } from "@/lib/data/admin";
+import type { Fixture } from "@/lib/a2-jug-raspored";
+import { addDays, formatDate, formatTime, isoToSarajevo, sarajevoToISO, slug } from "@/lib/format";
 import {
   brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, SOCIAL_YEARS, templateOf,
-  type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions, type SocialYear,
+  type ScheduleDraft, type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions, type SocialYear,
 } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
 import { SOCIAL_KINDS } from "./kinds";
+import { SavedSchedules } from "./saved-schedules";
+import { saveSocialSchedule } from "./actions";
 
 const DEFAULT_DESIGN: SocialDesignOptions = {
   format: "portrait", template: "fire", accent: "",
@@ -29,7 +34,7 @@ type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: strin
  * Slike za objavu: raspored, rezultati, tabela i klubovi. Izgled (predložak, format, akcent) je zajednički,
  * tekst i izbor ima svaka vrsta svoj; sve ostaju otvorene, pa prelazak između njih ništa ne briše.
  */
-export function SocialStudio({ matches, results, round, today, now, competition, kind: initialKind, tables, font }: {
+export function SocialStudio({ matches, results, round, today, now, competition, kind: initialKind, tables, font, fixturesByCompetition, knownPairings, schedule }: {
   matches: SocialMatch[];
   results: SocialMatch[];
   round: SocialMatch[];
@@ -39,9 +44,14 @@ export function SocialStudio({ matches, results, round, today, now, competition,
   kind: SocialKind;
   tables: SocialTable[];
   font: string;
+  /** Zvanični raspored saveza po takmičenju, za prijedlog cijelog kola (samo kartica Raspored) */
+  fixturesByCompetition: Record<string, Fixture[]>;
+  /** Parovi koji već postoje kao prava utakmica (bilo kog statusa osim otkazane) */
+  knownPairings: string[];
+  schedule: { view: "list" | "builder" | "missing"; saved: SavedSocialSchedule[]; initial: { id: string; draft: ScheduleDraft; updatedAt: string } | null };
 }) {
   const [kind, setKind] = useState<SocialKind>(initialKind);
-  const [design, setDesign] = useState(DEFAULT_DESIGN);
+  const [design, setDesign] = useState(schedule.initial?.draft.design ?? DEFAULT_DESIGN);
   const onDesign: DesignChange = (key, value) => setDesign((old) => ({ ...old, [key]: value }));
   const shared = { design, onDesign, font };
 
@@ -62,7 +72,16 @@ export function SocialStudio({ matches, results, round, today, now, competition,
           </button>
         ); })}
       </div>
-      <div role="tabpanel" hidden={kind !== "schedule"}><ScheduleBuilder {...shared} matches={matches} today={today} now={now} competition={competition} tables={tables} /></div>
+      <div role="tabpanel" hidden={kind !== "schedule"}>
+        {schedule.view === "list" ? <SavedSchedules saved={schedule.saved} /> : schedule.view === "missing" ? (
+          <Empty icon={<CalendarDays />} title="Raspored ne postoji" action={<ButtonLink href="/admin/objave?vrsta=raspored&r=lista">Svi rasporedi</ButtonLink>}>Možda je obrisan.</Empty>
+        ) : (
+          <ScheduleBuilder
+            {...shared} matches={matches} today={today} now={now} competition={competition} tables={tables}
+            fixturesByCompetition={fixturesByCompetition} knownPairings={knownPairings}
+            initial={schedule.initial} />
+        )}
+      </div>
       <div role="tabpanel" hidden={kind !== "results"}><ResultsBuilder {...shared} matches={results} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "round"}><RoundBuilder {...shared} matches={round} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
@@ -74,14 +93,48 @@ export function SocialStudio({ matches, results, round, today, now, competition,
 // ───────────────────────── Raspored ─────────────────────────
 
 /** `competition` iz linka (`?takmicenje=`): filter na to takmičenje i njegovo prvo naredno kolo */
-function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, competition: initialCompetition, design, onDesign, font, tables }: Shared & { matches: SocialMatch[]; today: string; now: number; competition?: string; tables: SocialTable[] }) {
+function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, competition: initialCompetition, design, onDesign, font, tables, fixturesByCompetition, knownPairings, initial }: Shared & {
+  matches: SocialMatch[]; today: string; now: number; competition?: string; tables: SocialTable[];
+  fixturesByCompetition: Record<string, Fixture[]>;
+  knownPairings: string[];
+  /** Prethodno sačuvan raspored (nastavljamo ga), ili null za nov */
+  initial: { id: string; draft: ScheduleDraft; updatedAt: string } | null;
+}) {
   const [now, setNow] = useState(initialNow);
-  const [manual, setManual] = useState<SocialMatch[]>([]);
+  const [manual, setManual] = useState<SocialMatch[]>(() => initial?.draft.manual ?? []);
+  const known = useMemo(() => new Set(knownPairings), [knownPairings]);
+  // Parovi iz zvaničnog rasporeda saveza koji još nisu prava ni ručno potvrđena utakmica — prijedlog za cijelo kolo
+  const virtual = useMemo(() => {
+    const manualKeys = new Set(manual.map((m) => `${m.competitionId}|${m.home}|${m.away}`));
+    return Object.entries(fixturesByCompetition).flatMap(([competitionId, list]) => {
+      const table = tables.find((t) => t.id === competitionId);
+      const roster = table?.standings ?? [];
+      return list
+        .filter((f) => f.roundDate && !known.has(`${competitionId}|${f.home}|${f.away}`) && !manualKeys.has(`${competitionId}|${f.home}|${f.away}`))
+        .map((f): SocialMatch => ({
+          id: `${FIXTURE_PREFIX}${competitionId}-${f.number}`,
+          startsAt: sarajevoToISO(f.roundDate!, f.time || "00:00"),
+          status: "scheduled",
+          date: f.roundDate!,
+          round: f.round,
+          competitionId,
+          competition: table?.name ?? "",
+          home: f.home,
+          away: f.away,
+          homeLogo: roster.find((r) => r.name === f.home)?.logoUrl ?? null,
+          awayLogo: roster.find((r) => r.name === f.away)?.logoUrl ?? null,
+          hall: f.hall,
+          homeScore: null,
+          awayScore: null,
+        }));
+    });
+  }, [fixturesByCompetition, tables, known, manual]);
   const matches = useMemo(
-    () => [...initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), ...manual],
-    [initialMatches, now, manual],
+    () => [...initialMatches.filter((m) => m.status === "postponed" || new Date(m.startsAt).getTime() > now), ...manual, ...virtual],
+    [initialMatches, now, manual, virtual],
   );
-  // Početni filter: takmičenje iz linka i njegovo prvo naredno kolo; inače narednih 7 dana, a ako tada nema utakmica, 7 dana od prve naredne
+  // Sačuvan raspored nosi svoj filter/tekst/izbor; inače: takmičenje iz linka i njegovo prvo naredno kolo,
+  // a inače narednih 7 dana (ili 7 dana od prve naredne, ako tada nema utakmica)
   const picker = useMatchPicker(matches, "Raspored utakmica", () => {
     const own = matches.filter((m) => m.competitionId === initialCompetition);
     if (own.length) {
@@ -91,30 +144,19 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
     const first = matches.find((m) => m.status === "scheduled")?.date;
     const start = !first || matches.some((m) => m.date >= today && m.date <= addDays(today, 6)) ? today : first;
     return { ...NO_FILTERS, from: start, to: addDays(start, 6) };
-  });
+  }, "rows", initial ? { filters: initial.draft.filters, texts: initial.draft.texts, selected: initial.draft.selected } : undefined);
   const { chosen, page, setPage, texts, setTexts } = picker;
-  const [perPage, setPerPage] = useState(7);
+  const [perPage, setPerPage] = useState(initial?.draft.perPage ?? 7);
   const pages = useMemo<SocialContent[]>(() => chunk(chosen, perPage).map((list) => ({ kind: "schedule", matches: list })), [chosen, perPage]);
 
   function addManual(input: ManualMatchInput) {
-    const match: SocialMatch = {
-      id: manualId(),
-      startsAt: sarajevoToISO(input.date, input.time),
-      status: "scheduled",
-      date: input.date,
-      round: input.round,
-      competitionId: input.competitionId || MANUAL_COMPETITION_ID,
-      competition: input.competition || "Prijateljska utakmica",
-      home: input.home,
-      away: input.away,
-      homeLogo: input.homeLogo,
-      awayLogo: input.awayLogo,
-      hall: input.hall || null,
-      homeScore: null,
-      awayScore: null,
-    };
+    const match = buildManualMatch(manualId(), input);
     setManual((old) => [...old, match]);
     picker.select(new Set([...picker.selected, match.id]));
+  }
+
+  function updateManual(id: string, input: ManualMatchInput) {
+    setManual((old) => old.map((m) => (m.id === id ? buildManualMatch(id, input) : m)));
   }
 
   function removeManual(id: string) {
@@ -123,7 +165,8 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
 
   useEffect(() => {
     const refreshTime = () => setNow(Date.now());
-    const nextScheduled = matches.find((match) => match.status === "scheduled");
+    // Prijedlozi iz rasporeda (isSelectable) imaju samo placeholder vrijeme dok se ne potvrde — ne računaju se ovdje
+    const nextScheduled = matches.find((match) => match.status === "scheduled" && isSelectable(match.id));
     const nextStart = nextScheduled ? new Date(nextScheduled.startsAt).getTime() : null;
     const timer = nextStart == null ? undefined : window.setTimeout(refreshTime, Math.min(2_147_483_647, Math.max(0, nextStart - Date.now() + 20)));
     window.addEventListener("focus", refreshTime);
@@ -135,34 +178,118 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
     };
   }, [matches]);
 
+  // Čuvanje: dovoljno stanje da se raspored nastavi kasnije, i sa drugog uređaja
+  const draft: ScheduleDraft = { manual, selected: [...picker.selected], filters: picker.filters, texts, perPage, design };
+  const draftJson = JSON.stringify(draft);
+  const [saved, setSaved] = useState<{ id: string | null; json: string | null; at: string | null }>({ id: initial?.id ?? null, json: initial ? draftJson : null, at: initial?.updatedAt ?? null });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
+  const dirty = saved.json !== draftJson;
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(undefined);
+    const json = draftJson;
+    try {
+      const res = await saveSocialSchedule(saved.id, JSON.parse(json) as ScheduleDraft, texts.title.trim() || "Raspored utakmica");
+      if ("error" in res) throw new Error(res.error);
+      setSaved({ id: res.id, json, at: res.updatedAt });
+      if (!saved.id) window.history.replaceState(null, "", `/admin/objave?vrsta=raspored&r=${res.id}`);
+    } catch (e) {
+      setSaveError(e instanceof Error && e.message ? e.message : "Raspored nije sačuvan.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  // Cmd/Ctrl+S čuva; upozorenje prije zatvaranja s nesačuvanim izmjenama
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void saveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => {
+    if (!dirty) return;
+    const onLeave = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [dirty]);
+  const savedLabel = saved.at ? `Sačuvano ${formatDate(isoToSarajevo(saved.at).date)} u ${formatTime(saved.at)}` : null;
+
   return (
-    <Layout preview={
-      <SocialPreview
-        kind="schedule" pages={pages} options={{ ...design, ...texts }} font={font} page={page} onPage={setPage}
-        empty="Označi utakmice za pregled slike."
-        stale={(content) => content.kind === "schedule" && content.matches.some((m) => m.status !== "postponed" && new Date(m.startsAt).getTime() <= Date.now())}
-        onStale={() => setNow(Date.now())}
-      />
-    }>
-      <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
-        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema budućih ni odgođenih utakmica tekuće sezone.</p> : null}
-        <MatchPicker
-          matches={matches}
-          picker={picker}
-          range={{ label: "Narednih 7 dana", from: today, to: addDays(today, 6) }}
-          note="Buduće zakazane i sve odgođene utakmice tekuće sezone. Datumski filter za odgođene koristi prvobitni datum."
-          manualAdd={{ today, tables, defaultCompetitionId: picker.filters.competition || initialCompetition || tables[0]?.id || "", onAdd: addManual, onRemove: removeManual }}
+    <div className="flex flex-col gap-6">
+      <div className={cx(CARD, "sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3")}>
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/admin/objave?vrsta=raspored&r=lista"
+            onClick={(event) => {
+              if (dirty && !window.confirm("Raspored ima nesačuvane izmjene. Izaći bez čuvanja?")) event.preventDefault();
+            }}
+            className="grid size-9 shrink-0 place-items-center rounded-md text-fg-muted hover:bg-panel-2 hover:text-fg"
+            aria-label="Sačuvani rasporedi"
+            title="Sačuvani rasporedi"
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </Link>
+          <div className="min-w-0 border-l border-line pl-3">
+            <p className="truncate text-[15px] font-semibold">{texts.title.trim() || "Raspored utakmica"}</p>
+            <p className="text-[13px] text-fg-muted">
+              {saveError ? (
+                <span className="font-medium text-crest">{saveError}</span>
+              ) : saving ? (
+                "Čuvam…"
+              ) : !saved.id ? (
+                "Novi raspored, još nije sačuvan"
+              ) : dirty ? (
+                <span className="font-medium text-orange">Nesačuvane izmjene</span>
+              ) : (
+                savedLabel
+              )}
+            </p>
+          </div>
+        </div>
+        <Button onClick={save} disabled={saving || (!dirty && saved.id !== null)}>
+          {saving ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : !dirty && saved.id ? <Check className="size-4" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
+          {!dirty && saved.id ? "Sačuvano" : "Sačuvaj"}
+        </Button>
+      </div>
+      <Layout preview={
+        <SocialPreview
+          kind="schedule" pages={pages} options={{ ...design, ...texts }} font={font} page={page} onPage={setPage}
+          empty="Označi utakmice za pregled slike."
+          stale={(content) => content.kind === "schedule" && content.matches.some((m) => m.status !== "postponed" && new Date(m.startsAt).getTime() <= Date.now())}
+          onStale={() => setNow(Date.now())}
         />
-      </Step>
-      <Step number={2} title="Izgled">
-        <LayoutPicker kind="schedule" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
-        <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
-        <PerPage value={perPage} onChange={(count) => { setPerPage(count); setPage(0); }} />
-      </Step>
-      <Step number={3} title="Tekst i detalji">
-        <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} schedule placeholder="Raspored utakmica" />
-      </Step>
-    </Layout>
+      }>
+        <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
+          {!matches.length ? <p className="text-[14px] text-fg-muted">Nema budućih ni odgođenih utakmica tekuće sezone.</p> : null}
+          <MatchPicker
+            matches={matches}
+            picker={picker}
+            range={{ label: "Narednih 7 dana", from: today, to: addDays(today, 6) }}
+            note="Buduće zakazane i sve odgođene utakmice tekuće sezone, plus prijedlozi cijelog kola iz zvaničnog rasporeda saveza (badge „IZ RASPOREDA“) — uredi ih da potvrdiš termin."
+            manualAdd={{ today, tables, defaultCompetitionId: picker.filters.competition || initialCompetition || tables[0]?.id || "", onAdd: addManual, onUpdate: updateManual, onRemove: removeManual }}
+          />
+        </Step>
+        <Step number={2} title="Izgled">
+          <LayoutPicker kind="schedule" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
+          <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
+          <PerPage value={perPage} onChange={(count) => { setPerPage(count); setPage(0); }} />
+        </Step>
+        <Step number={3} title="Tekst i detalji">
+          <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} schedule placeholder="Raspored utakmica" />
+        </Step>
+      </Layout>
+    </div>
   );
 }
 
@@ -260,25 +387,70 @@ const MANUAL_PREFIX = "manual-";
 const MANUAL_COMPETITION_ID = "manual";
 const manualId = () => `${MANUAL_PREFIX}${crypto.randomUUID()}`;
 
+/** Prijedlog iz zvaničnog rasporeda saveza (još nije prava utakmica) — nije selektabilan dok se ne potvrdi kroz "Uredi" */
+const FIXTURE_PREFIX = "fixture-";
+const isSelectable = (id: string) => !id.startsWith(FIXTURE_PREFIX);
+
 type ManualMatchInput = {
   home: string; away: string; homeLogo: string | null; awayLogo: string | null;
   date: string; time: string; hall: string; competitionId: string; competition: string; round: number | null;
+  postponed: boolean;
 };
-type ManualAdd = { today: string; tables: SocialTable[]; defaultCompetitionId: string; onAdd: (input: ManualMatchInput) => void; onRemove: (id: string) => void };
+type ManualAdd = {
+  today: string; tables: SocialTable[]; defaultCompetitionId: string;
+  onAdd: (input: ManualMatchInput) => void;
+  onUpdate: (id: string, input: ManualMatchInput) => void;
+  onRemove: (id: string) => void;
+};
+
+/** Napravi/osvježi ručno dodanu utakmicu; odgođena ne mora imati vrijeme (nikad se ne prikazuje) */
+function buildManualMatch(id: string, input: ManualMatchInput): SocialMatch {
+  return {
+    id,
+    startsAt: sarajevoToISO(input.date, input.time || "00:00"),
+    status: input.postponed ? "postponed" : "scheduled",
+    date: input.date,
+    round: input.round,
+    competitionId: input.competitionId || MANUAL_COMPETITION_ID,
+    competition: input.competition || "Prijateljska utakmica",
+    home: input.home,
+    away: input.away,
+    homeLogo: input.homeLogo,
+    awayLogo: input.awayLogo,
+    hall: input.hall || null,
+    homeScore: null,
+    awayScore: null,
+  };
+}
+
+/** Postojeća (ručna ili iz rasporeda) stavka → početne vrijednosti forme za izmjenu */
+function matchToInput(m: SocialMatch): ManualMatchInput {
+  const fixture = m.id.startsWith(FIXTURE_PREFIX);
+  return {
+    home: m.home, away: m.away, homeLogo: m.homeLogo, awayLogo: m.awayLogo,
+    date: m.date, time: fixture ? "" : isoToSarajevo(m.startsAt).time,
+    hall: m.hall ?? "", competitionId: m.competitionId === MANUAL_COMPETITION_ID ? "" : m.competitionId,
+    competition: m.competition, round: m.round, postponed: m.status === "postponed",
+  };
+}
 
 /** Filteri i izbor: svaka promjena filtera označi upravo prikazane utakmice, pa se i pregled odmah mijenja; podnaslov prati takmičenje i kolo */
-function useMatchPicker(matches: SocialMatch[], title: string, initialFilters: () => Filters, layout = "rows") {
-  const [filters, setFilters] = useState<Filters>(initialFilters);
-  const [selected, setSelected] = useState(() => new Set(filterMatches(matches, filters).map((m) => m.id)));
+function useMatchPicker(
+  matches: SocialMatch[], title: string, initialFilters: () => Filters, layout = "rows",
+  /** Sačuvano stanje (umjesto izračunatih podrazumijevanih vrijednosti) */
+  preset?: { filters: Filters; texts: SocialTextOptions; selected: string[] },
+) {
+  const [filters, setFilters] = useState<Filters>(() => preset?.filters ?? initialFilters());
+  const [selected, setSelected] = useState(() => new Set(preset ? preset.selected : filterMatches(matches, filters).map((m) => m.id)));
   const [page, setPage] = useState(0);
-  const [texts, setTexts] = useState<SocialTextOptions>(() => follow(defaultTexts(title, layout), "", filters.competition, headline(matches, filters)));
+  const [texts, setTexts] = useState<SocialTextOptions>(() => preset?.texts ?? follow(defaultTexts(title, layout), "", filters.competition, headline(matches, filters)));
   const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
 
   function filter(patch: Partial<Filters>) {
     const next = { ...filters, ...patch };
     setFilters(next);
     setTexts((old) => follow(old, headline(matches, filters), next.competition, headline(matches, next)));
-    setSelected(new Set(filterMatches(matches, next).map((m) => m.id)));
+    setSelected(new Set(filterMatches(matches, next).map((m) => m.id).filter(isSelectable)));
     setPage(0);
   }
 
@@ -309,7 +481,7 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
   /** Dopušta ručno dopisivanje utakmice na dnu liste (npr. Raspored) */
   manualAdd?: ManualAdd;
 }) {
-  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<{ kind: "closed" } | { kind: "add" } | { kind: "edit"; id: string | null; seed: ManualMatchInput }>({ kind: "closed" });
   const { competition, round, search, from, to } = filters;
   const competitions = [...new Map(matches.map((m) => [m.competitionId, m.competition])).entries()];
   const rounds = [...new Set(matches.filter((m) => !competition || m.competitionId === competition).flatMap((m) => m.round == null ? [] : [m.round]))].sort((a, b) => a - b);
@@ -337,7 +509,7 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
         <button type="button" className="text-fg-muted hover:underline" onClick={() => filter(NO_FILTERS)}>Očisti filtere</button>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">
-        <button type="button" disabled={!visible.length} className="font-semibold hover:underline disabled:opacity-40" onClick={() => select(new Set([...selected, ...visible.map((m) => m.id)]))}>Označi prikazane ({visible.length})</button>
+        <button type="button" disabled={!visible.length} className="font-semibold hover:underline disabled:opacity-40" onClick={() => select(new Set([...selected, ...visible.map((m) => m.id).filter(isSelectable)]))}>Označi prikazane ({visible.length})</button>
         <button type="button" disabled={!chosen.length} className="text-fg-muted hover:underline disabled:opacity-40" onClick={() => select(new Set())}>Poništi izbor</button>
       </div>
       {hiddenSelected > 0 && <p className="text-[12px] text-fg-muted">Odabrano izvan trenutnog filtera: {hiddenSelected}. Te utakmice ostaju na slikama.</p>}
@@ -345,38 +517,60 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
       <div className="max-h-[420px] overflow-y-auto rounded-lg border border-line">
         {visible.length ? visible.map((m) => {
           const manual = m.id.startsWith(MANUAL_PREFIX);
+          const fixture = m.id.startsWith(FIXTURE_PREFIX);
+          const info = (
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">
+                {m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}
+                {m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}
+                {manual && <span className="rounded bg-brand-soft px-1.5 py-0.5 font-semibold text-brand">RUČNO</span>}
+                {fixture && <span className="rounded bg-panel-3 px-1.5 py-0.5 font-semibold text-fg-muted">IZ RASPOREDA</span>}
+              </span>
+              <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{m.homeScore} : {m.awayScore}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
+              <span className="mt-1 block text-[12px] text-fg-muted">
+                {fixture ? `${formatDate(m.date)} · vrijeme nije određeno` : m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}
+              </span>
+            </span>
+          );
           return (
-            <div key={m.id} className={cx("flex items-start gap-2 border-b border-line p-3 last:border-b-0", selected.has(m.id) && "bg-panel-2")}>
-              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 hover:text-fg">
-                <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2 text-[11px] text-fg-muted">
-                    {m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}
-                    {m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}
-                    {manual && <span className="rounded bg-brand-soft px-1.5 py-0.5 font-semibold text-brand">RUČNO</span>}
-                  </span>
-                  <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{m.homeScore} : {m.awayScore}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
-                  <span className="mt-1 block text-[12px] text-fg-muted">{m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}</span>
-                </span>
-              </label>
-              {manual && manualAdd && (
-                <button type="button" aria-label="Ukloni ručno dodanu utakmicu" title="Ukloni" className="mt-1 shrink-0 rounded-md p-1 text-fg-faint hover:bg-panel-3 hover:text-crest" onClick={() => manualAdd.onRemove(m.id)}>
-                  <X className="size-4" aria-hidden="true" />
-                </button>
+            <div key={m.id} className={cx("flex items-start gap-2 border-b border-line p-3 last:border-b-0", selected.has(m.id) && "bg-panel-2", fixture && "opacity-80")}>
+              {fixture ? info : (
+                <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 hover:text-fg">
+                  <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 size-4 shrink-0 accent-brand" />
+                  {info}
+                </label>
+              )}
+              {manualAdd && (manual || fixture) && (
+                <div className="mt-1 flex shrink-0 items-center gap-1">
+                  <button type="button" aria-label="Uredi utakmicu" title="Uredi" className="rounded-md p-1 text-fg-faint hover:bg-panel-3 hover:text-fg" onClick={() => setForm({ kind: "edit", id: manual ? m.id : null, seed: matchToInput(m) })}>
+                    <Pencil className="size-4" aria-hidden="true" />
+                  </button>
+                  {manual && (
+                    <button type="button" aria-label="Ukloni ručno dodanu utakmicu" title="Ukloni" className="rounded-md p-1 text-fg-faint hover:bg-panel-3 hover:text-crest" onClick={() => manualAdd.onRemove(m.id)}>
+                      <X className="size-4" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           );
         }) : <p className="p-6 text-center text-[14px] text-fg-muted">Nema utakmica za ove filtere.</p>}
-        {manualAdd && (adding ? (
+        {manualAdd && (form.kind !== "closed" ? (
           <ManualMatchFields
+            key={form.kind === "edit" ? form.id ?? `${form.seed.competitionId}-${form.seed.round}-${form.seed.home}-${form.seed.away}` : "add"}
             today={manualAdd.today}
             tables={manualAdd.tables}
-            defaultCompetitionId={manualAdd.defaultCompetitionId}
-            onCancel={() => setAdding(false)}
-            onSubmit={(input) => { manualAdd.onAdd(input); setAdding(false); }}
+            defaultCompetitionId={(form.kind === "edit" && form.seed.competitionId) || manualAdd.defaultCompetitionId}
+            initial={form.kind === "edit" ? form.seed : undefined}
+            onCancel={() => setForm({ kind: "closed" })}
+            onSubmit={(input) => {
+              if (form.kind === "edit" && form.id) manualAdd.onUpdate(form.id, input);
+              else manualAdd.onAdd(input);
+              setForm({ kind: "closed" });
+            }}
           />
         ) : (
-          <button type="button" onClick={() => setAdding(true)} className="flex w-full items-center gap-2 border-t border-line p-3 text-left text-[14px] font-semibold text-brand hover:bg-panel-2">
+          <button type="button" onClick={() => setForm({ kind: "add" })} className="flex w-full items-center gap-2 border-t border-line p-3 text-left text-[14px] font-semibold text-brand hover:bg-panel-2">
             <Plus className="size-4 shrink-0" aria-hidden="true" /> Dodaj utakmicu ručno
           </button>
         ))}
@@ -418,24 +612,28 @@ function TeamPick({ label, roster, value, other, onPick, onOther }: {
 }
 
 /** Forma za ručno dopisanu utakmicu na dnu liste: ekipe biraš iz takmičenja (već imaju raspored, grb i sve), termin je obavezan */
-function ManualMatchFields({ today, tables, defaultCompetitionId, onCancel, onSubmit }: {
+function ManualMatchFields({ today, tables, defaultCompetitionId, initial, onCancel, onSubmit }: {
   today: string;
   tables: SocialTable[];
   defaultCompetitionId: string;
+  /** Postojeća stavka (ručna ili prijedlog iz rasporeda) koja se uređuje; izostavljeno = nova utakmica */
+  initial?: ManualMatchInput;
   onCancel: () => void;
   onSubmit: (input: ManualMatchInput) => void;
 }) {
-  const [competitionId, setCompetitionId] = useState(defaultCompetitionId);
+  const [competitionId, setCompetitionId] = useState(initial?.competitionId || defaultCompetitionId);
   const table = tables.find((t) => t.id === competitionId);
   const roster = useMemo(() => [...(table?.standings ?? [])].sort((a, b) => a.name.localeCompare(b.name, "bs")), [table]);
-  const [homeTeamId, setHomeTeamId] = useState("");
-  const [homeOther, setHomeOther] = useState("");
-  const [awayTeamId, setAwayTeamId] = useState("");
-  const [awayOther, setAwayOther] = useState("");
-  const [date, setDate] = useState(today);
-  const [time, setTime] = useState("");
-  const [hall, setHall] = useState("");
-  const [round, setRound] = useState("");
+  const findTeam = (name: string) => roster.find((t) => t.name === name)?.teamId;
+  const [homeTeamId, setHomeTeamId] = useState(() => (initial ? findTeam(initial.home) ?? (initial.home ? OTHER_TEAM : "") : ""));
+  const [homeOther, setHomeOther] = useState(() => (initial && !findTeam(initial.home) ? initial.home : ""));
+  const [awayTeamId, setAwayTeamId] = useState(() => (initial ? findTeam(initial.away) ?? (initial.away ? OTHER_TEAM : "") : ""));
+  const [awayOther, setAwayOther] = useState(() => (initial && !findTeam(initial.away) ? initial.away : ""));
+  const [date, setDate] = useState(initial?.date || today);
+  const [time, setTime] = useState(initial?.time || "");
+  const [hall, setHall] = useState(initial?.hall || "");
+  const [round, setRound] = useState(initial?.round != null ? String(initial.round) : "");
+  const [postponed, setPostponed] = useState(initial?.postponed ?? false);
 
   function pickCompetition(id: string) {
     setCompetitionId(id);
@@ -447,23 +645,25 @@ function ManualMatchFields({ today, tables, defaultCompetitionId, onCancel, onSu
   const awayTeam = roster.find((t) => t.teamId === awayTeamId);
   const home = homeTeamId === OTHER_TEAM ? homeOther.trim() : (homeTeam?.name ?? "");
   const away = awayTeamId === OTHER_TEAM ? awayOther.trim() : (awayTeam?.name ?? "");
-  const valid = Boolean(home && away && date && time);
+  const valid = Boolean(home && away && date && (postponed || time));
 
   function submit() {
     onSubmit({
       home, away,
-      homeLogo: homeTeamId === OTHER_TEAM ? null : (homeTeam?.logoUrl ?? null),
-      awayLogo: awayTeamId === OTHER_TEAM ? null : (awayTeam?.logoUrl ?? null),
+      homeLogo: homeTeamId === OTHER_TEAM ? null : (homeTeam?.logoUrl ?? initial?.homeLogo ?? null),
+      awayLogo: awayTeamId === OTHER_TEAM ? null : (awayTeam?.logoUrl ?? initial?.awayLogo ?? null),
       date, time,
       hall: hall.trim(),
       competitionId: competitionId || "",
       competition: table?.name ?? "",
       round: round.trim() ? Number(round) : null,
+      postponed,
     });
   }
 
   return (
     <div className="flex flex-col gap-3 border-t border-line bg-panel-2 p-3">
+      {initial && <p className="text-[13px] font-semibold">Uređuješ utakmicu</p>}
       {tables.length > 0 && (
         <Select label="Takmičenje" value={competitionId} onChange={(event) => pickCompetition(event.target.value)}>
           {tables.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -475,15 +675,19 @@ function ManualMatchFields({ today, tables, defaultCompetitionId, onCancel, onSu
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <DateField label="Datum" name="manual-date" defaultValue={date} onChange={setDate} required />
-        <TimeField label="Vrijeme" name="manual-time" defaultValue={time} onChange={setTime} required />
+        <TimeField label="Vrijeme" name="manual-time" defaultValue={time} onChange={setTime} required={!postponed} hint={postponed ? "Nije obavezno za odgođenu utakmicu" : undefined} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Dvorana" value={hall} onChange={(event) => setHall(event.target.value)} placeholder="Nije obavezno" />
         <Field label="Kolo" type="number" min={1} value={round} onChange={(event) => setRound(event.target.value)} placeholder="Nije obavezno" />
       </div>
+      <label className="flex items-center gap-2 text-[13px]">
+        <input type="checkbox" checked={postponed} onChange={(event) => setPostponed(event.target.checked)} className="size-4 accent-brand" />
+        Utakmica je odgođena
+      </label>
       <div className="flex items-center gap-3">
         <Button type="button" disabled={!valid} onClick={submit} className="h-9! px-3! text-[13px]!">
-          <Plus className="size-4" aria-hidden="true" /> Dodaj
+          {initial ? <Check className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />} {initial ? "Sačuvaj izmjenu" : "Dodaj"}
         </Button>
         <button type="button" onClick={onCancel} className="text-[13px] font-semibold text-fg-muted hover:underline">Otkaži</button>
       </div>

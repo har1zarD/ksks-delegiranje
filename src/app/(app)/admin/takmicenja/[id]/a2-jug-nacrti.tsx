@@ -3,7 +3,7 @@
 import { DateField, TimeField } from "@/components/date-picker";
 import { Field } from "@/components/ui";
 import { ActionForm, Select } from "../action-form";
-import { createFixtureMatch } from "../actions";
+import { createFixtureMatch, createHall } from "../actions";
 
 /** Predloženi termin nenapravljene utakmice iz rasporeda saveza */
 export type Draft = { date: string; time: string; hallId: string };
@@ -35,7 +35,7 @@ export function FixtureForm({
       <div className="grid gap-4 sm:grid-cols-[1fr_1fr_2fr_1fr]">
         <DateField label="Datum" name="date" defaultValue={draft.date} required />
         <TimeField label="Vrijeme" name="time" step={300} defaultValue={draft.time || undefined} required />
-        <Select label="Dvorana" name="hall_id" defaultValue={draft.hallId}>
+        <Select label="Dvorana" name="hall_id" defaultValue={draft.hallId} onCreate={createHall}>
           <option value="">Nije određena</option>
           {halls.map((h) => (
             <option key={h.id} value={h.id}>

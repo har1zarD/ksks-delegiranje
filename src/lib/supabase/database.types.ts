@@ -31,6 +31,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"social_schedules": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"state": Json,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"state": Json,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"state"?: Json,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "social_schedules_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "social_schedules_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"fiba_competitions": {
                   Row: {
                     "active": boolean,"category": string | null,"id": number,"name": string,"sort": number

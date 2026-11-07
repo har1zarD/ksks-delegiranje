@@ -143,6 +143,16 @@ export type SocialTextOptions = { brand: SocialBrand; title: string; subtitle: s
 
 export type SocialOptions = SocialDesignOptions & SocialTextOptions;
 
+/** Sačuvano stanje bildera rasporeda (karticа "Raspored"): dovoljno da se nastavi na drugom uređaju */
+export type ScheduleDraft = {
+  manual: SocialMatch[];
+  selected: string[];
+  filters: { competition: string; round: string; search: string; from: string; to: string };
+  texts: SocialTextOptions;
+  perPage: number;
+  design: SocialDesignOptions;
+};
+
 export type SocialStanding = { teamId: string; name: string; logoUrl: string | null; played: number; won: number; lost: number; diff: number; points: number };
 export type SocialClub = { id: string; name: string; logoUrl: string | null };
 

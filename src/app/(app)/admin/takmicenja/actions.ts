@@ -333,6 +333,21 @@ export async function createFixtureMatch(prev: FormState, f: FormData): Promise<
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
+/** Nova dvorana kad upisani naziv ne postoji u izboru (izbor dvorane u formi utakmice) */
+export async function createHall(name: string): Promise<{ value: string; label: string } | { error: string }> {
+  await requireRole("admin");
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Upiši naziv dvorane." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("halls").insert({ name: trimmed }).select("id, name").single();
+  if (error?.code === "23505") return { error: "Dvorana s tim nazivom već postoji." };
+  if (error || !data) return { error: "Dvorana nije napravljena. Pokušaj ponovo." };
+
+  invalidate("halls");
+  return { value: data.id, label: data.name };
+}
+
 /** Brisanje praznog takmičenja (bez ekipa i utakmica), npr. greškom napravljena liga */
 export async function deleteCompetition(_prev: FormState, f: FormData): Promise<FormState> {
   await requireRole("admin");

@@ -88,7 +88,7 @@ export function FibaMatchForm({
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-fg-muted">Pristupni kod (Stream Key)</span>
-        <input name="stream_key" defaultValue={streamKey ?? ""} readOnly={keyLocked} placeholder="1SYA3ZV64M476WEVRFW1" className={cx(inputClass, "font-mono uppercase", keyLocked && "bg-panel-2 text-fg-muted")} />
+        <input name="stream_key" defaultValue={streamKey ?? ""} readOnly={keyLocked} placeholder="npr. 1SYA3ZV64M476WEVRFW1" className={cx(inputClass, "font-mono uppercase", keyLocked && "bg-panel-2 text-fg-muted")} />
       </label>
       <Button type="submit" variant="secondary" disabled={pending} className="w-full">
         {pending ? "Čuvam…" : "Sačuvaj FIBA"}
