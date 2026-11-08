@@ -20,6 +20,8 @@ export type BulletinRequest = {
   officials: Record<string, BulletinOfficials>;
   /** Rezultat i četvrtine, ručno ispravljeni (id → rezultat); inače rezultat iz aplikacije */
   scores: Record<string, BulletinScore>;
+  /** Utakmica ručno označena kao odgođena u biltenu, bez obzira na pravi status (id → true) */
+  postponed: Record<string, boolean>;
   /** Utakmice ručno dopisane u registraciju (nisu u rasporedu) */
   manual: BulletinManualMatch[];
   /** Odluke: jedna po redu */
@@ -45,6 +47,8 @@ export type BulletinManualMatch = {
   home: string;
   away: string;
   score: BulletinScore | null;
+  /** Ručno dopisana utakmica bez rezultata: odgođena (prikazuje se "ODGOĐENO"), inače zakazana */
+  postponed: boolean;
   officials: BulletinOfficials;
   remarks: string;
 };
@@ -103,6 +107,7 @@ export type BulletinDraft = {
   remarks: Record<string, string>;
   officials: Record<string, BulletinOfficials>;
   scores: Record<string, BulletinScore>;
+  postponed: Record<string, boolean>;
   manual: BulletinManualMatch[];
   registration: boolean;
   decisionsOn: boolean;

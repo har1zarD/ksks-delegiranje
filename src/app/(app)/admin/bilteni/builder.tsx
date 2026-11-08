@@ -15,6 +15,7 @@ import {
   type BulletinRequest,
   type BulletinScore,
 } from "@/lib/bulletin";
+import type { Fixture } from "@/lib/a2-jug-raspored";
 import { matchesLabel } from "@/lib/finance";
 import { formatDate, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
@@ -43,6 +44,8 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
   const [fibaOfficials, setFibaOfficials] = useState<Record<number, BulletinOfficials>>({});
   // Rezultat i četvrtine ispravljeni ručno (npr. kad je FIBA statistika pala tokom utakmice) i utakmice dopisane ručno
   const [scoreEdits, setScoreEdits] = useState<Record<string, BulletinScore>>(d?.scores ?? {});
+  // Utakmica ručno označena kao odgođena u biltenu (bez obzira na pravi status), npr. kad još nije ažuriran u aplikaciji
+  const [postponedEdits, setPostponedEdits] = useState<Record<string, boolean>>(d?.postponed ?? {});
   const [manual, setManual] = useState<BulletinManualMatch[]>(d?.manual ?? []);
   const [registration, setRegistration] = useState(d?.registration ?? true);
   const [decisionsOn, setDecisionsOn] = useState(d?.decisionsOn ?? true);
@@ -65,11 +68,14 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     [...new Set([...rounds, ...selected.flatMap((c) => fixturesOf(c.id).map((f) => f.round))])].sort((a, b) => a - b).find((r) => activeRound !== null && r > activeRound) ?? null;
 
   // Takmičenja bez utakmica ovog kola ostaju vidljiva (ručno dopisana utakmica se moze dodati i bez ičega drugog)
-  const groups = selected.map((c) => ({
-    competition: c,
-    matches: own.filter((m) => m.competitionId === c.id && m.round === activeRound).sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0),
-    manual: manual.filter((x) => x.competitionId === c.id && x.round === activeRound),
-  }));
+  const groups = selected.map((c) => {
+    const matches = own.filter((m) => m.competitionId === c.id && m.round === activeRound).sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0);
+    const manualOfGroup = manual.filter((x) => x.competitionId === c.id && x.round === activeRound);
+    // Utakmice iz zvaničnog rasporeda (saveza) koje još nisu u bazi ni ručno dopisane ovog kola: vide se unaprijed
+    const have = new Set([...matches.flatMap((m) => [m.home, m.away]), ...manualOfGroup.flatMap((x) => [x.home, x.away])]);
+    const missing = fixturesOf(c.id).filter((f) => f.round === activeRound && !(have.has(f.home) && have.has(f.away)));
+    return { competition: c, matches, manual: manualOfGroup, missing };
+  });
   const chosen = groups.flatMap((g) => g.matches.filter((m) => !excluded.has(m.id)));
   const chosenManual = groups.flatMap((g) => g.manual);
   const nominated =
@@ -137,6 +143,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
         }),
       ),
       scores: Object.fromEntries(regIds.filter((id) => id in scoreEdits).map((id) => [id, scoreEdits[id]])),
+      postponed: Object.fromEntries(regIds.filter((id) => postponedEdits[id]).map((id) => [id, true])),
       manual: regManual,
       decisions: decisionText,
       standings,
@@ -154,6 +161,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     remarks,
     officials: officialEdits,
     scores: scoreEdits,
+    postponed: postponedEdits,
     manual,
     registration,
     decisionsOn,
@@ -285,8 +293,15 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
       else next.add(id);
       return next;
     });
+  const togglePostponed = (id: string) =>
+    setPostponedEdits((old) => {
+      const next = { ...old };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      return next;
+    });
 
-  const addManualMatch = (competitionId: string, input: { home: string; away: string; score: BulletinScore | null }) => {
+  const addManualMatch = (competitionId: string, input: { home: string; away: string; score: BulletinScore | null; postponed?: boolean }) => {
     const match: BulletinManualMatch = {
       id: manualId(),
       competitionId,
@@ -295,6 +310,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
       home: input.home,
       away: input.away,
       score: input.score,
+      postponed: input.postponed ?? false,
       officials: { commissioner: "", referees: "" },
       remarks: "",
     };
@@ -434,7 +450,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
                       </button>
                     )}
                   </header>
-                  {g.matches.length === 0 && g.manual.length === 0 && <p className="px-4 py-3 text-[14px] text-fg-muted">Nema prijavljenih utakmica za ovo kolo.</p>}
+                  {g.matches.length === 0 && g.manual.length === 0 && g.missing.length === 0 && <p className="px-4 py-3 text-[14px] text-fg-muted">Nema prijavljenih utakmica za ovo kolo.</p>}
                   <ul className="divide-y divide-line">
                     {g.matches.map((m) => (
                       <MatchOption
@@ -467,10 +483,15 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
                             return next;
                           })
                         }
+                        postponed={Boolean(postponedEdits[m.id])}
+                        onPostponed={() => togglePostponed(m.id)}
                       />
                     ))}
                     {g.manual.map((x) => (
                       <ManualMatchOption key={x.id} match={x} onChange={(patch) => updateManualMatch(x.id, patch)} onRemove={() => removeManualMatch(x.id)} />
+                    ))}
+                    {g.missing.map((f) => (
+                      <MissingFixture key={`${f.home}-${f.away}`} fixture={f} onAdd={() => addManualMatch(g.competition.id, { home: f.home, away: f.away, score: null })} />
                     ))}
                     <AddManualMatch onAdd={(input) => addManualMatch(g.competition.id, input)} />
                   </ul>
@@ -573,6 +594,8 @@ function MatchOption({
   score,
   onScore,
   onScoreReset,
+  postponed,
+  onPostponed,
 }: {
   match: BulletinMatch;
   on: boolean;
@@ -585,6 +608,8 @@ function MatchOption({
   score: BulletinScore & { source: string | null };
   onScore: (next: BulletinScore) => void;
   onScoreReset: () => void;
+  postponed: boolean;
+  onPostponed: () => void;
 }) {
   const auto = defaultRemarks(m);
   const text = remarks ?? auto;
@@ -599,7 +624,13 @@ function MatchOption({
               {m.home} – {m.away}
             </span>
             <span className="scoreboard whitespace-nowrap text-[17px] font-semibold">
-              {score.source || m.score ? `${score.home} : ${score.away}` : <span className="text-[13px] text-fg-muted">{MATCH_STATUS_LABEL[m.status]}</span>}
+              {postponed ? (
+                <span className="text-[13px] font-semibold text-orange">Odgođena</span>
+              ) : score.source || m.score ? (
+                `${score.home} : ${score.away}`
+              ) : (
+                <span className="text-[13px] text-fg-muted">{MATCH_STATUS_LABEL[m.status]}</span>
+              )}
             </span>
           </span>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-fg-muted">
@@ -617,11 +648,19 @@ function MatchOption({
         <div className="flex flex-col gap-1.5 sm:pl-8">
           <span className="flex items-center justify-between gap-3 text-[13px] font-medium text-fg-muted">
             Rezultat
-            <button type="button" onClick={() => setEditingScore((v) => !v)} className="inline-flex items-center gap-1 text-[12px] font-semibold underline-offset-4 hover:text-fg hover:underline">
-              {editingScore ? "Sakrij" : "Ispravi rezultat"}
-            </button>
+            <span className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-[12px] font-semibold">
+                <input type="checkbox" checked={postponed} onChange={onPostponed} className="size-4 accent-[var(--brand)]" />
+                Odgođena
+              </label>
+              {!postponed && (
+                <button type="button" onClick={() => setEditingScore((v) => !v)} className="inline-flex items-center gap-1 text-[12px] font-semibold underline-offset-4 hover:text-fg hover:underline">
+                  {editingScore ? "Sakrij" : "Ispravi rezultat"}
+                </button>
+              )}
+            </span>
           </span>
-          {editingScore && (
+          {!postponed && editingScore && (
             <ScoreEditor
               score={{ home: score.home, away: score.away, periods: score.periods }}
               onChange={onScore}
@@ -778,8 +817,19 @@ function ManualMatchOption({ match: x, onChange, onRemove }: { match: BulletinMa
         </button>
       </div>
       <div className="flex flex-col gap-1.5 sm:pl-8">
-        <span className="text-[13px] font-medium text-fg-muted">Rezultat</span>
-        <ScoreEditor score={x.score ?? { home: 0, away: 0, periods: [] }} onChange={(score) => onChange({ score })} />
+        <span className="flex items-center justify-between gap-3 text-[13px] font-medium text-fg-muted">
+          Rezultat
+          <label className="flex items-center gap-1.5 text-[12px] font-semibold">
+            <input
+              type="checkbox"
+              checked={x.postponed}
+              onChange={(e) => onChange({ postponed: e.target.checked, score: e.target.checked ? null : x.score })}
+              className="size-4 accent-[var(--brand)]"
+            />
+            Odgođena
+          </label>
+        </span>
+        {!x.postponed && <ScoreEditor score={x.score ?? { home: 0, away: 0, periods: [] }} onChange={(score) => onChange({ score })} />}
       </div>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:pl-8">
         <Field label="Komesar" value={x.officials.commissioner} onChange={(e) => onChange({ officials: { ...x.officials, commissioner: e.target.value } })} placeholder="Ime i prezime" />
@@ -795,6 +845,23 @@ function ManualMatchOption({ match: x, onChange, onRemove }: { match: BulletinMa
           className={cx(inputClass, "h-auto py-2.5 text-[14px] sm:text-[13px]")}
         />
       </div>
+    </li>
+  );
+}
+
+/** Utakmica iz zvaničnog rasporeda saveza koja još nije napravljena u aplikaciji: vidljiva unaprijed, dodaje se u registraciju (bez rezultata) na klik */
+function MissingFixture({ fixture: f, onAdd }: { fixture: Fixture; onAdd: () => void }) {
+  return (
+    <li className="flex items-center justify-between gap-3 bg-panel-2/60 px-4 py-3">
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="min-w-0 truncate text-[15px] font-semibold">
+          {f.home} – {f.away}
+        </span>
+        <span className="text-[12px] text-fg-muted">Iz rasporeda saveza, nije u aplikaciji</span>
+      </span>
+      <Button type="button" variant="secondary" onClick={onAdd} className="shrink-0">
+        <Plus className="size-4" aria-hidden="true" /> Dodaj
+      </Button>
     </li>
   );
 }

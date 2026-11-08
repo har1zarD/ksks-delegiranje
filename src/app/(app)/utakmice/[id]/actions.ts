@@ -2,7 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
-import { matchPositionsOf, matchRoleOf, SCORESHEET_BUCKET } from "@/lib/scoresheets";
+import { matchRoleOf, SCORESHEET_BUCKET } from "@/lib/scoresheets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SCORE_UNDO_HOURS, scoreUndoUntil, type MatchStatus } from "@/lib/format";
@@ -248,20 +248,15 @@ export async function deleteScoresheet(matchId: string, path: string): Promise<{
 }
 
 /**
- * Isplata utakmice: prvi sudija utakmice (ili savez) označi da je klub isplatio službena lica (korisnik, 2026-10-17).
- * Utakmica bez sudija (npr. seniori, samo zapisnički sto): bilo ko od prihvaćenih na njoj.
+ * Isplata utakmice: bilo ko prihvaćen na utakmici (sudija, sto, komesar) ili savez označi
+ * da je klub isplatio službena lica (prošireno sa "samo prvi sudija", korisnik, 2026-11-08).
  * Isto što i isplata u Naknadama: paid_at/paid_by na svim prihvaćenim delegiranjima utakmice. Podrazumijevano nije isplaćeno.
  */
 export async function setMatchPaid(matchId: string, paid: boolean): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   const db = createAdminClient();
-  if (user.role !== "admin") {
-    const [positions, { data: match }] = await Promise.all([
-      matchPositionsOf(user, matchId),
-      db.from("matches").select("has_referees").eq("id", matchId).maybeSingle(),
-    ]);
-    const allowed = positions.includes("referee_1") || (positions.length > 0 && match?.has_referees === false);
-    if (!allowed) return { error: "Isplatu označava prvi sudija utakmice (bez sudija: pomoćne sudije) ili savez." };
+  if (user.role !== "admin" && !(await matchRoleOf(user, matchId))) {
+    return { error: "Isplatu označava neko ko je prihvaćen na utakmici ili savez." };
   }
 
   const { error } = await db

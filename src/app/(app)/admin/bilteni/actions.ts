@@ -73,10 +73,12 @@ async function bulletinInput(req: BulletinRequest): Promise<{ input: BulletinPdf
           const sent = req.officials?.[m.id];
           const officials = sent && typeof sent.commissioner === "string" && typeof sent.referees === "string" ? sent : delegatedOfficials(m.officials);
           const score = req.scores?.[m.id];
+          const postponed = Boolean(req.postponed?.[m.id]);
           return {
             ...m,
-            score: score ? { home: score.home, away: score.away } : m.score,
-            periods: score ? score.periods : m.periods,
+            status: postponed ? "postponed" : m.status,
+            score: postponed ? null : score ? { home: score.home, away: score.away } : m.score,
+            periods: postponed ? [] : score ? score.periods : m.periods,
             ...officials,
             remarks: typeof req.remarks?.[m.id] === "string" ? req.remarks[m.id] : defaultRemarks(m),
           };
@@ -86,7 +88,7 @@ async function bulletinInput(req: BulletinRequest): Promise<{ input: BulletinPdf
         number: x.number,
         round: req.round ?? 0,
         startsAt: new Date().toISOString(),
-        status: x.score ? "finished" : "scheduled",
+        status: x.score ? "finished" : x.postponed ? "postponed" : "scheduled",
         competitionId: x.competitionId,
         homeId: "",
         awayId: "",

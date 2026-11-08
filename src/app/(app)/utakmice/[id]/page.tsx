@@ -50,7 +50,7 @@ async function Match({ params }: { params: Params }) {
   const { id } = await params;
   const page = await getMatchPage(id);
   if (!page) notFound();
-  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable, isReferee, isFirstReferee } = page;
+  const { user, match, crew, periods, report, isAdmin, isCommissioner, isTable, isReferee } = page;
 
   const canScore = isCommissioner || isAdmin;
   const open = match.status !== "cancelled" && match.status !== "postponed";
@@ -70,8 +70,8 @@ async function Match({ params }: { params: Params }) {
   const sheets = scoresheetAccess ? await listScoresheets(match.id) : [];
   // FIBA LiveStats link i pristupni kod: delegirani upisuju ono čega nema (savez ih mijenja na admin stranici utakmice); komesar ovo ne vidi
   const canFiba = open && !isAdmin && !isCommissioner && scoresheetAccess && (match.fiba_game_id == null || !match.fiba_stream_key);
-  // Isplata: prvi sudija (ili savez) označava; bez sudija (samo sto) bilo ko s utakmice. Isplaćena = sva prihvaćena delegiranja isplaćena
-  const canPay = isAdmin || isFirstReferee || (!match.has_referees && (isTable || isCommissioner));
+  // Isplata: bilo ko prihvaćen na utakmici (sudija, sto, komesar) ili savez. Isplaćena = sva prihvaćena delegiranja isplaćena
+  const canPay = isAdmin || isReferee || isTable || isCommissioner;
   const accepted = crew.filter((c) => c.status === "accepted");
   const allPaid = accepted.length > 0 && accepted.every((c) => c.paid_at);
   const showBilten = isCommissioner || isAdmin || !!report?.submitted_at;
