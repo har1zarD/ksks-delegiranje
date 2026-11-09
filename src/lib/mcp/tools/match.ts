@@ -40,13 +40,14 @@ export const getMatch = defineTool({
       ctx.db.from("match_periods").select("period, home_points, away_points").eq("match_id", utakmica_id).order("period"),
     ]);
 
+    const digital = match.data.digital_scoresheet;
     return {
       ...matchView(match.data),
       napomena: match.data.notes,
       delegirani: must(crew)
         .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position))
         .map((a) => ({
-          ...positionView(a.position),
+          ...positionView(a.position, digital),
           ime: a.profile?.full_name,
           telefon: a.profile?.phone,
           status: ASSIGNMENT_STATUS_LABEL[a.status],

@@ -31,7 +31,11 @@ export type BulletinStanding = { name: string; played: number; won: number; lost
 type Group<T> = { name: string; items: T[] };
 
 /** Utakmica u registraciji: primjedbe, komesar i sudije kako ih je admin potvrdio u bilderu */
-export type RegistrationMatch = BulletinMatch & BulletinOfficials & { remarks: string };
+export type RegistrationMatch = Omit<BulletinMatch, "number"> & BulletinOfficials & {
+  /** null = ručno dodana utakmica bez broja */
+  number: number | null;
+  remarks: string;
+};
 
 /** Utakmica narednog kola: iz aplikacije ili iz rasporeda saveza; datum bez satnice, dvorana samo kad je poznata */
 export type NominationMatch = { number: number | null; home: string; away: string; date: string; hall: string | null; officials: { position: Position; name: string | null }[] };
@@ -255,7 +259,7 @@ function drawCover(
 
 // ───────── Registracija ─────────
 
-function periodLines(f: Fonts, m: BulletinMatch) {
+function periodLines(f: Fonts, m: RegistrationMatch) {
   if (!m.score || m.periods.length === 0) return [];
   return wrap(m.periods.map((p) => `${p.home}:${p.away}`).join(", "), f.regular, PERIOD_SIZE, COL_SCORE - 12);
 }
@@ -264,7 +268,7 @@ function remarkLines(f: Fonts, m: RegistrationMatch, x1: number) {
   return wrap(m.remarks.trim() || "Bez primjedbi.", f.regular, REMARK_SIZE, M + W - x1 - 20);
 }
 
-function topHeight(f: Fonts, m: BulletinMatch) {
+function topHeight(f: Fonts, m: RegistrationMatch) {
   return TEAM_ROW + Math.max(2 * OFFICIAL_ROW, 30 + periodLines(f, m).length * PERIOD_LINE);
 }
 

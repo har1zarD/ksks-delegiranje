@@ -1,5 +1,5 @@
 import { crewOf, crewSummary } from "@/lib/crew";
-import { isoToSarajevo, MATCH_STATUS_LABEL, POSITION_LABEL, type MatchStatus, type Position } from "@/lib/format";
+import { isoToSarajevo, MATCH_STATUS_LABEL, positionName, type MatchStatus, type Position } from "@/lib/format";
 
 type MatchRow = {
   id: string;
@@ -47,6 +47,6 @@ export function matchView(m: MatchRow) {
   };
 }
 
-export function positionView(p: Position) {
-  return { pozicija: p, pozicija_naziv: POSITION_LABEL[p] };
+export function positionView(p: Position, digital: boolean) {
+  return { pozicija: p, pozicija_naziv: positionName(p, digital) };
 }

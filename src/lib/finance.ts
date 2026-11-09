@@ -1,7 +1,7 @@
 import type { TeamIdentity } from "@/components/team-name";
 // Čisti proračuni za kotizacije i naknade (bez Next-a i baze, testabilno).
 import type { Crew } from "@/lib/crew";
-import { matchKindLabel, MONTHS, POSITION_LABEL, POSITION_ORDER, sarajevoToISO, type AssignmentStatus, type MatchKind, type Position } from "@/lib/format";
+import { matchKindLabel, MONTHS, positionName, POSITION_ORDER, sarajevoToISO, type AssignmentStatus, type MatchKind, type Position } from "@/lib/format";
 
 // ───────── Kotizacije ─────────
 
@@ -198,6 +198,8 @@ export type PayrollItem = {
   home: TeamIdentity | null;
   away: TeamIdentity | null;
   position: Position;
+  /** Digitalni zapisnik: zapisničar se ispisuje kao "Dig. zapisnik" */
+  digital: boolean;
   /** "accepted" ili "pending" (samo kod neodigranih utakmica) */
   status: AssignmentStatus;
   refereeCount: number;
@@ -362,6 +364,7 @@ export function computePayroll(assignments: PayrollAssignment[]): PayrollPerson[
       home: a.match.home,
       away: a.match.away,
       position: a.position,
+      digital: a.match.digital_scoresheet,
       status: a.status,
       refereeCount: a.match.referee_count,
       amount,
@@ -468,7 +471,7 @@ export function payrollCsv(people: PayrollPerson[], formatDay: (iso: string) => 
   const rows: (string | number | null)[][] = [["Ime i prezime", "Br. utakmice", "Datum", "Takmičenje", "Utakmica", "Pozicija", "Naknada (KM)", "Isplaćeno"]];
   for (const p of people) {
     for (const i of p.items) {
-      rows.push([p.name, i.number, formatDay(i.startsAt), i.kind ? `${i.competition} (${i.kind})` : i.competition, i.teams, POSITION_LABEL[i.position], i.amount, i.paidAt ? formatDay(i.paidAt) : "ne"]);
+      rows.push([p.name, i.number, formatDay(i.startsAt), i.kind ? `${i.competition} (${i.kind})` : i.competition, i.teams, positionName(i.position, i.digital), i.amount, i.paidAt ? formatDay(i.paidAt) : "ne"]);
     }
     rows.push([p.name, null, null, null, null, "Ukupno", p.total, null]);
     rows.push([p.name, null, null, null, null, "Duguje se", p.unpaid, null]);

@@ -9,7 +9,7 @@ import {
   addMonths,
   formatAbsence,
   matchWindow,
-  POSITION_LABEL,
+  positionName,
   POSITION_ORDER,
   sarajevoToISO,
   type Position,
@@ -80,7 +80,7 @@ export const listMatches = defineTool({
         const missing = crewPositions(crewOf(m)).filter((p) => !active.some((a) => a.position === p));
         return {
           ...matchView(m),
-          nedostaje: missing.map((p) => POSITION_LABEL[p]),
+          nedostaje: missing.map((p) => positionName(p, m.digital_scoresheet)),
           ceka_odgovor: active.filter((a) => a.status === "pending").length,
         };
       })
@@ -350,7 +350,8 @@ export const assign = defineTool({
       invalidateFromRoute({ table: "assignments", match: utakmica_id });
     }
     const { id, name } = assigned;
-    return { nominacija_id: id, osoba: name, pozicija: POSITION_LABEL[pozicija], status: "Nije poslano" };
+    const match = must(await db.from("matches").select("digital_scoresheet").eq("id", utakmica_id).single());
+    return { nominacija_id: id, osoba: name, pozicija: positionName(pozicija, match.digital_scoresheet), status: "Nije poslano" };
   },
 });
 
@@ -420,7 +421,7 @@ export const analytics = defineTool({
     const rows = must(
       await db
         .from("assignments")
-        .select("position, status, profile:profiles!assignments_profile_id_fkey ( id, full_name ), match:matches!assignments_match_id_fkey!inner ( starts_at )")
+        .select("position, status, profile:profiles!assignments_profile_id_fkey ( id, full_name ), match:matches!assignments_match_id_fkey!inner ( starts_at, digital_scoresheet )")
         .gte("match.starts_at", start)
         .lt("match.starts_at", end),
     );
@@ -441,7 +442,8 @@ export const analytics = defineTool({
       };
       if (a.status === "accepted") {
         p.prihvaceno++;
-        p.po_poziciji[POSITION_LABEL[a.position]] = (p.po_poziciji[POSITION_LABEL[a.position]] ?? 0) + 1;
+        const label = positionName(a.position, a.match.digital_scoresheet);
+        p.po_poziciji[label] = (p.po_poziciji[label] ?? 0) + 1;
       }
       if (a.status === "declined") p.odbijeno++;
       if (a.status === "cancelled") p.otkazano++;

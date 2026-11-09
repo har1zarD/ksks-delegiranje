@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { BarChart3, CalendarCheck, Clock, Wallet, XCircle } from "lucide-react";
 import { getStats, type PersonStats } from "@/lib/data/stats";
 import { resolvePeriod, type PayrollPeriod } from "@/lib/data/finance";
-import { formatKM, formatMonth, matchesLabel, round2 } from "@/lib/finance";
+import { formatKM, formatMonth, round2 } from "@/lib/finance";
 import { PayrollSummary, PeriodPicker } from "@/app/(app)/admin/naknade/_components/payroll-view";
 import { PayrollSummarySkeleton, PeriodPickerSkeleton, Skeleton, Text, times } from "@/components/skeleton";
 import { FilterContent, FilterNavProvider } from "@/components/filter-nav";
@@ -64,11 +64,11 @@ async function Stats({ searchParams }: { searchParams: SearchParams }) {
                 unpaid={totals.unpaid}
                 note={`${people.length} ${people.length % 10 >= 2 && people.length % 10 <= 4 && (people.length % 100 < 12 || people.length % 100 > 14) ? "osobe" : "osoba"}, ${totals.unpaidCount} neisplaćeno, ${declinedLabel(totals.declined)}`}
               />
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <TopList icon={<CalendarCheck />} title="Najviše utakmica" people={byMatches} value={(p) => matchesLabel(p.matches)} personHref={personHref} />
-                <TopList icon={<Wallet />} title="Najviše zaradili" people={byEarned} value={(p) => formatKM(p.earned)} personHref={personHref} />
-                <TopList icon={<Clock />} title="Najviše se duguje" people={byUnpaid} value={(p) => formatKM(p.unpaid)} personHref={personHref} empty="Sve je isplaćeno." />
-                <TopList icon={<XCircle />} title="Najviše odbijenih nominacija" people={byDeclined} value={(p) => declinedLabel(p.declined)} personHref={personHref} empty="Niko nije odbio nominaciju." />
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <TopList icon={<CalendarCheck />} title="Najviše utakmica" people={byMatches} amount={(p) => p.matches} personHref={personHref} />
+                <TopList icon={<Wallet />} title="Najviše zaradili" people={byEarned} amount={(p) => p.earned} format={formatKM} personHref={personHref} />
+                <TopList icon={<Clock />} title="Najviše se duguje" people={byUnpaid} amount={(p) => p.unpaid} format={formatKM} tone="text-crest" personHref={personHref} empty="Sve je isplaćeno." />
+                <TopList icon={<XCircle />} title="Najviše odbijenih nominacija" people={byDeclined} amount={(p) => p.declined} tone="text-crest" personHref={personHref} empty="Niko nije odbio nominaciju." />
               </div>
 
               <section>
@@ -126,40 +126,52 @@ function declinedLabel(n: number) {
   return `${n} ${one ? "odbijena" : "odbijene"} ${one ? "nominacija" : few ? "nominacije" : "nominacija"}`;
 }
 
-/** Top 5 po jednoj mjeri: redni broj, ime (link na obračun osobe) i vrijednost */
+/** Top 5 po jednoj mjeri: redni broj, puno ime (link na obračun osobe), vrijednost i traka u odnosu na prvog. Jedinicu nosi naslov. */
 function TopList({
   icon,
   title,
   people,
-  value,
+  amount,
+  format = String,
+  tone = "text-fg",
   personHref,
   empty = "Nema podataka.",
 }: {
   icon: React.ReactNode;
   title: string;
   people: PersonStats[];
-  value: (p: PersonStats) => string;
+  amount: (p: PersonStats) => number;
+  format?: (n: number) => string;
+  tone?: string;
   personHref: (id: string) => string;
   empty?: string;
 }) {
   const top = people.slice(0, 5);
+  const max = top.length > 0 ? amount(top[0]) : 0;
   return (
-    <Panel className="overflow-hidden">
-      <h3 className="flex items-center gap-2 border-b border-line py-3 text-[13px] font-semibold text-fg-muted [&>svg]:size-4">
+    <Panel className="overflow-hidden pb-2">
+      <h3 className="flex items-center gap-2 py-4 text-[14px] font-semibold text-fg [&>svg]:size-4 [&>svg]:text-fg-faint">
         {icon}
         {title}
       </h3>
       {top.length === 0 ? (
-        <p className="py-4 text-[14px] text-fg-faint">{empty}</p>
+        <p className="pb-4 text-[14px] text-fg-faint">{empty}</p>
       ) : (
-        <ol className="divide-y divide-line">
+        <ol>
           {top.map((p, i) => (
-            <li key={p.profileId} className="flex items-center gap-3 py-2.5">
-              <span className={cx("scoreboard w-5 shrink-0 text-center text-[13px] font-semibold", i === 0 ? "text-brand" : "text-fg-faint")}>{i + 1}</span>
-              <Link href={personHref(p.profileId)} className="min-w-0 flex-1 truncate text-[15px] font-semibold text-fg hover:text-brand">
-                {p.name}
-              </Link>
-              <span className="scoreboard shrink-0 text-[14px] font-semibold text-fg-muted">{value(p)}</span>
+            <li key={p.profileId} className="flex items-start gap-3 pb-3.5">
+              <span className={cx("scoreboard w-4 shrink-0 text-[14px] font-semibold leading-5", i === 0 ? "text-fg" : "text-fg-faint")}>{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <Link href={personHref(p.profileId)} className="min-w-0 text-[15px] font-semibold leading-5 text-fg [overflow-wrap:anywhere] hover:text-brand">
+                    {p.name}
+                  </Link>
+                  <span className={cx("scoreboard shrink-0 whitespace-nowrap text-[15px] font-semibold leading-5", tone)}>{format(amount(p))}</span>
+                </div>
+                <div className="mt-2 h-1 overflow-hidden rounded-sm bg-track">
+                  <div className={cx("h-full rounded-sm", i === 0 ? "bg-fg" : "bg-fg-faint")} style={{ width: `${(amount(p) / max) * 100}%` }} />
+                </div>
+              </div>
             </li>
           ))}
         </ol>
@@ -195,18 +207,18 @@ function StatsContentSkeleton() {
   return (
     <Skeleton className="flex flex-col gap-10">
       <PayrollSummarySkeleton aside={false} />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {times(4, (i) => (
-          <Panel key={i} className="overflow-hidden">
-            <div className="border-b border-line py-3">
-              <Text className="text-[13px] font-semibold" w="w-36" />
+          <Panel key={i} className="overflow-hidden pb-2">
+            <div className="py-4">
+              <Text className="text-[14px] font-semibold" w="w-36" />
             </div>
-            <ul className="divide-y divide-line">
+            <ul>
               {times(5, (j) => (
-                <li key={j} className="flex items-center gap-3 py-2.5">
-                  <Text className="text-[13px]" w="w-4" />
+                <li key={j} className="flex items-center gap-3 pb-[26px]">
+                  <Text className="text-[14px]" w="w-4" />
                   <Text className="flex-1 text-[15px] font-semibold" w={j % 2 ? "w-32" : "w-40"} />
-                  <Text className="text-[14px]" w="w-16" />
+                  <Text className="text-[15px]" w="w-16" />
                 </li>
               ))}
             </ul>

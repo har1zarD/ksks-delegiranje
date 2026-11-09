@@ -1,6 +1,6 @@
 import { TeamName, type TeamIdentity } from "@/components/team-name";
 import { FOUL_TYPE_LABEL, foulTimeLabel, type TechnicalFoul } from "@/lib/data/report-selects";
-import { formatDayMonth, formatTime, formatWeekday, matchNo, POSITION_LABEL, type AssignmentStatus, type Position } from "@/lib/format";
+import { formatDayMonth, formatTime, formatWeekday, matchNo, positionName, type AssignmentStatus, type Position } from "@/lib/format";
 
 // Tijelo biltena jedne utakmice (bez zaglavlja dokumenta): koristi ga bilten utakmice i bilten cijelog kola.
 
@@ -9,6 +9,7 @@ export type SheetMatch = {
   number: number;
   round: number | null;
   starts_at: string;
+  digital_scoresheet: boolean;
   competition: { name: string; short_name: string | null } | null;
   home: TeamIdentity | null;
   away: TeamIdentity | null;
@@ -96,7 +97,7 @@ export function ReportBody({ match, crew, periods, report }: { match: SheetMatch
         <h2 className="pb-1 font-semibold sm:col-span-2">Službena lica</h2>
         {accepted.map((c) => (
           <div key={c.id} className="flex justify-between gap-4 border-b border-black/10 py-1">
-            <span className="text-black/60 print:text-black">{POSITION_LABEL[c.position]}</span>
+            <span className="text-black/60 print:text-black">{positionName(c.position, match.digital_scoresheet)}</span>
             <span>{c.profile!.full_name}</span>
           </div>
         ))}

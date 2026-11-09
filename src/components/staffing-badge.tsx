@@ -1,6 +1,6 @@
 import { Check, Clock, Mail, MailCheck, MailX, Radio } from "lucide-react";
 import type { StaffingSummary } from "@/lib/data/admin";
-import { POSITION_LABEL } from "@/lib/format";
+import { positionName } from "@/lib/format";
 import { cx, Status } from "@/components/ui";
 import { MatchLabel, type MatchSummary } from "@/components/match-line";
 
@@ -101,7 +101,7 @@ function AnswerIcon({ accepted }: { accepted: boolean }) {
  * Telefon: imena u red ("Velić H.").
  * Od `sm`: mala tabela (pozicija | stanje | ime), iste širine u svakom redu liste pa su kolone poravnate.
  */
-export function StaffingCrew({ staffing, tabbed = true }: { staffing: StaffingSummary; tabbed?: boolean }) {
+export function StaffingCrew({ staffing, digital, tabbed = true }: { staffing: StaffingSummary; digital?: boolean | null; tabbed?: boolean }) {
   const { people } = staffing;
   if (people.length === 0) return null;
   return (
@@ -109,7 +109,7 @@ export function StaffingCrew({ staffing, tabbed = true }: { staffing: StaffingSu
     <div className={cx("sm:w-72", tabbed && "sm:pt-5")}>
       <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] sm:hidden">
         {people.map((p) => (
-          <li key={p.position} className="flex items-center gap-1.5" title={`${p.name}, ${POSITION_LABEL[p.position]}`}>
+          <li key={p.position} className="flex items-center gap-1.5" title={`${p.name}, ${positionName(p.position, digital)}`}>
             <AnswerIcon accepted={p.accepted} />
             <span className={cx("whitespace-nowrap", p.accepted ? "font-medium text-fg" : "text-fg-muted")}>
               {shortName(p.name)}
@@ -121,7 +121,7 @@ export function StaffingCrew({ staffing, tabbed = true }: { staffing: StaffingSu
       <ul className="hidden grid-cols-[6.5rem_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 text-[13px] sm:grid">
         {people.map((p) => (
           <li key={p.position} className="col-span-3 grid grid-cols-subgrid items-center">
-            <span className="truncate text-[12px] text-fg-faint">{POSITION_LABEL[p.position]}</span>
+            <span className="truncate text-[12px] text-fg-faint">{positionName(p.position, digital)}</span>
             <AnswerIcon accepted={p.accepted} />
             <span className={cx("truncate", p.accepted ? "font-medium text-fg" : "text-fg-muted")}>
               {p.name}

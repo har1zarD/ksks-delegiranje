@@ -6,7 +6,7 @@ import { TeamName } from "@/components/team-name";
 import { DateTile } from "@/components/match-line";
 import { Button, CARD, cx, inputClass, Status } from "@/components/ui";
 import { formatKM, type PayrollMatch } from "@/lib/finance";
-import { matchNo, POSITION_LABEL } from "@/lib/format";
+import { matchNo, positionName } from "@/lib/format";
 import { setFees } from "../actions";
 import { MarkAllPaid, PaidToggle } from "@/components/paid-toggle";
 
@@ -93,7 +93,7 @@ export function PayrollMatchCard({ match: m, unplayed = false }: { match: Payrol
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-semibold">{i.name}</span>
                   <span className="block truncate text-[12px] text-fg-muted">
-                    {POSITION_LABEL[i.position]}, po pravilu {i.ruleAmount == null ? "bez cijene" : formatKM(i.ruleAmount)}
+                    {positionName(i.position, i.digital)}, po pravilu {i.ruleAmount == null ? "bez cijene" : formatKM(i.ruleAmount)}
                   </span>
                 </span>
                 <div className="relative w-28 shrink-0">
@@ -133,7 +133,7 @@ export function PayrollMatchCard({ match: m, unplayed = false }: { match: Payrol
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-semibold">{i.name}</span>
                   <span className="block truncate text-[12px] text-fg-muted">
-                    {POSITION_LABEL[i.position]}
+                    {positionName(i.position, i.digital)}
                     {i.custom && ", ručna cijena"}
                   </span>
                 </span>

@@ -92,7 +92,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
   /** "17. 10. 18:40 · Mak Topčić (glavno vrijeme)": službeno lice s utakmice, savez ili automatski (cron) */
   const stamp = (at: string, actor: { id: string; full_name: string; role: string } | null) => {
     const pos = actor && accepted.find((a) => a.profile?.id === actor.id)?.position;
-    const who = !actor ? "automatski" : pos ? `${actor.full_name} (${POSITION_LABEL[pos].toLowerCase()})` : actor.role === "admin" ? `${actor.full_name} (savez)` : actor.full_name;
+    const who = !actor ? "automatski" : pos ? `${actor.full_name} (${positionName(pos, crew.digital).toLowerCase()})` : actor.role === "admin" ? `${actor.full_name} (savez)` : actor.full_name;
     return `${formatDayMonth(at)} ${formatTime(at)} · ${who}`;
   };
   // Prazna pozicija se može ukloniti sa utakmice ako su prazne i sve pozicije koje bi s njom nestale (zadnja sudija, zadnja statistika)

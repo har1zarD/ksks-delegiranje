@@ -32,7 +32,7 @@ export const myNominations = defineTool({
       .sort((a, b) => a.match!.starts_at.localeCompare(b.match!.starts_at))
       .map((a) => ({
         nominacija_id: a.id,
-        ...positionView(a.position),
+        ...positionView(a.position, a.match!.digital_scoresheet),
         status: ASSIGNMENT_STATUS_LABEL[a.status],
         utakmica: matchView(a.match!),
       }));
@@ -79,7 +79,7 @@ export const myMatches = defineTool({
     const list = rows
       .filter((a) => a.match)
       .sort((a, b) => a.match!.starts_at.localeCompare(b.match!.starts_at))
-      .map((a) => ({ upcoming: a.match!.starts_at >= now, ...positionView(a.position), utakmica: matchView(a.match!) }))
+      .map((a) => ({ upcoming: a.match!.starts_at >= now, ...positionView(a.position, a.match!.digital_scoresheet), utakmica: matchView(a.match!) }))
       .filter((a) => (!od || a.utakmica.datum >= od) && (!to || a.utakmica.datum <= to));
     const view = ({ pozicija, pozicija_naziv, utakmica }: (typeof list)[number]) => ({ pozicija, pozicija_naziv, utakmica });
     return {

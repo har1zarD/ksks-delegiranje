@@ -11,7 +11,7 @@ import {
   type PayrollPerson,
   type PayrollSelection,
 } from "@/lib/finance";
-import { formatDayMonth, matchNo, POSITION_LABEL } from "@/lib/format";
+import { formatDayMonth, matchNo, positionName } from "@/lib/format";
 import { cx, inputClass } from "@/components/ui";
 import { FilterForm, FilterLink, FilterSegment, FilterSegments } from "@/components/filter-nav";
 import { MarkAllPaid, PaidBadge, PaidToggle } from "@/components/paid-toggle";
@@ -241,7 +241,7 @@ export function PayrollItems({ person, editable }: { person: PayrollPerson; edit
             <span className="mt-1 block text-[13px] text-fg-muted">
               <span className="sm:hidden">{formatDayMonth(i.startsAt)}, </span>
               <span className="font-semibold text-fg">{matchNo(i.number)}</span>, {i.competition}
-              {i.kind && ` (${i.kind})`}, {POSITION_LABEL[i.position].toLowerCase()}
+              {i.kind && ` (${i.kind})`}, {positionName(i.position, i.digital).toLowerCase()}
               {i.position.startsWith("referee") && (i.refereeCount === 3 ? " (trojka)" : " (dvojka)")}
             </span>
           </Link>

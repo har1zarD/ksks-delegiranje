@@ -190,12 +190,12 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
                                           {payMark && <PaymentMark payment={m.payment} />}
                                         </div>
                                       )}
-                                      <StaffingCrew staffing={m.staffing} tabbed={false} />
+                                      <StaffingCrew staffing={m.staffing} digital={m.digital_scoresheet} tabbed={false} />
                                     </div>
                                   ) : sheet ? (
                                     <SheetMark />
                                   ) : m.status === "scheduled" ? (
-                                    <StaffingCrew staffing={m.staffing} />
+                                    <StaffingCrew staffing={m.staffing} digital={m.digital_scoresheet} />
                                   ) : statusMark ? (
                                     <Status tone={m.status === "finished" ? "muted" : "orange"} size={m.status === "postponed" ? "lg" : undefined}>
                                       {MATCH_STATUS_LABEL[m.status]}
