@@ -1,8 +1,11 @@
 "use client";
 
-import { createContext, useContext, useOptimistic, useTransition, type ReactNode } from "react";
+import { createContext, useContext, useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
+import { Popover } from "@/components/popover";
+import { OptionList, SEARCH_FROM } from "@/components/select";
 import { cx } from "@/components/ui";
 
 // Filteri u URL-u (?prikaz=…&takmicenje=…&strana=…): klik odmah označi novi izbor i pokaže skelet liste,
@@ -79,6 +82,88 @@ export function FilterSegment({ href, param, value, active, children }: { href: 
     >
       {children}
     </Link>
+  );
+}
+
+/** Mali izbor u redu filtera (visina i slova kao dugmad za termin i dvoranu u listi); uključen je obojen */
+const CHIP = "inline-flex h-9 min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 text-[13px] font-semibold transition-colors sm:h-8 [&>svg]:size-3.5 [&>svg]:shrink-0";
+const CHIP_OFF = "border-line bg-panel text-fg-muted hover:border-line-hover hover:bg-panel-2 hover:text-fg";
+const CHIP_ON = "border-fg bg-fg text-bg";
+
+/** Prekidač filtera: klik uključi izbor, ponovni klik ga isključi (`href` je stanje nakon klika) */
+export function FilterChip({ href, param, value, active, children }: { href: string; param: string; value: string; active: boolean; children: ReactNode }) {
+  const on = useActive(param, value, active);
+  const go = useGo(href);
+  return (
+    <Link href={href} onClick={go} aria-current={on ? "true" : undefined} className={cx(CHIP, on ? CHIP_ON : CHIP_OFF)}>
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * Izbor iz liste (npr. dvorana) kao filter u URL-u: malo dugme koje otvara listu, svaka opcija nosi svoj href.
+ * Opcija "" je "bez filtera": tada dugme nosi samo naziv filtera (`label`). `hint` je sitni tekst desno (broj utakmica).
+ */
+export function FilterSelect({
+  param,
+  value,
+  label,
+  icon,
+  options,
+}: {
+  param: string;
+  value: string;
+  label: string;
+  icon?: ReactNode;
+  options: { value: string; label: string; hint?: string; href: string }[];
+}) {
+  const nav = useContext(FilterNavContext)!;
+  const [open, setOpen] = useState(false);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  // Dok se nova stranica učitava, važi kliknuti izbor
+  const current = nav.pending ? (nav.pending.get(param) ?? "") : value;
+  const selected = current ? options.find((o) => o.value === current) : undefined;
+
+  const close = (refocus = true) => {
+    setOpen(false);
+    if (refocus) trigger.current?.focus();
+  };
+
+  return (
+    <span ref={anchor} className="inline-flex min-w-0">
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        aria-label={selected ? `${label}: ${selected.label}` : label}
+        onClick={() => setOpen((o) => !o)}
+        className={cx(CHIP, selected ? CHIP_ON : CHIP_OFF, open && "ring-4 ring-fg/8")}
+      >
+        {icon}
+        <span className="truncate">{selected?.label ?? label}</span>
+        <ChevronDown aria-hidden className={cx("transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <Popover id={id} anchor={anchor} label={label} width={280} onClose={close} className="p-1">
+          <OptionList
+            options={options.map((o) => ({ value: o.value, label: o.label, hint: o.hint, disabled: false }))}
+            current={current}
+            searchable={options.length > SEARCH_FROM}
+            label={label}
+            onPick={(v) => {
+              close();
+              const picked = options.find((o) => o.value === v);
+              if (picked && v !== current) nav.go(picked.href);
+            }}
+          />
+        </Popover>
+      )}
+    </span>
   );
 }
 

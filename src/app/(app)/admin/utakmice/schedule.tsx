@@ -1,23 +1,33 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, FileImage } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileImage, MapPin } from "lucide-react";
 import { delegatedHere, getAdminMatches, getCompetitions, getHalls, type MatchPayment } from "@/lib/data/admin";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
-import { FilterContent, FilterNavProvider, FilterSegment, PageLink, PageStep } from "@/components/filter-nav";
+import { FilterChip, FilterContent, FilterNavProvider, FilterSegment, FilterSelect, PageLink, PageStep } from "@/components/filter-nav";
 import { LiveRefresh } from "@/components/live-refresh";
 import { PublishSelection, SelectAll, SelectMatch, type Incomplete } from "@/components/publish";
 import { CrewLine } from "@/components/crew-line";
 import { MatchLine } from "@/components/match-line";
 import { StaffingCrew, StaffingTab } from "@/components/staffing-badge";
 import { matchesWithScoresheets } from "@/lib/scoresheets";
-import { MatchLineSkeleton, SegmentsSkeleton, Skeleton, Text, times, StatusSkeleton } from "@/components/skeleton";
+import { Bone, MatchLineSkeleton, SegmentsSkeleton, Skeleton, Text, times, StatusSkeleton } from "@/components/skeleton";
 import { ButtonLink, cx, Empty, Rows, ROWS, Segments, Status } from "@/components/ui";
 import { QuickAssign } from "./quick-assign";
 import { ScheduleEdit } from "./schedule-edit";
 import { paginateDays, pageRange } from "@/lib/paginate";
 
 export type ScheduleParams = Record<string, string | string[] | undefined>;
+
+/** Filter po stanju delegiranja (?delegiranje=) */
+type StaffingFilter = "nedostaje" | "popunjeno";
+const STAFFING_FILTERS: { value: StaffingFilter; label: string }[] = [
+  { value: "nedostaje", label: "Nedelegirane" },
+  { value: "popunjeno", label: "Popunjene" },
+];
+
+/** Vrijednost filtera dvorane (?dvorana=) za utakmice bez dvorane */
+const NO_HALL = "bez";
 
 /**
  * Raspored po danima s filterom takmičenja i stranicama.
@@ -28,21 +38,31 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
   const competitionId = typeof sp.takmicenje === "string" ? sp.takmicenje : undefined;
   const activate = mode === "activate";
   const past = !activate && sp.prikaz === "odigrane";
+  // Delegiranje (samo predstojeće): zakazane kojima nedostaje pozicija ili su sve popunjene
+  const staffingFilter: StaffingFilter | undefined = !past && (sp.delegiranje === "nedostaje" || sp.delegiranje === "popunjeno") ? sp.delegiranje : undefined;
 
   const [competitions, all, withSheets, halls] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
     matchesWithScoresheets(),
-    activate ? getHalls() : [],
+    getHalls(),
   ]);
 
+  // Dvorana: id iz šifarnika ili NO_HALL (utakmice bez dvorane); nepoznata vrijednost = bez filtera
+  const hallId = typeof sp.dvorana === "string" && (sp.dvorana === NO_HALL || halls.some((h) => h.id === sp.dvorana)) ? sp.dvorana : undefined;
+
   // Novi filter vraća na prvu stranicu
-  const href = (p: { takmicenje?: string; prikaz?: string; strana?: number }) => {
+  const href = (p: { takmicenje?: string; prikaz?: string; delegiranje?: StaffingFilter; dvorana?: string; strana?: number }) => {
     const q = new URLSearchParams();
     const t = "takmicenje" in p ? p.takmicenje : competitionId;
     const v = "prikaz" in p ? p.prikaz : past ? "odigrane" : undefined;
+    const d = "delegiranje" in p ? p.delegiranje : staffingFilter;
+    const h = "dvorana" in p ? p.dvorana : hallId;
     if (t) q.set("takmicenje", t);
     if (v) q.set("prikaz", v);
+    // Odigrane nemaju filter delegiranja
+    if (d && !v) q.set("delegiranje", d);
+    if (h) q.set("dvorana", h);
     if (p.strana && p.strana > 1) q.set("strana", String(p.strana));
     const s = q.toString();
     return `${basePath}${s ? `?${s}` : ""}`;
@@ -50,9 +70,33 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
 
   // Predstojeće van Sarajeva (A2 liga jug, A1 žene) KSKS ne delegira.
   // Aktiviranje: zakazane i odgođene koje još nisu aktivirane (nominacija nije poslana)
-  const matches = past
+  const base = past
     ? all
     : all.filter((m) => delegatedHere(m) && (!activate || (!m.published_at && (m.status === "scheduled" || m.status === "postponed"))));
+
+  type Match = (typeof base)[number];
+  const inHall = (m: Match) => !hallId || (hallId === NO_HALL ? !m.hall : m.hall?.id === hallId);
+  // Stanje delegiranja imaju samo zakazane (jezičak "Nedostaje N" / "Popunjeno")
+  const staffed = (m: Match, f = staffingFilter) => !f || (m.status === "scheduled" && (m.staffing.missing.length > 0) === (f === "nedostaje"));
+
+  // Brojevi uz svaki filter poštuju drugi filter: delegiranje broji u izabranoj dvorani, dvorane u izabranom delegiranju
+  const byHall = base.filter(inHall);
+  const byStaffing = base.filter((m) => staffed(m));
+  const matches = byHall.filter((m) => staffed(m));
+
+  const hallCount = new Map<string, number>();
+  for (const m of byStaffing) {
+    const key = m.hall?.id ?? NO_HALL;
+    hallCount.set(key, (hallCount.get(key) ?? 0) + 1);
+  }
+  const hallOption = (value: string, label: string) => ({ value, label, hint: String(hallCount.get(value) ?? 0), href: href({ dvorana: value }) });
+  // Samo dvorane koje imaju utakmice u ovom izboru (i izabrana, da ostane u listi)
+  const hallOptions = [
+    { value: "", label: "Sve dvorane", hint: String(byStaffing.length), href: href({ dvorana: undefined }) },
+    ...halls.filter((h) => hallCount.has(h.id) || h.id === hallId).map((h) => hallOption(h.id, h.name)),
+    ...(hallCount.has(NO_HALL) || hallId === NO_HALL ? [hallOption(NO_HALL, "Bez dvorane")] : []),
+  ];
+  const narrowed = Boolean(staffingFilter || hallId);
 
   // Grupisanje po danu (sarajevsko vrijeme)
   const days = new Map<string, typeof matches>();
@@ -68,9 +112,9 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
 
   const live = matches.filter((m) => m.status === "live").map((m) => m.id);
   const unpublished = (list: typeof matches) => list.filter((m) => m.status === "scheduled" && !m.published_at).map((m) => m.id);
-  // Za napomenu u traci kad je označena utakmica bez svih službenih lica
+  // Za napomenu u traci kad je označena utakmica bez svih službenih lica (i kad je filter sakrije, oznaka ostaje)
   const incomplete: Incomplete = Object.fromEntries(
-    matches
+    base
       .filter((m) => m.status === "scheduled" && m.staffing.missing.length > 0)
       .map((m) => [m.id, { label: `${m.home?.name ?? "—"} – ${m.away?.name ?? "—"}`, missing: m.staffing.missing.length }]),
   );
@@ -100,19 +144,40 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
               </FilterSegment>
             ))}
           </Segments>
+          {/* Sitni izbori u jednom redu: klik na stanje delegiranja ga uključi (ponovni klik isključi), dvorana iz liste */}
+          <div className="flex flex-wrap items-center gap-2">
+            {!past &&
+              STAFFING_FILTERS.map((f) => (
+                <FilterChip key={f.value} href={href({ delegiranje: staffingFilter === f.value ? undefined : f.value })} param="delegiranje" value={f.value} active={staffingFilter === f.value}>
+                  {f.label}
+                  <span className="tabular font-medium opacity-60">{byHall.filter((m) => staffed(m, f.value)).length}</span>
+                </FilterChip>
+              ))}
+            <FilterSelect param="dvorana" value={hallId ?? ""} label="Dvorana" icon={<MapPin aria-hidden="true" />} options={hallOptions} />
+          </div>
         </div>
 
         <FilterContent fallback={<DaysSkeleton />}>
           {matches.length === 0 ? (
             <Empty
               icon={<Image src="/brand/calendar-icon.webp" alt="" width={40} height={40} className="size-10" />}
-              action={!past && <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>}
+              action={
+                narrowed ? (
+                  <ButtonLink href={href({ delegiranje: undefined, dvorana: undefined })} variant="secondary">
+                    Poništi filtere
+                  </ButtonLink>
+                ) : (
+                  !past && <ButtonLink href="/admin/utakmice/nova">Nova utakmica</ButtonLink>
+                )
+              }
             >
-              {past
-                ? "Nema odigranih utakmica za ovaj izbor."
-                : activate
-                  ? "Nema utakmica za aktiviranje za ovaj izbor. Aktivirane su gore i u Utakmicama."
-                  : "Nema zakazanih utakmica za ovaj izbor. Dodaj utakmicu ili napravi raspored u Takmičenjima."}
+              {narrowed
+                ? "Nema utakmica za ovaj filter."
+                : past
+                  ? "Nema odigranih utakmica za ovaj izbor."
+                  : activate
+                    ? "Nema utakmica za aktiviranje za ovaj izbor. Aktivirane su gore i u Utakmicama."
+                    : "Nema zakazanih utakmica za ovaj izbor. Dodaj utakmicu ili napravi raspored u Takmičenjima."}
             </Empty>
           ) : (
             shown.map(([day, list]) => (
@@ -291,6 +356,11 @@ export function ScheduleSkeleton({ segments = true }: { segments?: boolean }) {
       <Skeleton className="flex flex-col gap-3">
         {segments && <SegmentsSkeleton widths={["w-16", "w-16"]} />}
         <SegmentsSkeleton widths={["w-24", "w-16", "w-20", "w-14", "w-20", "w-16"]} />
+        <div className="flex flex-wrap items-center gap-2">
+          {["w-32", "w-28", "w-24"].map((w) => (
+            <Bone key={w} className={cx("h-9 sm:h-8", w)} />
+          ))}
+        </div>
       </Skeleton>
       <DaysSkeleton />
     </div>

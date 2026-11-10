@@ -30,7 +30,7 @@ type Option = { value: string; label: string; disabled: boolean; icon?: ReactNod
 type CreateResult = { value: string; label: string } | { error: string };
 
 /** Lista se može pretraživati kad ima više opcija od ovoga */
-const SEARCH_FROM = 8;
+export const SEARCH_FROM = 8;
 
 /** Izbor s naslovom i opisom ispod, kao Field */
 export function Select({
@@ -166,7 +166,8 @@ export function SelectInput({
   );
 }
 
-function OptionList({
+/** Lista opcija u plutajućem prozoru (pretraga, strelice, kvačica uz izabranu); koristi je i filter (FilterSelect) */
+export function OptionList({
   options,
   current,
   searchable,
