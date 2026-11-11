@@ -2,6 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
+import { usesQuarterPoints } from "@/lib/quarter-points";
 import { matchRoleOf, SCORESHEET_BUCKET } from "@/lib/scoresheets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -197,19 +198,86 @@ export async function saveFinalScore(prev: FinalScoreState, formData: FormData):
   return { saved: (prev.saved ?? 0) + 1 };
 }
 
+export type QuarterScoreState = { error?: string; saved?: number };
+
+/**
+ * Minibasket: koševi sve 4 četvrtine upisani odjednom na kraju utakmice. Upisuje prihvaćeni sudija ili pomoćni sudija
+ * te utakmice, ili admin. Rezultat utakmice (bodove četvrtina) iz koševa računa okidač sync_match_score.
+ * Utakmica postaje završena; rok za ispravku je isti kao kod konačnog rezultata. Piše servisni klijent, pristup je provjeren ovdje.
+ */
+export async function saveQuarterScore(prev: QuarterScoreState, formData: FormData): Promise<QuarterScoreState> {
+  const matchId = String(formData.get("match_id") ?? "");
+  const user = await getCurrentUser();
+  const role = await matchRoleOf(user, matchId);
+  if (role !== "admin" && role !== "table" && role !== "referee") return { error: "Rezultat upisuju sudije ili pomoćne sudije ove utakmice." };
+
+  const db = createAdminClient();
+  const { data: match } = await db
+    .from("matches")
+    .select("status, score_entered_at, home_score, fiba_game_id, competition:competitions!matches_competition_id_fkey ( category )")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (!match) return { error: "Utakmica nije pronađena." };
+  if (!usesQuarterPoints(match.competition?.category)) return { error: "Rezultat po četvrtinama se upisuje samo na Minibasketu." };
+  if (match.fiba_game_id != null) return { error: FIBA_SCORE };
+  if (match.status === "cancelled" || match.status === "postponed") return { error: "Utakmica je otkazana ili odgođena." };
+  const correction = match.home_score != null;
+  if (role !== "admin" && correction && !scoreUndoUntil(match.score_entered_at)) {
+    return { error: `Rok od ${SCORE_UNDO_HOURS} sata za ispravku je prošao. Za ispravku se javi savezu.` };
+  }
+
+  const quarters = [];
+  for (let period = 1; period <= 4; period++) {
+    const home = String(formData.get(`home_${period}`) ?? "").trim();
+    const away = String(formData.get(`away_${period}`) ?? "").trim();
+    const h = points(home);
+    const a = points(away);
+    if (!home || !away || h === null || a === null) return { error: "Upiši koševe obje ekipe za sve 4 četvrtine (cijeli broj od 0 do 200)." };
+    quarters.push({ match_id: matchId, period, home_points: h, away_points: a, updated_by: user.id });
+  }
+
+  const saved = await db.from("match_periods").upsert(quarters);
+  if (saved.error) return { error: "Rezultat nije sačuvan. Pokušaj ponovo." };
+  // Minibasket nema produžetaka
+  await db.from("match_periods").delete().eq("match_id", matchId).gt("period", 4);
+
+  // Rok teče od prvog upisa (ispravka ga ne produžava); rezultat koji upiše savez delegirani više ne mijenjaju
+  const enteredAt = role === "admin" ? null : correction ? match.score_entered_at : new Date().toISOString();
+  const { error } = await db.from("matches").update({ status: "finished", score_entered_at: enteredAt, finished_by: user.id }).eq("id", matchId);
+  if (error) return { error: "Rezultat nije sačuvan. Pokušaj ponovo." };
+
+  invalidate({ table: "match_periods", match: matchId }, { table: "matches", match: matchId });
+  return { saved: (prev.saved ?? 0) + 1 };
+}
+
 export type UndoScoreState = { error?: string };
 
-/** Pomoćni sudija poništava pogrešno upisan konačni rezultat u roku: utakmica se vraća na zakazanu, bez rezultata */
+/**
+ * Poništavanje pogrešno upisanog rezultata u roku: utakmica se vraća na zakazanu, bez rezultata.
+ * Poništava pomoćni sudija; na Minibasketu (rezultat po četvrtinama) i sudija, a brišu se i upisane četvrtine.
+ */
 export async function undoFinalScore(_prev: UndoScoreState, formData: FormData): Promise<UndoScoreState> {
   const matchId = String(formData.get("match_id") ?? "");
   const user = await getCurrentUser();
-  if ((await matchRoleOf(user, matchId)) !== "table") return { error: "Rezultat poništava pomoćni sudija za stolom." };
+  const role = await matchRoleOf(user, matchId);
+  if (role !== "table" && role !== "referee") return { error: "Rezultat poništava pomoćni sudija za stolom." };
 
   const db = createAdminClient();
-  const { data: match } = await db.from("matches").select("status, has_commissioner, score_entered_at").eq("id", matchId).maybeSingle();
+  const { data: match } = await db
+    .from("matches")
+    .select("status, has_commissioner, score_entered_at, competition:competitions!matches_competition_id_fkey ( category )")
+    .eq("id", matchId)
+    .maybeSingle();
   if (!match) return { error: "Utakmica nije pronađena." };
+  const quarters = usesQuarterPoints(match.competition?.category);
+  if (role === "referee" && !quarters) return { error: "Rezultat poništava pomoćni sudija za stolom." };
   if (match.has_commissioner || match.status !== "finished") return { error: "Nema upisanog rezultata za poništavanje." };
   if (!scoreUndoUntil(match.score_entered_at)) return { error: `Rok od ${SCORE_UNDO_HOURS} sata je prošao. Za ispravku se javi savezu.` };
+
+  if (quarters) {
+    const removed = await db.from("match_periods").delete().eq("match_id", matchId);
+    if (removed.error) return { error: "Rezultat nije poništen. Pokušaj ponovo." };
+  }
 
   const { error } = await db
     .from("matches")
@@ -218,7 +286,7 @@ export async function undoFinalScore(_prev: UndoScoreState, formData: FormData):
     .eq("status", "finished");
   if (error) return { error: "Rezultat nije poništen. Pokušaj ponovo." };
 
-  invalidate({ table: "matches", match: matchId });
+  invalidate({ table: "match_periods", match: matchId });
   return {};
 }
 

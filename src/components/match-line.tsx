@@ -2,6 +2,7 @@ import { TeamName, type TeamIdentity } from "@/components/team-name";
 import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
 import { formatTime, isoToSarajevo, matchKindLabel, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS, type MatchKind } from "@/lib/format";
+import { formatScore } from "@/lib/quarter-points";
 
 export type PeriodScore = { period: number; home_points: number; away_points: number };
 
@@ -144,11 +145,11 @@ export function MatchLine({
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !homeWon && "text-fg-muted")}>
             <TeamName name={match.home?.name ?? "—"} logoUrl={match.home?.club?.logo_url} />
           </span>
-          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", homeWon ? "text-brand" : "text-fg-muted")}>{match.home_score}</span>}
+          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", homeWon ? "text-brand" : "text-fg-muted")}>{formatScore(match.home_score!)}</span>}
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !awayWon && "text-fg-muted")}>
             <TeamName name={match.away?.name ?? "—"} logoUrl={match.away?.club?.logo_url} />
           </span>
-          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", awayWon ? "text-brand" : "text-fg-muted")}>{match.away_score}</span>}
+          {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", awayWon ? "text-brand" : "text-fg-muted")}>{formatScore(match.away_score!)}</span>}
         </div>
         {hall}
         {meta && <div className="mt-2 text-[14px]">{meta}</div>}
@@ -232,7 +233,7 @@ export function BoxScore({
             );
           }),
           <span key={`${side}-total`} className={cx(total, leads || points === other ? "text-fg" : "text-fg-faint")}>
-            {points}
+            {formatScore(points)}
           </span>,
         ];
       })}

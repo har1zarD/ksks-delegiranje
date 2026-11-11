@@ -1,5 +1,6 @@
 import type { SocialMatch } from "@/lib/data/social";
 import { formatTime, formatWeekday } from "@/lib/format";
+import { formatScore } from "@/lib/quarter-points";
 import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 
@@ -513,9 +514,9 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const home = m.homeScore ?? 0;
     const away = m.awayScore ?? 0;
     const side = max / 2 - size * 0.24;
-    text(String(home), cx - size * 0.24, cy, { size, color: home >= away ? theme.ink : theme.muted, max: side, weight: 700, align: "right", face: "poster" });
+    text(formatScore(home), cx - size * 0.24, cy, { size, color: home >= away ? theme.ink : theme.muted, max: side, weight: 700, align: "right", face: "poster" });
     text(":", cx, cy - size * 0.05, { size: size * 0.8, color: theme.accent, max: size * 0.3, weight: 700, align: "center", face: "poster" });
-    text(String(away), cx + size * 0.24, cy, { size, color: away >= home ? theme.ink : theme.muted, max: side, weight: 700, align: "left", face: "poster" });
+    text(formatScore(away), cx + size * 0.24, cy, { size, color: away >= home ? theme.ink : theme.muted, max: side, weight: 700, align: "left", face: "poster" });
   }
 
   // ── Raspored ─────────────────────────────────────────────
@@ -920,8 +921,8 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       { full: "UTAKMICE", short: "UT", width: 0.105, value: (r: SocialStanding) => String(r.played) },
       { full: "POBJEDE", short: "POB", width: 0.1, value: (r: SocialStanding) => String(r.won) },
       { full: "PORAZI", short: "POR", width: 0.1, value: (r: SocialStanding) => String(r.lost) },
-      { full: "KOŠ RAZLIKA", short: "+/-", width: 0.13, value: (r: SocialStanding) => (r.diff > 0 ? `+${r.diff}` : String(r.diff)) },
-      { full: "BODOVI", short: "BOD", width: 0.1, value: (r: SocialStanding) => String(r.points) },
+      { full: "KOŠ RAZLIKA", short: "+/-", width: 0.13, value: (r: SocialStanding) => (r.diff > 0 ? `+${formatScore(r.diff)}` : formatScore(r.diff)) },
+      { full: "BODOVI", short: "BOD", width: 0.1, value: (r: SocialStanding) => formatScore(r.points) },
     ];
     const rankWidth = width * 0.075;
     const numbersWidth = numbers.reduce((sum, c) => sum + c.width * width, 0);

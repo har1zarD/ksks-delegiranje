@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import { BULLETIN_CATEGORIES, getRoundBulletin, type BulletinCategory } from "@/lib/data/report";
 import { formatDayMonth, formatTime, MATCH_STATUS_LABEL, matchNo } from "@/lib/format";
+import { formatScore, usesQuarterPoints } from "@/lib/quarter-points";
 import { Skeleton, Text, times } from "@/components/skeleton";
 import { FilterContent, FilterNavProvider, FilterSegment, FilterSegments } from "@/components/filter-nav";
 import { cx } from "@/components/ui";
@@ -59,8 +60,9 @@ async function RoundBulletin({ searchParams }: { searchParams: SearchParams }) {
   const sheets = data.competitions.flatMap((c) => c.matches);
   const score = (s: (typeof sheets)[number]) => {
     const t = s.periods.reduce((a, p) => ({ h: a.h + p.home_points, a: a.a + p.away_points }), { h: 0, a: 0 });
-    if (s.periods.length > 0) return `${t.h} : ${t.a}`;
-    return s.match.home_score != null ? `${s.match.home_score} : ${s.match.away_score}` : "—";
+    // Minibasket: rezultat utakmice su bodovi četvrtina, ne zbir koševa
+    if (s.periods.length > 0 && !usesQuarterPoints(category)) return `${t.h} : ${t.a}`;
+    return s.match.home_score != null && s.match.away_score != null ? `${formatScore(s.match.home_score)} : ${formatScore(s.match.away_score)}` : "—";
   };
 
   return (

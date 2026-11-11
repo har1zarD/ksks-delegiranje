@@ -11,9 +11,12 @@ import { Button, buttonClass, cx, SectionTitle, Status } from "@/components/ui";
 import { setStatus } from "./actions";
 import { BiltenForm } from "./bilten-form";
 import { FinalScoreForm } from "./final-score-form";
+import { QuarterScoreForm } from "./quarter-score-form";
 import { FinishButton } from "./finish-button";
 import { LockMatchButton } from "@/components/lock-match-button";
 import { MatchPaidButton } from "@/components/match-paid-button";
+import { BoxScore } from "@/components/match-line";
+import { usesQuarterPoints } from "@/lib/quarter-points";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 import { FibaMatchForm } from "@/app/(app)/fiba/link-match";
@@ -56,13 +59,15 @@ async function Match({ params }: { params: Params }) {
   const open = match.status !== "cancelled" && match.status !== "postponed";
   // Povezana FIBA LiveStats utakmica: četvrtine se same prepisuju iz FIBA (pg_cron svake minute), niko ih ne unosi
   const fiba = match.fiba_game_id != null;
+  // Minibasket: rezultat su bodovi četvrtina; koševi sve 4 četvrtine se upisuju odjednom na kraju utakmice
+  const quarters = usesQuarterPoints(match.competition?.category);
   // Bez komesara (i bez četvrtina) vodi se samo konačni rezultat: upisuje ga pomoćni sudija sa zapisnika
-  const finalOnly = !fiba && periods.length === 0 && (match.home_score != null || !match.has_commissioner);
-  // Pomoćni sudija smije ispraviti ili poništiti svoj rezultat još 24 sata nakon upisa
-  const tableScores = isTable && !isAdmin && !match.has_commissioner;
-  const undoUntil = tableScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
-  // Sto upisuje rezultat dok ga nema (i kad je sudija već označio utakmicu završenom) ili dok traje rok za ispravku
-  const canFinal = !fiba && open && (isAdmin ? finalOnly : tableScores && (match.home_score == null || undoUntil !== null));
+  const finalOnly = quarters || (!fiba && periods.length === 0 && (match.home_score != null || !match.has_commissioner));
+  // Rezultat upisuje pomoćni sudija (kad nema komesara); na Minibasketu sudije ili pomoćne sudije. Smiju ga ispraviti ili poništiti još 24 sata nakon upisa
+  const crewScores = !isAdmin && (quarters ? isTable || isReferee : isTable && !match.has_commissioner);
+  const undoUntil = crewScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
+  // Upisuju rezultat dok ga nema (i kad je sudija već označio utakmicu završenom) ili dok traje rok za ispravku
+  const canFinal = !fiba && open && (isAdmin ? finalOnly : crewScores && (match.home_score == null || undoUntil !== null));
   // Zaključavanje bez unosa rezultata: sudije i sto na svojoj stranici, savez uvijek; utakmicu u toku završava komesar
   const canLock = open && match.status !== "finished" && (isAdmin || ((isReferee || isTable) && match.status !== "live"));
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
@@ -94,7 +99,9 @@ async function Match({ params }: { params: Params }) {
           </Status>
         </div>
         <div className="pb-5 pt-4 sm:pb-8 sm:pt-6">
-          {finalOnly ? (
+          {quarters && periods.length > 0 ? (
+            <BoxScore size="lg" match={match} periods={periods} />
+          ) : finalOnly ? (
             <FinalScore homeName={homeName} awayName={awayName} homeLogoUrl={match.home?.club?.logo_url ?? null} awayLogoUrl={match.away?.club?.logo_url ?? null} home={match.home_score} away={match.away_score} />
           ) : (
             <ScoreBoard
@@ -176,7 +183,25 @@ async function Match({ params }: { params: Params }) {
             Zapisnik
           </SectionTitle>
           <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
-            {canFinal && (
+            {canFinal && quarters && (
+              <div>
+                <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">Rezultat po četvrtinama sa zapisnika</h3>
+                {/* key: nakon poništavanja forma kreće ispočetka (prazna polja, bez stare poruke) */}
+                <QuarterScoreForm
+                  key={match.home_score == null ? "new" : "entered"}
+                  matchId={match.id}
+                  homeName={homeName}
+                  awayName={awayName}
+                  homeLogoUrl={match.home?.club?.logo_url ?? null}
+                  awayLogoUrl={match.away?.club?.logo_url ?? null}
+                  periods={periods}
+                  entered={match.home_score != null}
+                  byCrew={crewScores}
+                  undoUntil={undoUntil}
+                />
+              </div>
+            )}
+            {canFinal && !quarters && (
               <div>
                 <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">Konačni rezultat sa zapisnika</h3>
                 {/* key: nakon poništavanja forma kreće ispočetka (prazna polja, bez stare poruke) */}
@@ -189,13 +214,13 @@ async function Match({ params }: { params: Params }) {
                   awayLogoUrl={match.away?.club?.logo_url ?? null}
                   home={match.home_score}
                   away={match.away_score}
-                  byTable={tableScores}
-                  hint={match.competition?.category === "minibasket" || match.competition?.category === "unobasket" ? "Upisuje se broj dobijenih četvrtina, npr. 3:1 (svaka dobijena četvrtina je bod)." : undefined}
+                  byTable={crewScores}
+                  hint={match.competition?.category === "unobasket" ? "Upisuje se broj dobijenih četvrtina, npr. 3:1 (svaka dobijena četvrtina je bod)." : undefined}
                   undoUntil={undoUntil}
                 />
               </div>
             )}
-            {!fiba && tableScores && open && !canFinal && (
+            {!fiba && crewScores && open && !canFinal && (
               <p className="text-[14px] text-fg-muted">Rezultat je upisan i utakmica je završena. Za ispravku se javi savezu.</p>
             )}
             <div className={cx(canFinal && "border-t border-line pt-5")}>

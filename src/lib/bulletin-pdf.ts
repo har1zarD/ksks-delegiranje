@@ -7,6 +7,7 @@ import { A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import type { BulletinOfficials } from "@/lib/bulletin";
 import { formatDate, MATCH_STATUS_LABEL, todayISO, type Position } from "@/lib/format";
+import { formatScore } from "@/lib/quarter-points";
 import {
   A4,
   asset,
@@ -331,7 +332,7 @@ function drawRegistrationMatch(page: PDFPage, f: Fonts, m: RegistrationMatch, y:
   const contentH = 18 + (lines.length > 0 ? 6 + lines.length * PERIOD_LINE : 0);
   let sy = y - TEAM_ROW - (scoreArea - contentH) / 2;
   if (m.score) {
-    centeredIn(page, `${m.score.home} : ${m.score.away}`, f.bold, 16, xs, x3, sy - 14, C.fg);
+    centeredIn(page, `${formatScore(m.score.home)} : ${formatScore(m.score.away)}`, f.bold, 16, xs, x3, sy - 14, C.fg);
     sy -= 24;
     for (const l of lines) {
       centeredIn(page, l, f.regular, PERIOD_SIZE, xs, x3, sy - PERIOD_SIZE, C.muted);
@@ -436,10 +437,10 @@ const STANDINGS_COLS = [
   { label: "OU", value: (r: BulletinStanding) => r.played },
   { label: "P", value: (r: BulletinStanding) => r.won },
   { label: "I", value: (r: BulletinStanding) => r.lost },
-  { label: "KOŠ +", value: (r: BulletinStanding) => r.pointsFor },
-  { label: "KOŠ −", value: (r: BulletinStanding) => r.pointsAgainst },
-  { label: "+/−", value: (r: BulletinStanding) => (r.diff > 0 ? `+${r.diff}` : r.diff) },
-  { label: "BOD", value: (r: BulletinStanding) => r.points },
+  { label: "KOŠ +", value: (r: BulletinStanding) => formatScore(r.pointsFor) },
+  { label: "KOŠ −", value: (r: BulletinStanding) => formatScore(r.pointsAgainst) },
+  { label: "+/−", value: (r: BulletinStanding) => (r.diff > 0 ? `+${formatScore(r.diff)}` : formatScore(r.diff)) },
+  { label: "BOD", value: (r: BulletinStanding) => formatScore(r.points) },
 ];
 const numX = (i: number) => M + W - (STANDINGS_COLS.length - i) * NUM_W;
 

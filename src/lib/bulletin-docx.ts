@@ -24,6 +24,7 @@ import {
 } from "docx";
 import type { BulletinPdfInput, BulletinStanding, NominationMatch, RegistrationMatch } from "@/lib/bulletin-pdf";
 import { formatDate, MATCH_STATUS_LABEL, todayISO } from "@/lib/format";
+import { formatScore } from "@/lib/quarter-points";
 import { A4, asset, M, OFFICIAL_LABEL, upper, W } from "@/lib/schedule-pdf";
 
 // Boje kao C u schedule-pdf
@@ -122,7 +123,7 @@ function registrationBlock(m: RegistrationMatch) {
 
   const score: Paragraph[] = [];
   if (m.score) {
-    score.push(para(`${m.score.home} : ${m.score.away}`, { size: 16, bold: true, align: AlignmentType.CENTER, keepNext: true }));
+    score.push(para(`${formatScore(m.score.home)} : ${formatScore(m.score.away)}`, { size: 16, bold: true, align: AlignmentType.CENTER, keepNext: true }));
     if (m.periods.length > 0) score.push(para(m.periods.map((p) => `${p.home}:${p.away}`).join(", "), { size: 7.5, color: MUTED, align: AlignmentType.CENTER, before: 3, keepNext: true }));
   } else {
     const played = m.status !== "scheduled";
@@ -179,10 +180,10 @@ const STANDINGS_COLS: { label: string; value: (r: BulletinStanding) => string | 
   { label: "OU", value: (r) => r.played },
   { label: "P", value: (r) => r.won },
   { label: "I", value: (r) => r.lost },
-  { label: "KOŠ +", value: (r) => r.pointsFor },
-  { label: "KOŠ −", value: (r) => r.pointsAgainst },
-  { label: "+/−", value: (r) => (r.diff > 0 ? `+${r.diff}` : r.diff) },
-  { label: "BOD", value: (r) => r.points },
+  { label: "KOŠ +", value: (r) => formatScore(r.pointsFor) },
+  { label: "KOŠ −", value: (r) => formatScore(r.pointsAgainst) },
+  { label: "+/−", value: (r) => (r.diff > 0 ? `+${formatScore(r.diff)}` : formatScore(r.diff)) },
+  { label: "BOD", value: (r) => formatScore(r.points) },
 ];
 
 function standingsTable(rows: BulletinStanding[]) {

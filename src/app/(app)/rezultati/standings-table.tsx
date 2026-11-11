@@ -1,4 +1,5 @@
 import { TeamName } from "@/components/team-name";
+import { formatScore } from "@/lib/quarter-points";
 import type { StandingRow } from "@/lib/standings";
 import { cx } from "@/components/ui";
 
@@ -35,12 +36,12 @@ export function StandingsTable({ rows }: { rows: (StandingRow & { logoUrl: strin
                 <td className={cx(NUM, "text-fg-muted")}>{r.played}</td>
                 <td className={NUM}>{r.won}</td>
                 <td className={cx(NUM, "hidden text-fg-muted sm:table-cell")}>{r.lost}</td>
-                <td className={cx(NUM, "hidden text-fg-muted md:table-cell")}>{r.pointsFor}</td>
-                <td className={cx(NUM, "hidden text-fg-muted md:table-cell")}>{r.pointsAgainst}</td>
+                <td className={cx(NUM, "hidden text-fg-muted md:table-cell")}>{formatScore(r.pointsFor)}</td>
+                <td className={cx(NUM, "hidden text-fg-muted md:table-cell")}>{formatScore(r.pointsAgainst)}</td>
                 <td className={cx(NUM, r.diff > 0 ? "text-mint" : r.diff < 0 ? "text-crest" : "text-fg-muted")}>
-                  {r.diff > 0 ? `+${r.diff}` : r.diff}
+                  {r.diff > 0 ? `+${formatScore(r.diff)}` : formatScore(r.diff)}
                 </td>
-                <td className={cx(NUM, "pr-4 text-[22px] sm:pr-5", rank === 1 ? "text-brand" : "text-fg")}>{r.points}</td>
+                <td className={cx(NUM, "pr-4 text-[22px] sm:pr-5", rank === 1 ? "text-brand" : "text-fg")}>{formatScore(r.points)}</td>
               </tr>
             );
           })}

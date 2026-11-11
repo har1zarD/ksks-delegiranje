@@ -1,6 +1,7 @@
 import { TeamName, type TeamIdentity } from "@/components/team-name";
 import { FOUL_TYPE_LABEL, foulTimeLabel, type TechnicalFoul } from "@/lib/data/report-selects";
 import { formatDayMonth, formatTime, formatWeekday, matchNo, positionName, type AssignmentStatus, type Position } from "@/lib/format";
+import { formatScore, usesQuarterPoints } from "@/lib/quarter-points";
 
 // Tijelo biltena jedne utakmice (bez zaglavlja dokumenta): koristi ga bilten utakmice i bilten cijelog kola.
 
@@ -10,7 +11,9 @@ export type SheetMatch = {
   round: number | null;
   starts_at: string;
   digital_scoresheet: boolean;
-  competition: { name: string; short_name: string | null } | null;
+  competition: { name: string; short_name: string | null; category: string } | null;
+  home_score: number | null;
+  away_score: number | null;
   home: TeamIdentity | null;
   away: TeamIdentity | null;
   hall: { name: string } | null;
@@ -36,7 +39,10 @@ export const cell = "border border-black/20 px-2 py-1 print:border-black/40";
 export function ReportBody({ match, crew, periods, report }: { match: SheetMatch; crew: SheetCrew; periods: SheetPeriods; report: SheetReport }) {
   const homeName = match.home?.name ?? "Domaćin";
   const awayName = match.away?.name ?? "Gost";
-  const total = periods.reduce((t, p) => ({ h: t.h + p.home_points, a: t.a + p.away_points }), { h: 0, a: 0 });
+  // Minibasket: ukupno su bodovi četvrtina (rezultat utakmice), ne zbir koševa
+  const total = usesQuarterPoints(match.competition?.category)
+    ? { h: match.home_score ?? 0, a: match.away_score ?? 0 }
+    : periods.reduce((t, p) => ({ h: t.h + p.home_points, a: t.a + p.away_points }), { h: 0, a: 0 });
   const accepted = crew.filter((c) => c.status === "accepted" && c.profile);
   const commissioner = accepted.find((c) => c.position === "commissioner");
 
@@ -51,7 +57,7 @@ export function ReportBody({ match, crew, periods, report }: { match: SheetMatch
         <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
           <TeamName name={homeName} logoUrl={match.home?.club?.logo_url} className="flex-col text-center text-[16px] font-semibold sm:flex-row sm:justify-end sm:text-left sm:text-[18px]" wrap eager />
           <div className="scoreboard whitespace-nowrap text-[28px] font-bold sm:text-[34px]">
-            {total.h} : {total.a}
+            {formatScore(total.h)} : {formatScore(total.a)}
           </div>
           <TeamName name={awayName} logoUrl={match.away?.club?.logo_url} className="flex-col text-center text-[16px] font-semibold sm:flex-row sm:text-left sm:text-[18px]" wrap eager />
         </div>
@@ -86,7 +92,7 @@ export function ReportBody({ match, crew, periods, report }: { match: SheetMatch
                     {p[side]}
                   </td>
                 ))}
-                <td className={`${cell} font-semibold`}>{sum}</td>
+                <td className={`${cell} font-semibold`}>{formatScore(sum)}</td>
               </tr>
             ))}
           </tbody>

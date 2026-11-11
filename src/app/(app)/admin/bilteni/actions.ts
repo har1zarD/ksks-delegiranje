@@ -96,6 +96,7 @@ async function bulletinInput(req: BulletinRequest): Promise<{ input: BulletinPdf
         away: x.away,
         hall: null,
         fibaGameId: null,
+        quarters: c.quarters,
         score: x.score ? { home: x.score.home, away: x.score.away } : null,
         periods: x.score?.periods ?? [],
         officials: [],

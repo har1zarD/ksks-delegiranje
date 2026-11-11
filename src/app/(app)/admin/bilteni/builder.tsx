@@ -18,6 +18,7 @@ import {
 import type { Fixture } from "@/lib/a2-jug-raspored";
 import { matchesLabel } from "@/lib/finance";
 import { formatDate, formatTime, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
+import { formatScore, quarterPoints } from "@/lib/quarter-points";
 import { Button, CARD, cx, Field, inputClass, Status, Textarea } from "@/components/ui";
 import { Chip, Step, Toggle } from "../utakmice/satnice/builder";
 import { getFibaOfficials, makeBulletinDocx, makeBulletinPdf, saveBulletin } from "./actions";
@@ -488,12 +489,12 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
                       />
                     ))}
                     {g.manual.map((x) => (
-                      <ManualMatchOption key={x.id} match={x} onChange={(patch) => updateManualMatch(x.id, patch)} onRemove={() => removeManualMatch(x.id)} />
+                      <ManualMatchOption key={x.id} match={x} quarters={g.competition.quarters} onChange={(patch) => updateManualMatch(x.id, patch)} onRemove={() => removeManualMatch(x.id)} />
                     ))}
                     {g.missing.map((f) => (
                       <MissingFixture key={`${f.home}-${f.away}`} fixture={f} onAdd={() => addManualMatch(g.competition.id, { home: f.home, away: f.away, score: null })} />
                     ))}
-                    <AddManualMatch onAdd={(input) => addManualMatch(g.competition.id, input)} />
+                    <AddManualMatch quarters={g.competition.quarters} onAdd={(input) => addManualMatch(g.competition.id, input)} />
                   </ul>
                 </section>
               );
@@ -627,7 +628,7 @@ function MatchOption({
               {postponed ? (
                 <span className="text-[13px] font-semibold text-orange">Odgođena</span>
               ) : score.source || m.score ? (
-                `${score.home} : ${score.away}`
+                `${formatScore(score.home)} : ${formatScore(score.away)}`
               ) : (
                 <span className="text-[13px] text-fg-muted">{MATCH_STATUS_LABEL[m.status]}</span>
               )}
@@ -663,6 +664,7 @@ function MatchOption({
           {!postponed && editingScore && (
             <ScoreEditor
               score={{ home: score.home, away: score.away, periods: score.periods }}
+              quarters={m.quarters}
               onChange={onScore}
               onReset={score.source ? onScoreReset : undefined}
               hint={score.source ? "Ručno ispravljen" : m.fibaGameId ? "Iz FIBA statistike" : "Zbir iz aplikacije"}
@@ -705,20 +707,23 @@ function MatchOption({
   );
 }
 
-/** Rezultat i, kad su upisane, četvrtine: upisan zbir kad nema četvrtina, inače se zbir računa iz njih */
+/** Rezultat i, kad su upisane, četvrtine: upisan zbir kad nema četvrtina, inače se zbir računa iz njih (`quarters`: zbir su bodovi četvrtina) */
 function ScoreEditor({
   score,
+  quarters,
   onChange,
   onReset,
   hint,
 }: {
   score: BulletinScore;
+  quarters?: boolean;
   onChange: (next: BulletinScore) => void;
   onReset?: () => void;
   hint?: string;
 }) {
   const [open, setOpen] = useState(score.periods.length > 0);
-  const sumOf = (periods: BulletinScore["periods"]) => periods.reduce((t, p) => ({ home: t.home + p.home, away: t.away + p.away }), { home: 0, away: 0 });
+  const sumOf = (periods: BulletinScore["periods"]) =>
+    quarters ? quarterPoints(periods) : periods.reduce((t, p) => ({ home: t.home + p.home, away: t.away + p.away }), { home: 0, away: 0 });
   const setPeriod = (i: number, side: "home" | "away", v: number) => {
     const periods = score.periods.map((p, idx) => (idx === i ? { ...p, [side]: v } : p));
     onChange({ ...sumOf(periods), periods });
@@ -735,6 +740,7 @@ function ScoreEditor({
           type="number"
           min={0}
           max={300}
+          step={quarters ? 0.5 : undefined}
           value={score.home}
           disabled={score.periods.length > 0}
           onChange={(e) => onChange({ ...score, home: Number(e.target.value) || 0 })}
@@ -746,6 +752,7 @@ function ScoreEditor({
           type="number"
           min={0}
           max={300}
+          step={quarters ? 0.5 : undefined}
           value={score.away}
           disabled={score.periods.length > 0}
           onChange={(e) => onChange({ ...score, away: Number(e.target.value) || 0 })}
@@ -803,7 +810,7 @@ function ScoreEditor({
 }
 
 /** Utakmica ručno dopisana u registraciju: ekipe, rezultat, komesar, sudije i primjedbe se upisuju direktno (nema izvora iz aplikacije) */
-function ManualMatchOption({ match: x, onChange, onRemove }: { match: BulletinManualMatch; onChange: (patch: Partial<BulletinManualMatch>) => void; onRemove: () => void }) {
+function ManualMatchOption({ match: x, quarters, onChange, onRemove }: { match: BulletinManualMatch; quarters: boolean; onChange: (patch: Partial<BulletinManualMatch>) => void; onRemove: () => void }) {
   return (
     <li className="flex flex-col gap-3 bg-brand-soft/40 px-4 py-3">
       <div className="flex items-start gap-3">
@@ -829,7 +836,7 @@ function ManualMatchOption({ match: x, onChange, onRemove }: { match: BulletinMa
             Odgođena
           </label>
         </span>
-        {!x.postponed && <ScoreEditor score={x.score ?? { home: 0, away: 0, periods: [] }} onChange={(score) => onChange({ score })} />}
+        {!x.postponed && <ScoreEditor score={x.score ?? { home: 0, away: 0, periods: [] }} quarters={quarters} onChange={(score) => onChange({ score })} />}
       </div>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:pl-8">
         <Field label="Komesar" value={x.officials.commissioner} onChange={(e) => onChange({ officials: { ...x.officials, commissioner: e.target.value } })} placeholder="Ime i prezime" />
@@ -867,7 +874,7 @@ function MissingFixture({ fixture: f, onAdd }: { fixture: Fixture; onAdd: () => 
 }
 
 /** Dugme i forma za dopisivanje utakmice koja nije u rasporedu (npr. prijateljska ili bez upisa u aplikaciju) */
-function AddManualMatch({ onAdd }: { onAdd: (input: { home: string; away: string; score: BulletinScore | null }) => void }) {
+function AddManualMatch({ quarters, onAdd }: { quarters: boolean; onAdd: (input: { home: string; away: string; score: BulletinScore | null }) => void }) {
   const [open, setOpen] = useState(false);
   const [home, setHome] = useState("");
   const [away, setAway] = useState("");
@@ -887,7 +894,9 @@ function AddManualMatch({ onAdd }: { onAdd: (input: { home: string; away: string
     if (!home.trim() || !away.trim()) return;
     const h = Number(homeScore);
     const a = Number(awayScore);
-    const score = homeScore.trim() && awayScore.trim() && Number.isInteger(h) && Number.isInteger(a) ? { home: h, away: a, periods: [] } : null;
+    // Bodovi četvrtina mogu biti i polovine (neriješena četvrtina)
+    const whole = (n: number) => Number.isInteger(quarters ? n * 2 : n);
+    const score = homeScore.trim() && awayScore.trim() && whole(h) && whole(a) ? { home: h, away: a, periods: [] } : null;
     onAdd({ home: home.trim(), away: away.trim(), score });
     setHome("");
     setAway("");
@@ -902,9 +911,9 @@ function AddManualMatch({ onAdd }: { onAdd: (input: { home: string; away: string
         <input value={away} onChange={(e) => setAway(e.target.value)} placeholder="Gost" aria-label="Gost" className={inputClass} />
       </div>
       <div className="flex items-center gap-2">
-        <input value={homeScore} onChange={(e) => setHomeScore(e.target.value)} type="number" min={0} max={300} placeholder="0" aria-label="Poeni domaćina" className={cx(inputClass, "h-9 w-16 px-2 text-center")} />
+        <input value={homeScore} onChange={(e) => setHomeScore(e.target.value)} type="number" min={0} max={300} step={quarters ? 0.5 : undefined} placeholder="0" aria-label="Poeni domaćina" className={cx(inputClass, "h-9 w-16 px-2 text-center")} />
         <span className="text-fg-muted">:</span>
-        <input value={awayScore} onChange={(e) => setAwayScore(e.target.value)} type="number" min={0} max={300} placeholder="0" aria-label="Poeni gosta" className={cx(inputClass, "h-9 w-16 px-2 text-center")} />
+        <input value={awayScore} onChange={(e) => setAwayScore(e.target.value)} type="number" min={0} max={300} step={quarters ? 0.5 : undefined} placeholder="0" aria-label="Poeni gosta" className={cx(inputClass, "h-9 w-16 px-2 text-center")} />
         <span className="text-[12px] text-fg-faint">Rezultat (prazno = nije odigrana)</span>
       </div>
       <div className="flex gap-2">

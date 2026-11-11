@@ -80,7 +80,7 @@ export function FinalScoreForm({
 }
 
 /** Poništavanje pogrešno upisanog rezultata: utakmica se vraća na zakazanu, pa se rezultat upisuje ponovo */
-function UndoScore({ matchId, until }: { matchId: string; until: string }) {
+export function UndoScore({ matchId, until }: { matchId: string; until: string }) {
   const [state, action, pending] = useActionState<UndoScoreState, FormData>(undoFinalScore, {});
 
   return (

@@ -11,6 +11,7 @@ import type { SocialTable } from "@/lib/data/results";
 import type { SavedSocialSchedule } from "@/lib/data/admin";
 import type { Fixture } from "@/lib/a2-jug-raspored";
 import { addDays, formatDate, formatTime, isoToSarajevo, sarajevoToISO, slug } from "@/lib/format";
+import { formatScore } from "@/lib/quarter-points";
 import {
   brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, SOCIAL_YEARS, templateOf,
   type ScheduleDraft, type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions, type SocialYear,
@@ -526,7 +527,7 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
                 {manual && <span className="rounded bg-brand-soft px-1.5 py-0.5 font-semibold text-brand">RUČNO</span>}
                 {fixture && <span className="rounded bg-panel-3 px-1.5 py-0.5 font-semibold text-fg-muted">IZ RASPOREDA</span>}
               </span>
-              <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{m.homeScore} : {m.awayScore}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
+              <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{scoreText(m)}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
               <span className="mt-1 block text-[12px] text-fg-muted">
                 {fixture ? `${formatDate(m.date)} · vrijeme nije određeno` : m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}
               </span>
@@ -1037,12 +1038,18 @@ function SocialPreview({ kind, pages, options, font, page, onPage: setPage, empt
   );
 }
 
+/** Rezultat „78 : 65“; bodovi četvrtina s decimalnim zarezom */
+function scoreText(m: SocialMatch) {
+  const points = (n: number | null) => (n == null ? "" : formatScore(n));
+  return `${points(m.homeScore)} : ${points(m.awayScore)}`;
+}
+
 function describe(content: SocialContent, options: SocialOptions) {
   const title = options.title || "Slika za objavu";
   if (content.kind === "schedule") return `${title}: ${content.matches.map((m) => `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
-  if (content.kind === "results") return `${title}: ${content.matches.map((m) => `${m.home} ${m.homeScore} : ${m.awayScore} ${m.away}, ${formatDate(m.date)}`).join("; ")}`;
-  if (content.kind === "round") return `${title}: ${content.matches.map((m) => isPlayed(m) ? `${m.home} ${m.homeScore} : ${m.awayScore} ${m.away}` : `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
-  if (content.kind === "standings") return `${title}: ${content.rows.map((r, i) => `${content.firstRank + i}. ${r.name} ${r.points} bodova`).join("; ")}`;
+  if (content.kind === "results") return `${title}: ${content.matches.map((m) => `${m.home} ${scoreText(m)} ${m.away}, ${formatDate(m.date)}`).join("; ")}`;
+  if (content.kind === "round") return `${title}: ${content.matches.map((m) => isPlayed(m) ? `${m.home} ${scoreText(m)} ${m.away}` : `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
+  if (content.kind === "standings") return `${title}: ${content.rows.map((r, i) => `${content.firstRank + i}. ${r.name} ${formatScore(r.points)} bodova`).join("; ")}`;
   return `${title}: ${content.clubs.map((c) => c.name).join(", ")}`;
 }
 

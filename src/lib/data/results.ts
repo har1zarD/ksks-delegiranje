@@ -5,6 +5,7 @@ import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES } from "@/lib/crew";
 import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
+import { usesQuarterPoints } from "@/lib/quarter-points";
 import { computeStandings, type CarryOver } from "@/lib/standings";
 import { row, rows } from "./db";
 
@@ -14,7 +15,7 @@ type Db = SupabaseClient<Database>;
 // izvezene funkcije prvo provjere prijavu/ulogu (isto kao RLS: svi aktivni vide takmičenja i rezultate).
 
 const COMPETITION_LIST_SELECT =
-  "id, name, short_name, parent_id, carry_over_h2h, sort, format, season:seasons!competitions_season_id_fkey!inner ( is_current )" as const;
+  "id, name, short_name, category, parent_id, carry_over_h2h, sort, format, season:seasons!competitions_season_id_fkey!inner ( is_current )" as const;
 
 const RESULT_MATCH_SELECT = `
   id, number, kind, kind_label, round, starts_at, status, home_team_id, away_team_id, home_score, away_score,
@@ -50,7 +51,7 @@ export async function getCurrentCompetitions() {
 
 async function loadStandings(
   db: Db,
-  competition: { id: string; parent_id: string | null; carry_over_h2h: boolean },
+  competition: { id: string; category: string; parent_id: string | null; carry_over_h2h: boolean },
   teams: { id: string; name: string; club: { logo_url: string | null } | null }[],
   matches: Parameters<typeof computeStandings>[1],
 ) {
@@ -63,7 +64,7 @@ async function loadStandings(
     carryOver = { parentTeams: rows(pt), parentMatches: rows(pm) };
   }
   const logos = new Map(teams.map((team) => [team.id, team.club?.logo_url ?? null]));
-  return computeStandings(teams, matches, { carryOver }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
+  return computeStandings(teams, matches, { carryOver, quarterPoints: usesQuarterPoints(competition.category) }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
 }
 
 async function getParent(db: Db, parentId: string | null) {
@@ -115,7 +116,7 @@ async function competitionsOverviewRows() {
   return rows(
     await createAdminClient()
       .from("competitions")
-      .select(`${COMPETITION_LIST_SELECT}, category, teams ( count ), matches ( count )`)
+      .select(`${COMPETITION_LIST_SELECT}, teams ( count ), matches ( count )`)
       .eq("season.is_current", true)
       .order("sort")
       .order("name"),

@@ -6,6 +6,7 @@ import { Check, Plus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cx } from "@/components/ui";
 import { periodLabel, periodShort } from "@/lib/format";
+import { formatScore } from "@/lib/quarter-points";
 import { removePeriod, savePeriod } from "./actions";
 
 type Period = { period: number; home_points: number; away_points: number };
@@ -201,9 +202,9 @@ export function FinalScore({ homeName, awayName, homeLogoUrl, awayLogoUrl, home,
   const done = home != null && away != null;
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-2 text-center sm:gap-6">
-      <TeamScore logoUrl={homeLogoUrl} name={homeName} points={home ?? "–"} trails={done && home! < away!} />
+      <TeamScore logoUrl={homeLogoUrl} name={homeName} points={home != null ? formatScore(home) : "–"} trails={done && home! < away!} />
       <div className="scoreboard whitespace-nowrap pb-6 text-[40px] font-semibold text-fg-faint sm:text-[64px]">:</div>
-      <TeamScore logoUrl={awayLogoUrl} name={awayName} points={away ?? "–"} trails={done && away! < home!} />
+      <TeamScore logoUrl={awayLogoUrl} name={awayName} points={away != null ? formatScore(away) : "–"} trails={done && away! < home!} />
     </div>
   );
 }

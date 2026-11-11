@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { BulletinDraft, SavedBulletin } from "@/lib/bulletin";
 import type { ScheduleDraft } from "@/lib/social-image";
+import { usesQuarterPoints } from "@/lib/quarter-points";
 import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
 import {
@@ -534,12 +535,15 @@ async function bulletinRows() {
 export async function getBulletinData() {
   await requireRole("admin");
   const data = await bulletinRows();
+  // Minibasket: rezultat utakmice su bodovi četvrtina (upisuje ih okidač u matches), četvrtine su koševi
+  const quarterIds = new Set(data.competitions.filter((c) => usesQuarterPoints(c.category)).map((c) => c.id));
   const matches = data.matches.map((m) => {
     // match_reports je 1:1 (PK = match_id), ali PostgREST ga može vratiti i kao listu
     const raw = m.match_reports;
     const report = Array.isArray(raw) ? (raw[0] ?? null) : raw;
     const periods = [...m.match_periods].sort((a, b) => a.period - b.period);
     const sum = periods.reduce((t, p) => ({ home: t.home + p.home_points, away: t.away + p.away_points }), { home: 0, away: 0 });
+    const quarters = quarterIds.has(m.competition_id);
     return {
       id: m.id,
       number: m.number,
@@ -554,8 +558,10 @@ export async function getBulletinData() {
       hall: m.hall?.name ?? null,
       /** FIBA utakmica (rezultat i, kad nema delegiranja, komesar i sudije iz statistike) */
       fibaGameId: m.fiba_game_id,
-      /** Konačni rezultat: zbir četvrtina, inače rezultat upisan na utakmici */
-      score: periods.length > 0 ? sum : m.home_score != null && m.away_score != null ? { home: m.home_score, away: m.away_score } : null,
+      /** Rezultat utakmice su bodovi četvrtina (Minibasket), ne zbir koševa */
+      quarters,
+      /** Konačni rezultat: zbir četvrtina, inače rezultat upisan na utakmici; kod bodova četvrtina uvijek rezultat utakmice */
+      score: periods.length > 0 && !quarters ? sum : m.home_score != null && m.away_score != null ? { home: m.home_score, away: m.away_score } : null,
       periods: periods.map((p) => ({ home: p.home_points, away: p.away_points })),
       officials: crewSlots(crewOf(m), m.assignments)
         .filter((s) => nominationGroupOf(s.position) === "officials")
@@ -573,6 +579,7 @@ export async function getBulletinData() {
       shortName: c.short_name ?? c.name,
       label: youthLabel(c.category) ?? c.short_name ?? c.name,
       youth: youthLabel(c.category) !== null,
+      quarters: quarterIds.has(c.id),
       season: c.season?.name ?? null,
     }));
   const last = matches.filter((m) => m.status === "finished").at(-1) ?? matches[0];
