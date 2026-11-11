@@ -119,15 +119,18 @@ export async function saveFibaLink(prev: FibaLinkState, formData: FormData): Pro
     }
   }
 
-  const { error } = await db.from("matches").update({ fiba_game_id: fibaId, fiba_stream_key: key }).eq("id", matchId);
+  // FIBA utakmica može imati domaćina i gosta obrnuto od naše: četvrtine tada mijenjaju strane (i u sync_fiba_periods)
+  const swapped = fibaId ? Boolean((await db.rpc("fiba_is_swapped", { match: matchId, game: fibaId })).data) : false;
+  const { error } = await db.from("matches").update({ fiba_game_id: fibaId, fiba_stream_key: key, fiba_swapped: swapped }).eq("id", matchId);
   if (error) return { error: error.code === "23505" ? "Ta FIBA utakmica je već povezana s drugom utakmicom." : error.message };
 
   // Rezultat odmah (i za već odigranu utakmicu); dalje ga svake minute prepisuje sync_fiba_periods
   if (fibaId) {
     game ??= await fetchFibaGame(fibaId);
     if (game && game.state !== "scheduled") {
-      const periods = game.home.periods
-        .map((h, i) => ({ match_id: matchId, period: i + 1, home_points: h, away_points: game!.away.periods[i] ?? 0 }))
+      const [home, away] = swapped ? [game.away.periods, game.home.periods] : [game.home.periods, game.away.periods];
+      const periods = home
+        .map((h, i) => ({ match_id: matchId, period: i + 1, home_points: h, away_points: away[i] ?? 0 }))
         .filter((p) => p.period <= Math.max(game!.period, 1));
       if (periods.length) await db.from("match_periods").upsert(periods);
       if (game.state === "live") await db.from("matches").update({ status: "live" }).eq("id", matchId).eq("status", "scheduled");
