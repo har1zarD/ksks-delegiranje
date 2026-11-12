@@ -4,7 +4,7 @@ import { getBulletinData } from "@/lib/data/admin";
 import { getSocialTables } from "@/lib/data/results";
 import { bulletinBrand, bulletinPdf, type BulletinPdfInput, type RegistrationMatch } from "@/lib/bulletin-pdf";
 import { bulletinDocx } from "@/lib/bulletin-docx";
-import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, roundWeekend, type BulletinDraft, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
+import { BULLETIN_FIXTURES, defaultRemarks, delegatedOfficials, missingFixtures, roundWeekend, type BulletinDraft, type BulletinOfficials, type BulletinRequest } from "@/lib/bulletin";
 import { createClient } from "@/lib/supabase/server";
 import type { BulletinMatch } from "@/lib/data/admin";
 import type { NominationMatch } from "@/lib/bulletin-pdf";
@@ -16,17 +16,21 @@ import { formatDate, isoToSarajevo, slug } from "@/lib/format";
 /** Raspored saveza nema sastav: prazna polja za komesara i tri sudije, kao u biltenima KSBiH */
 const FIXTURE_OFFICIALS: NominationMatch["officials"] = (["commissioner", "referee_1", "referee_2", "referee_3"] as const).map((position) => ({ position, name: null }));
 
-/** Utakmice kola za nominaciju: napravljene u aplikaciji (datum i dvorana utakmice), inače iz rasporeda saveza (vikend kola) */
+/** Utakmice kola za nominaciju: napravljene u aplikaciji (datum i dvorana utakmice), dopunjene parovima iz rasporeda saveza koji u aplikaciji još nisu napravljeni (vikend kola) */
 function nominationMatches(competitionId: string, round: number, matches: BulletinMatch[]): NominationMatch[] {
   const own = matches
     .filter((m) => m.competitionId === competitionId && m.round === round)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt) || (a.number ?? Infinity) - (b.number ?? Infinity) || 0);
-  if (own.length > 0) {
-    return own.map((m) => ({ number: m.number, home: m.home, away: m.away, date: formatDate(isoToSarajevo(m.startsAt).date), hall: m.hall, officials: m.officials }));
-  }
-  return (BULLETIN_FIXTURES[competitionId] ?? [])
-    .filter((f) => f.round === round)
-    .map((f) => ({ number: f.number, home: f.home, away: f.away, date: f.roundDate ? roundWeekend(f.roundDate) : "datum nije određen", hall: f.hall, officials: FIXTURE_OFFICIALS }));
+  const fixtures = (BULLETIN_FIXTURES[competitionId] ?? []).filter((f) => f.round === round);
+  const missing = missingFixtures(fixtures, own);
+  // Brojevi kola iz rasporeda koje utakmice u aplikaciji nisu zauzele, redom (domaćinstvo i broj u aplikaciji mogu odstupati od rasporeda)
+  const taken = new Set(own.map((m) => m.number));
+  const free = fixtures.map((f) => f.number).filter((n) => !taken.has(n));
+  return [
+    // Liga saveza: utakmica u aplikaciji bez komesara i sudija u sastavu dobija ista prazna polja kao parovi iz rasporeda
+    ...own.map((m) => ({ number: m.number, home: m.home, away: m.away, date: formatDate(isoToSarajevo(m.startsAt).date), hall: m.hall, officials: fixtures.length > 0 && m.officials.length === 0 ? FIXTURE_OFFICIALS : m.officials })),
+    ...missing.map((f, i) => ({ number: free[i] ?? f.number, home: f.home, away: f.away, date: f.roundDate ? roundWeekend(f.roundDate) : "datum nije određen", hall: f.hall, officials: FIXTURE_OFFICIALS })),
+  ];
 }
 
 export type BulletinPdfResult = { pdf: string; name: string } | { error: string };

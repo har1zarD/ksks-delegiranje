@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Download, ExternalLink, FileText, LoaderCircle, Plus,
 import type { BulletinData, BulletinMatch } from "@/lib/data/admin";
 import {
   BULLETIN_FIXTURES,
+  missingFixtures,
   DECISIONS,
   defaultRemarks,
   delegatedOfficials,
@@ -73,8 +74,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     const matches = own.filter((m) => m.competitionId === c.id && m.round === activeRound).sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity) || 0);
     const manualOfGroup = manual.filter((x) => x.competitionId === c.id && x.round === activeRound);
     // Utakmice iz zvaničnog rasporeda (saveza) koje još nisu u bazi ni ručno dopisane ovog kola: vide se unaprijed
-    const have = new Set([...matches.flatMap((m) => [m.home, m.away]), ...manualOfGroup.flatMap((x) => [x.home, x.away])]);
-    const missing = fixturesOf(c.id).filter((f) => f.round === activeRound && !(have.has(f.home) && have.has(f.away)));
+    const missing = missingFixtures(fixturesOf(c.id).filter((f) => f.round === activeRound), [...matches, ...manualOfGroup]);
     return { competition: c, matches, manual: manualOfGroup, missing };
   });
   const chosen = groups.flatMap((g) => g.matches.filter((m) => !excluded.has(m.id)));
@@ -82,7 +82,10 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
   const nominated =
     nextRound === null
       ? 0
-      : selected.reduce((n, c) => n + (own.filter((m) => m.competitionId === c.id && m.round === nextRound).length || fixturesOf(c.id).filter((f) => f.round === nextRound).length), 0);
+      : selected.reduce((n, c) => {
+          const made = own.filter((m) => m.competitionId === c.id && m.round === nextRound);
+          return n + made.length + missingFixtures(fixturesOf(c.id).filter((f) => f.round === nextRound), made).length;
+        }, 0);
   const autoTitle = [...new Set(selected.map((c) => c.label))].join(" / ") || "Bilten";
 
   // FIBA statistika utakmica u izboru (jednom po utakmici)

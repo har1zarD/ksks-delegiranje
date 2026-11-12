@@ -91,6 +91,12 @@ export function defaultRemarks(m: {
 /** Raspored saveza po takmičenju: nominacija narednog kola kad njegove utakmice još nisu napravljene u aplikaciji */
 export const BULLETIN_FIXTURES: Record<string, Fixture[]> = { [A2_JUG_ID]: A2_JUG_FIXTURES, [A1_ZENE_ID]: A1_ZENE_FIXTURES };
 
+/** Parovi iz rasporeda saveza kojih nema među utakmicama kola (svaka ekipa igra jednom u kolu, pa se par prepoznaje po ekipama, bez obzira na domaćinstvo) */
+export function missingFixtures(fixtures: Fixture[], matches: { home: string; away: string }[]) {
+  const have = new Set(matches.flatMap((m) => [m.home, m.away]));
+  return fixtures.filter((f) => !(have.has(f.home) && have.has(f.away)));
+}
+
 /** Vikend kola iz rasporeda (subota): "7./8. 11. 2026." ili "31. 10. – 1. 11. 2026." */
 export function roundWeekend(saturday: string) {
   const sunday = addDays(saturday, 1);
