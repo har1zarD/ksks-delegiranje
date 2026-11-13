@@ -1,7 +1,7 @@
 // Raspored saveza: Minibasket sezona 2026/27. Puni raspored (parovi i datumi kola 1-22) iz
 // "MINIBASKET 2026-2027.xlsx" (mail "MINI BASKET" od Košarkaški savez KS, 09.11.2026) — potvrđuje
 // parove i datume iz ranijih mailova, osim kola 3 (28.11.2026, ne 29.11.2026 kako je ranije upisano).
-// Realway/Realway B u apk vode se kao Realway Plavi/Realway Bijeli.
+// Realway/Realway B u apk vode se kao Realway Plavi/Realway Bijeli; Bosna Spars B kao KK Spars Jahorina.
 // Dvokružno, 12 ekipa, 22 kola.
 import type { Fixture } from "./a2-jug-raspored";
 
@@ -10,7 +10,7 @@ export const MINIBASKET_ID = "ecd30198-7ae7-4856-a411-d7bb0c7e35d3";
 /** Takmičarski brojevi iz PDF-a → naziv ekipe u takmičenju */
 const TEAMS = [
   "KK Ilidža", "KK BBY", "KK BBY Jahorina", "KK Mladost", "KK Koš", "KK Realway Plavi",
-  "KK Realway Bijeli", "KK Igman", "KK MVP", "KK Bosna Spars", "KK Bosna Spars B", "KK Feniks",
+  "KK Realway Bijeli", "KK Igman", "KK MVP", "KK Bosna Spars", "KK Spars Jahorina", "KK Feniks",
 ];
 
 /** [datum kola ili null (savez još nije odredio), parovi domaćin–gost po takmičarskim brojevima] */
