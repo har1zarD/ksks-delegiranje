@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
 import { dayKey, sarajevoToISO, todayISO } from "@/lib/format";
+import { FIBA_RESULT_PREFIX, LEAGUE_FIBA_COMPETITION, leagueFibaResults } from "@/lib/league-fiba";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
 
@@ -67,6 +68,72 @@ async function socialRoundRows() {
   cacheLife(LIFE.live);
   cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls);
   return socialMatches((query) => query.in("status", ["scheduled", "live", "postponed", "finished"]));
+}
+
+/**
+ * Lige saveza (A2 jug, A1 žene): rezultati s FIBA statistike za parove iz rasporeda koji nemaju utakmicu u aplikaciji
+ * (vidi `leagueFibaResults`), s grbovima ekipa i četvrtinama.
+ */
+async function leagueFibaRows() {
+  "use cache: remote";
+  cacheLife(LIFE.live);
+  cacheTag(TAG.fiba, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs);
+  const db = createAdminClient();
+  const [games, linked, ours] = await Promise.all([
+    db.from("fiba_games").select("id, starts_at, home_name, away_name, home_score, away_score")
+      .eq("competition_id", LEAGUE_FIBA_COMPETITION).eq("status", "COMPLETE")
+      .not("home_score", "is", null).not("away_score", "is", null).not("starts_at", "is", null)
+      .order("starts_at", { ascending: false }).limit(1000).then(rows),
+    db.from("matches").select("fiba_game_id").not("fiba_game_id", "is", null).then(rows),
+    socialRoundRows(),
+  ]);
+  const taken = new Set(linked.map((m) => m.fiba_game_id));
+  const free = games.flatMap((g) => (taken.has(g.id) || g.starts_at == null || g.home_score == null || g.away_score == null ? [] : [{ ...g, starts_at: g.starts_at, home_score: g.home_score, away_score: g.away_score }]));
+  const results = leagueFibaResults(free, ours);
+  if (results.length === 0) return [];
+  const teamGames = rows(await db.from("fiba_team_games").select("game_id, side, periods").in("game_id", results.map((r) => r.gameId)));
+  const periodsOf = (gameId: number, side: number) => teamGames.find((t) => t.game_id === gameId && t.side === side)?.periods ?? [];
+  const logos = new Map(ours.flatMap((m) => [[`${m.competitionId}|${m.home}`, m.homeLogo] as const, [`${m.competitionId}|${m.away}`, m.awayLogo] as const]));
+  const names = new Map(ours.map((m) => [m.competitionId, m.competition]));
+  return results.map((r) => {
+    const home = periodsOf(r.gameId, 1);
+    const away = periodsOf(r.gameId, 2);
+    return {
+      ...r,
+      competition: names.get(r.competitionId) ?? "",
+      homeLogo: logos.get(`${r.competitionId}|${r.home}`) ?? null,
+      awayLogo: logos.get(`${r.competitionId}|${r.away}`) ?? null,
+      periods: home.length === away.length ? home.map((points, i) => ({ home: points, away: away[i] })) : [],
+    };
+  });
+}
+
+/** Rezultati liga saveza s FIBA statistike kojih nema u aplikaciji (A2 jug, A1 žene) */
+export async function getLeagueFibaResults() {
+  await requireRole("admin");
+  return leagueFibaRows();
+}
+
+export type LeagueFibaRow = Awaited<ReturnType<typeof getLeagueFibaResults>>[number];
+
+/** Isti rezultati kao stavke za slike rezultata i kola */
+export async function getSocialFibaResults(): Promise<SocialMatch[]> {
+  return (await getLeagueFibaResults()).filter((r) => r.competition).map((r) => ({
+    id: `${FIBA_RESULT_PREFIX}${r.gameId}`,
+    startsAt: r.startsAt,
+    status: "finished" as const,
+    date: dayKey(r.startsAt),
+    round: r.round,
+    competitionId: r.competitionId,
+    competition: r.competition,
+    home: r.home,
+    away: r.away,
+    homeLogo: r.homeLogo,
+    awayLogo: r.awayLogo,
+    hall: r.hall,
+    homeScore: r.homeScore,
+    awayScore: r.awayScore,
+  }));
 }
 
 export async function getSocialSchedules() {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, Download, ExternalLink, FileText, LoaderCircle, Plus, RotateCcw, Save, X } from "lucide-react";
 import type { BulletinData, BulletinMatch } from "@/lib/data/admin";
+import type { LeagueFibaRow } from "@/lib/data/social";
 import {
   BULLETIN_FIXTURES,
   missingFixtures,
@@ -34,7 +35,11 @@ const manualId = () => `manual-${crypto.randomUUID()}`;
 /** Sačuvan bilten koji se otvara (id null = novi, draft null = prazan bilder) i predloženi broj novog biltena */
 export type BulletinInitial = { id: string | null; draft: BulletinDraft | null; updatedAt: string | null; number: string };
 
-export function BulletinBuilder({ competitions, matches, suggested, initial }: BulletinData & { initial: BulletinInitial }) {
+export function BulletinBuilder({ competitions, matches, suggested, initial, fibaResults }: BulletinData & {
+  initial: BulletinInitial;
+  /** Rezultati liga saveza s FIBA statistike za parove iz rasporeda kojih nema u aplikaciji */
+  fibaResults: LeagueFibaRow[];
+}) {
   const d = initial.draft;
   const [compIds, setCompIds] = useState<string[]>(() => d?.competitionIds ?? (suggested ? [suggested.competitionId] : competitions.slice(0, 1).map((c) => c.id)));
   const [round, setRound] = useState<number | null>(d ? d.round : (suggested?.round ?? null));
@@ -319,6 +324,19 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
       remarks: "",
     };
     setManual((old) => [...old, match]);
+    return match.id;
+  };
+  /** Par iz rasporeda odigran po FIBA statistici: dopisuje se s rezultatom i četvrtinama, pa komesar i sudije sa statistike */
+  const fibaOf = (competitionId: string, f: Fixture) => fibaResults.find((r) => r.competitionId === competitionId && r.number === f.number);
+  const addFibaResult = (r: LeagueFibaRow) => {
+    const id = addManualMatch(r.competitionId, { home: r.home, away: r.away, score: { home: r.homeScore, away: r.awayScore, periods: r.periods } });
+    getFibaOfficials([r.gameId])
+      .then((found) => {
+        const officials = found[r.gameId];
+        // Samo dok admin nije sam upisao imena
+        if (officials) setManual((old) => old.map((x) => (x.id === id && !x.officials.commissioner && !x.officials.referees ? { ...x, officials } : x)));
+      })
+      .catch(() => {});
   };
   const updateManualMatch = (id: string, patch: Partial<BulletinManualMatch>) => setManual((old) => old.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   const removeManualMatch = (id: string) => setManual((old) => old.filter((x) => x.id !== id));
@@ -495,7 +513,16 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
                       <ManualMatchOption key={x.id} match={x} quarters={g.competition.quarters} onChange={(patch) => updateManualMatch(x.id, patch)} onRemove={() => removeManualMatch(x.id)} />
                     ))}
                     {g.missing.map((f) => (
-                      <MissingFixture key={`${f.home}-${f.away}`} fixture={f} onAdd={() => addManualMatch(g.competition.id, { home: f.home, away: f.away, score: null })} />
+                      <MissingFixture
+                        key={`${f.home}-${f.away}`}
+                        fixture={f}
+                        result={fibaOf(g.competition.id, f)}
+                        onAdd={() => {
+                          const result = fibaOf(g.competition.id, f);
+                          if (result) addFibaResult(result);
+                          else addManualMatch(g.competition.id, { home: f.home, away: f.away, score: null });
+                        }}
+                      />
                     ))}
                     <AddManualMatch quarters={g.competition.quarters} onAdd={(input) => addManualMatch(g.competition.id, input)} />
                   </ul>
@@ -860,14 +887,14 @@ function ManualMatchOption({ match: x, quarters, onChange, onRemove }: { match: 
 }
 
 /** Utakmica iz zvaničnog rasporeda saveza koja još nije napravljena u aplikaciji: vidljiva unaprijed, dodaje se u registraciju (bez rezultata) na klik */
-function MissingFixture({ fixture: f, onAdd }: { fixture: Fixture; onAdd: () => void }) {
+function MissingFixture({ fixture: f, result: r, onAdd }: { fixture: Fixture; result?: LeagueFibaRow; onAdd: () => void }) {
   return (
     <li className="flex items-center justify-between gap-3 bg-panel-2/60 px-4 py-3">
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="min-w-0 truncate text-[15px] font-semibold">
-          {f.home} – {f.away}
+          {r ? <>{r.home} <span className="scoreboard px-1">{r.homeScore} : {r.awayScore}</span> {r.away}</> : <>{f.home} – {f.away}</>}
         </span>
-        <span className="text-[12px] text-fg-muted">Iz rasporeda saveza, nije u aplikaciji</span>
+        <span className="text-[12px] text-fg-muted">{r ? "Nije u aplikaciji, rezultat s FIBA statistike" : "Iz rasporeda saveza, nije u aplikaciji"}</span>
       </span>
       <Button type="button" variant="secondary" onClick={onAdd} className="shrink-0">
         <Plus className="size-4" aria-hidden="true" /> Dodaj

@@ -10,6 +10,7 @@ import type { SocialMatch } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
 import type { SavedSocialSchedule } from "@/lib/data/admin";
 import type { Fixture } from "@/lib/a2-jug-raspored";
+import { FIBA_RESULT_PREFIX } from "@/lib/league-fiba";
 import { addDays, formatDate, formatTime, isoToSarajevo, sarajevoToISO, slug } from "@/lib/format";
 import { formatScore } from "@/lib/quarter-points";
 import {
@@ -83,7 +84,7 @@ export function SocialStudio({ matches, results, round, today, now, competition,
             initial={schedule.initial} />
         )}
       </div>
-      <div role="tabpanel" hidden={kind !== "results"}><ResultsBuilder {...shared} matches={results} today={today} competition={competition} /></div>
+      <div role="tabpanel" hidden={kind !== "results"}><ResultsBuilder {...shared} matches={results} today={today} competition={competition} tables={tables} /></div>
       <div role="tabpanel" hidden={kind !== "round"}><RoundBuilder {...shared} matches={round} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "clubs"}><ClubsBuilder {...shared} tables={tables} competition={competition} /></div>
@@ -297,7 +298,10 @@ function ScheduleBuilder({ matches: initialMatches, today, now: initialNow, comp
 // ───────────────────────── Rezultati ─────────────────────────
 
 /** `competition` iz linka (`?takmicenje=`): filter na to takmičenje i njegovo zadnje odigrano kolo */
-function ResultsBuilder({ matches, today, competition: initialCompetition, design, onDesign, font }: Shared & { matches: SocialMatch[]; today: string; competition?: string }) {
+function ResultsBuilder({ matches: initialMatches, today, competition: initialCompetition, design, onDesign, font, tables }: Shared & { matches: SocialMatch[]; today: string; competition?: string; tables: SocialTable[] }) {
+  // Utakmice dopisane ručno (rezultat koji nije stigao sa statistike ili utakmica koje nema u aplikaciji), po terminu uz ostale
+  const [manual, setManual] = useState<SocialMatch[]>([]);
+  const matches = useMemo(() => (manual.length ? [...initialMatches, ...manual].sort((a, b) => a.startsAt.localeCompare(b.startsAt)) : initialMatches), [initialMatches, manual]);
   // Početni filter: takmičenje iz linka i njegovo zadnje kolo; inače zadnjih 7 dana, a ako tada nema utakmica, 7 dana do zadnje odigrane
   const picker = useMatchPicker(matches, "Rezultati", () => {
     const own = matches.filter((m) => m.competitionId === initialCompetition);
@@ -313,12 +317,25 @@ function ResultsBuilder({ matches, today, competition: initialCompetition, desig
   const [perPage, setPerPage] = useState(7);
   const pages = useMemo<SocialContent[]>(() => chunk(chosen, perPage).map((list) => ({ kind: "results", matches: list })), [chosen, perPage]);
 
+  function addManual(input: ManualMatchInput) {
+    const match = buildManualMatch(manualId(), input);
+    setManual((old) => [...old, match]);
+    picker.select(new Set([...picker.selected, match.id]));
+  }
+
   return (
     <Layout preview={<SocialPreview kind="results" pages={pages} options={{ ...design, ...texts }} font={font} page={page} onPage={setPage} empty="Označi utakmice za pregled slike." />}>
       <Step number={1} title="Izaberi utakmice" aside={`${chosen.length} odabrano`}>
-        {!matches.length ? <p className="text-[14px] text-fg-muted">Nema završenih utakmica s upisanim rezultatom u tekućoj sezoni.</p> : (
-          <MatchPicker matches={matches} picker={picker} range={{ label: "Zadnjih 7 dana", from: addDays(today, -6), to: today }} note="Završene utakmice tekuće sezone s upisanim rezultatom." />
-        )}
+        <MatchPicker
+          matches={matches} picker={picker} range={{ label: "Zadnjih 7 dana", from: addDays(today, -6), to: today }}
+          note="Završene utakmice tekuće sezone s upisanim rezultatom. Utakmice liga saveza kojih nema u aplikaciji dolaze s FIBA statistike; ako rezultat nije stigao, dodaj utakmicu ručno."
+          manualAdd={{
+            today, tables, scores: true, defaultCompetitionId: picker.filters.competition || initialCompetition || tables[0]?.id || "",
+            onAdd: addManual,
+            onUpdate: (id, input) => setManual((old) => old.map((m) => (m.id === id ? buildManualMatch(id, input) : m))),
+            onRemove: (id) => setManual((old) => old.filter((m) => m.id !== id)),
+          }}
+        />
       </Step>
       <Step number={2} title="Izgled">
         <LayoutPicker kind="results" value={texts.layout} onChange={(layout) => setTexts((old) => ({ ...old, layout }))} />
@@ -396,9 +413,13 @@ type ManualMatchInput = {
   home: string; away: string; homeLogo: string | null; awayLogo: string | null;
   date: string; time: string; hall: string; competitionId: string; competition: string; round: number | null;
   postponed: boolean;
+  /** Rezultat (samo slike rezultata); s njim je utakmica završena */
+  homeScore: number | null; awayScore: number | null;
 };
 type ManualAdd = {
   today: string; tables: SocialTable[]; defaultCompetitionId: string;
+  /** Forma traži rezultat umjesto termina (slike rezultata) */
+  scores?: boolean;
   onAdd: (input: ManualMatchInput) => void;
   onUpdate: (id: string, input: ManualMatchInput) => void;
   onRemove: (id: string) => void;
@@ -409,7 +430,7 @@ function buildManualMatch(id: string, input: ManualMatchInput): SocialMatch {
   return {
     id,
     startsAt: sarajevoToISO(input.date, input.time || "00:00"),
-    status: input.postponed ? "postponed" : "scheduled",
+    status: input.postponed ? "postponed" : input.homeScore != null && input.awayScore != null ? "finished" : "scheduled",
     date: input.date,
     round: input.round,
     competitionId: input.competitionId || MANUAL_COMPETITION_ID,
@@ -419,8 +440,8 @@ function buildManualMatch(id: string, input: ManualMatchInput): SocialMatch {
     homeLogo: input.homeLogo,
     awayLogo: input.awayLogo,
     hall: input.hall || null,
-    homeScore: null,
-    awayScore: null,
+    homeScore: input.homeScore,
+    awayScore: input.awayScore,
   };
 }
 
@@ -432,6 +453,7 @@ function matchToInput(m: SocialMatch): ManualMatchInput {
     date: m.date, time: fixture ? "" : isoToSarajevo(m.startsAt).time,
     hall: m.hall ?? "", competitionId: m.competitionId === MANUAL_COMPETITION_ID ? "" : m.competitionId,
     competition: m.competition, round: m.round, postponed: m.status === "postponed",
+    homeScore: m.homeScore, awayScore: m.awayScore,
   };
 }
 
@@ -525,11 +547,12 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
                 {m.competition}{m.round == null ? "" : ` · ${m.round}. kolo`}
                 {m.status === "postponed" && <span className="rounded bg-orange/10 px-1.5 py-0.5 font-semibold text-orange">ODGOĐENO</span>}
                 {manual && <span className="rounded bg-brand-soft px-1.5 py-0.5 font-semibold text-brand">RUČNO</span>}
+                {m.id.startsWith(FIBA_RESULT_PREFIX) && <span className="rounded bg-panel-3 px-1.5 py-0.5 font-semibold text-fg-muted">FIBA STATISTIKA</span>}
                 {fixture && <span className="rounded bg-panel-3 px-1.5 py-0.5 font-semibold text-fg-muted">IZ RASPOREDA</span>}
               </span>
               <span className="mt-0.5 block text-[14px] font-semibold">{m.home} {m.status === "finished" ? <span className="scoreboard px-1">{scoreText(m)}</span> : <span className="font-normal text-fg-faint">–</span>} {m.away}</span>
               <span className="mt-1 block text-[12px] text-fg-muted">
-                {fixture ? `${formatDate(m.date)} · vrijeme nije određeno` : m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}
+                {fixture ? `${formatDate(m.date)} · vrijeme nije određeno` : m.status === "postponed" ? `Prvobitno: ${formatDate(m.date)} · Novi termin naknadno` : manualAdd?.scores && manual ? [formatDate(m.date), m.hall].filter(Boolean).join(" · ") : `${formatDate(m.date)} · ${formatTime(m.startsAt)} · ${m.hall ?? "Dvorana nije određena"}`}
               </span>
             </span>
           );
@@ -561,6 +584,7 @@ function MatchPicker({ matches, picker: { filters, filter, selected, select, tog
             key={form.kind === "edit" ? form.id ?? `${form.seed.competitionId}-${form.seed.round}-${form.seed.home}-${form.seed.away}` : "add"}
             today={manualAdd.today}
             tables={manualAdd.tables}
+            scores={manualAdd.scores}
             defaultCompetitionId={(form.kind === "edit" && form.seed.competitionId) || manualAdd.defaultCompetitionId}
             initial={form.kind === "edit" ? form.seed : undefined}
             onCancel={() => setForm({ kind: "closed" })}
@@ -613,9 +637,11 @@ function TeamPick({ label, roster, value, other, onPick, onOther }: {
 }
 
 /** Forma za ručno dopisanu utakmicu na dnu liste: ekipe biraš iz takmičenja (već imaju raspored, grb i sve), termin je obavezan */
-function ManualMatchFields({ today, tables, defaultCompetitionId, initial, onCancel, onSubmit }: {
+function ManualMatchFields({ today, tables, scores, defaultCompetitionId, initial, onCancel, onSubmit }: {
   today: string;
   tables: SocialTable[];
+  /** Slike rezultata: obavezan je rezultat, a vrijeme i oznaka odgođene se ne traže */
+  scores?: boolean;
   defaultCompetitionId: string;
   /** Postojeća stavka (ručna ili prijedlog iz rasporeda) koja se uređuje; izostavljeno = nova utakmica */
   initial?: ManualMatchInput;
@@ -635,6 +661,9 @@ function ManualMatchFields({ today, tables, defaultCompetitionId, initial, onCan
   const [hall, setHall] = useState(initial?.hall || "");
   const [round, setRound] = useState(initial?.round != null ? String(initial.round) : "");
   const [postponed, setPostponed] = useState(initial?.postponed ?? false);
+  const [homeScore, setHomeScore] = useState(initial?.homeScore != null ? String(initial.homeScore) : "");
+  const [awayScore, setAwayScore] = useState(initial?.awayScore != null ? String(initial.awayScore) : "");
+  const points = (value: string) => (/^\d{1,3}$/.test(value.trim()) ? Number(value) : null);
 
   function pickCompetition(id: string) {
     setCompetitionId(id);
@@ -646,7 +675,7 @@ function ManualMatchFields({ today, tables, defaultCompetitionId, initial, onCan
   const awayTeam = roster.find((t) => t.teamId === awayTeamId);
   const home = homeTeamId === OTHER_TEAM ? homeOther.trim() : (homeTeam?.name ?? "");
   const away = awayTeamId === OTHER_TEAM ? awayOther.trim() : (awayTeam?.name ?? "");
-  const valid = Boolean(home && away && date && (postponed || time));
+  const valid = Boolean(home && away && date && (scores ? points(homeScore) != null && points(awayScore) != null : postponed || time));
 
   function submit() {
     onSubmit({
@@ -658,7 +687,9 @@ function ManualMatchFields({ today, tables, defaultCompetitionId, initial, onCan
       competitionId: competitionId || "",
       competition: table?.name ?? "",
       round: round.trim() ? Number(round) : null,
-      postponed,
+      postponed: scores ? false : postponed,
+      homeScore: scores ? points(homeScore) : null,
+      awayScore: scores ? points(awayScore) : null,
     });
   }
 
@@ -674,18 +705,26 @@ function ManualMatchFields({ today, tables, defaultCompetitionId, initial, onCan
         <TeamPick label="Domaćin" roster={roster} value={homeTeamId} other={homeOther} onPick={setHomeTeamId} onOther={setHomeOther} />
         <TeamPick label="Gost" roster={roster} value={awayTeamId} other={awayOther} onPick={setAwayTeamId} onOther={setAwayOther} />
       </div>
+      {scores && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Koševi domaćina" inputMode="numeric" value={homeScore} onChange={(event) => setHomeScore(event.target.value)} placeholder="npr. 84" />
+          <Field label="Koševi gosta" inputMode="numeric" value={awayScore} onChange={(event) => setAwayScore(event.target.value)} placeholder="npr. 76" />
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <DateField label="Datum" name="manual-date" defaultValue={date} onChange={setDate} required />
-        <TimeField label="Vrijeme" name="manual-time" defaultValue={time} onChange={setTime} required={!postponed} hint={postponed ? "Nije obavezno za odgođenu utakmicu" : undefined} />
+        {!scores && <TimeField label="Vrijeme" name="manual-time" defaultValue={time} onChange={setTime} required={!postponed} hint={postponed ? "Nije obavezno za odgođenu utakmicu" : undefined} />}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Dvorana" value={hall} onChange={(event) => setHall(event.target.value)} placeholder="Nije obavezno" />
         <Field label="Kolo" type="number" min={1} value={round} onChange={(event) => setRound(event.target.value)} placeholder="Nije obavezno" />
       </div>
-      <label className="flex items-center gap-2 text-[13px]">
-        <input type="checkbox" checked={postponed} onChange={(event) => setPostponed(event.target.checked)} className="size-4 accent-brand" />
-        Utakmica je odgođena
-      </label>
+      {!scores && (
+        <label className="flex items-center gap-2 text-[13px]">
+          <input type="checkbox" checked={postponed} onChange={(event) => setPostponed(event.target.checked)} className="size-4 accent-brand" />
+          Utakmica je odgođena
+        </label>
+      )}
       <div className="flex items-center gap-3">
         <Button type="button" disabled={!valid} onClick={submit} className="h-9! px-3! text-[13px]!">
           {initial ? <Check className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />} {initial ? "Sačuvaj izmjenu" : "Dodaj"}
