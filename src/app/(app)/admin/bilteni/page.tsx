@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { Plus, ScrollText } from "lucide-react";
 import { getBulletinData, getSavedBulletin, getSavedBulletins } from "@/lib/data/admin";
-import { getLeagueFibaResults } from "@/lib/data/social";
 import { nextBulletinNumber } from "@/lib/bulletin";
 import { Bone, Skeleton, Text, times } from "@/components/skeleton";
 import { ButtonLink, CARD, cx, Empty, PageHeader } from "@/components/ui";
@@ -27,7 +26,7 @@ const param = (v: string | string[] | undefined) => (typeof v === "string" ? v :
 async function Bulletins({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const b = param(sp.b);
-  const [data, saved, fibaResults] = await Promise.all([getBulletinData(), getSavedBulletins(), getLeagueFibaResults()]);
+  const [data, saved] = await Promise.all([getBulletinData(), getSavedBulletins()]);
   const header = (
     <PageHeader
       icon={<ScrollText />}
@@ -66,7 +65,7 @@ async function Bulletins({ searchParams }: { searchParams: SearchParams }) {
     return (
       <>
         {header}
-        <BulletinBuilder key="novi" {...data} fibaResults={fibaResults} initial={{ id: null, draft: null, updatedAt: null, number }} />
+        <BulletinBuilder key="novi" {...data} initial={{ id: null, draft: null, updatedAt: null, number }} />
       </>
     );
   }
@@ -85,7 +84,7 @@ async function Bulletins({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
       {header}
-      <BulletinBuilder key={bulletin.id} {...data} fibaResults={fibaResults} initial={{ ...bulletin, number: bulletin.draft.number }} />
+      <BulletinBuilder key={bulletin.id} {...data} initial={{ ...bulletin, number: bulletin.draft.number }} />
     </>
   );
 }
