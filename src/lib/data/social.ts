@@ -72,23 +72,31 @@ async function socialRoundRows() {
 
 /**
  * Lige saveza (A2 jug, A1 žene): rezultati s FIBA statistike za parove iz rasporeda koji nemaju utakmicu u aplikaciji
- * (vidi `leagueFibaResults`), s grbovima ekipa i četvrtinama.
+ * (vidi `leagueFibaResults`), s grbovima ekipa i četvrtinama. Keširan čitač bez provjere prijave: zove ga samo
+ * kod koji je prijavu već provjerio (getLeagueFibaResults, tabele).
  */
-async function leagueFibaRows() {
+export async function leagueFibaRows() {
   "use cache: remote";
   cacheLife(LIFE.live);
   cacheTag(TAG.fiba, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs);
   const db = createAdminClient();
   const [games, linked, ours] = await Promise.all([
-    db.from("fiba_games").select("id, starts_at, home_name, away_name, home_score, away_score")
-      .eq("competition_id", LEAGUE_FIBA_COMPETITION).eq("status", "COMPLETE")
+    db.from("fiba_games").select("id, starts_at, status, live, home_name, away_name, home_score, away_score")
+      .eq("competition_id", LEAGUE_FIBA_COMPETITION).not("status", "in", "(SCHEDULED,READY)")
       .not("home_score", "is", null).not("away_score", "is", null).not("starts_at", "is", null)
       .order("starts_at", { ascending: false }).limit(1000).then(rows),
     db.from("matches").select("fiba_game_id").not("fiba_game_id", "is", null).then(rows),
     socialRoundRows(),
   ]);
   const taken = new Set(linked.map((m) => m.fiba_game_id));
-  const free = games.flatMap((g) => (taken.has(g.id) || g.starts_at == null || g.home_score == null || g.away_score == null ? [] : [{ ...g, starts_at: g.starts_at, home_score: g.home_score, away_score: g.away_score }]));
+  // Završena: status COMPLETE, ili utakmica s koševima koja je u feedu ostala "u toku" (FIBA feed pokazuje samo zadnji krug,
+  // pa utakmica koju statističar nije zaključio ostane tako zauvijek) a počela je prije više od 6 sati
+  const stale = Date.now() - 6 * 60 * 60 * 1000;
+  const free = games.flatMap((g) => {
+    if (taken.has(g.id) || g.starts_at == null || g.home_score == null || g.away_score == null) return [];
+    const over = g.status === "COMPLETE" || (!g.live && g.home_score + g.away_score > 0 && Date.parse(g.starts_at) < stale);
+    return over ? [{ ...g, starts_at: g.starts_at, home_score: g.home_score, away_score: g.away_score }] : [];
+  });
   const results = leagueFibaResults(free, ours);
   if (results.length === 0) return [];
   const teamGames = rows(await db.from("fiba_team_games").select("game_id, side, periods").in("game_id", results.map((r) => r.gameId)));

@@ -5,8 +5,10 @@ import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES } from "@/lib/crew";
 import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
+import { hasLeagueFixtures } from "@/lib/league-fiba";
 import { computeStandings, type CarryOver } from "@/lib/standings";
 import { row, rows } from "./db";
+import { leagueFibaRows } from "./social";
 
 type Db = SupabaseClient<Database>;
 
@@ -62,8 +64,21 @@ async function loadStandings(
     ]);
     carryOver = { parentTeams: rows(pt), parentMatches: rows(pm) };
   }
+  // Lige saveza (A2 jug, A1 žene): utakmice kojih nema u aplikaciji, a odigrane su po FIBA statistici, broje se u tabelu
+  let all = matches;
+  if (hasLeagueFixtures(competition.id)) {
+    const teamId = new Map(teams.map((team) => [team.name, team.id]));
+    const played = (await leagueFibaRows()).flatMap((r) => {
+      const home = teamId.get(r.home);
+      const away = teamId.get(r.away);
+      return r.competitionId === competition.id && home && away
+        ? [{ home_team_id: home, away_team_id: away, home_score: r.homeScore, away_score: r.awayScore, status: "finished", round: r.round, kind: "league" }]
+        : [];
+    });
+    if (played.length) all = [...matches, ...played];
+  }
   const logos = new Map(teams.map((team) => [team.id, team.club?.logo_url ?? null]));
-  return computeStandings(teams, matches, { carryOver }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
+  return computeStandings(teams, all, { carryOver }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
 }
 
 async function getParent(db: Db, parentId: string | null) {

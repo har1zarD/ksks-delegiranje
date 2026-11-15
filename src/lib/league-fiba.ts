@@ -20,6 +20,9 @@ const LEAGUES: { competitionId: string; fixtures: Fixture[]; skip: string[] }[] 
   { competitionId: A1_ZENE_ID, fixtures: A1_ZENE_FIXTURES, skip: ["Konjic", "Brcko Distrikt", "KK  Brcko", "Celik"] },
 ];
 
+/** Takmičenje je liga saveza s rasporedom (kolo može biti djelimično u aplikaciji) */
+export const hasLeagueFixtures = (competitionId: string) => LEAGUES.some((l) => l.competitionId === competitionId);
+
 /** Par se traži najviše ovoliko dana od datuma kola (uzvrat istog para je u drugom dijelu sezone, mjesecima kasnije) */
 const WINDOW_DAYS = 60;
 const DAY = 24 * 60 * 60 * 1000;
