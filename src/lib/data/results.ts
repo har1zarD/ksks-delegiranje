@@ -5,7 +5,6 @@ import { CREW_DEFAULT_COLUMNS, SENIOR_CATEGORIES } from "@/lib/crew";
 import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
-import { usesQuarterPoints } from "@/lib/quarter-points";
 import { computeStandings, type CarryOver } from "@/lib/standings";
 import { row, rows } from "./db";
 
@@ -64,7 +63,7 @@ async function loadStandings(
     carryOver = { parentTeams: rows(pt), parentMatches: rows(pm) };
   }
   const logos = new Map(teams.map((team) => [team.id, team.club?.logo_url ?? null]));
-  return computeStandings(teams, matches, { carryOver, quarterPoints: usesQuarterPoints(competition.category) }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
+  return computeStandings(teams, matches, { carryOver }).map((standing) => ({ ...standing, logoUrl: logos.get(standing.teamId) ?? null }));
 }
 
 async function getParent(db: Db, parentId: string | null) {

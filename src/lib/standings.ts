@@ -22,7 +22,7 @@ export type StandingRow = {
   pointsFor: number;
   pointsAgainst: number;
   diff: number;
-  /** Klasifikacijski bodovi: pobjeda 2, poraz 1; kod bodova četvrtina (Minibasket) zbir bodova četvrtina */
+  /** Klasifikacijski bodovi: pobjeda 2, poraz 1 (i Minibasket, gdje su bodovi četvrtina rezultat utakmice, tj. koš razlika) */
   points: number;
 };
 
@@ -41,8 +41,7 @@ function counted(matches: StandingMatch[]): Played[] {
     .map((m) => ({ home: m.home_team_id, away: m.away_team_id, hs: m.home_score!, as: m.away_score! }));
 }
 
-/** `quarters`: rezultat utakmice su bodovi četvrtina, koji su ujedno i bodovi u tabeli (neriješena utakmica nije ni pobjeda ni poraz) */
-function table(ids: Iterable<string>, games: Played[], quarters = false) {
+function table(ids: Iterable<string>, games: Played[]) {
   const rows = new Map<string, { played: number; won: number; lost: number; pf: number; pa: number; pts: number }>();
   for (const id of ids) rows.set(id, { played: 0, won: 0, lost: 0, pf: 0, pa: 0, pts: 0 });
   for (const g of games) {
@@ -62,10 +61,7 @@ function table(ids: Iterable<string>, games: Played[], quarters = false) {
       a.won++;
       h.lost++;
     }
-    if (quarters) {
-      h.pts += g.hs;
-      a.pts += g.as;
-    } else if (g.hs !== g.as) {
+    if (g.hs !== g.as) {
       (g.hs > g.as ? h : a).pts += 2;
       (g.hs > g.as ? a : h).pts += 1;
     }
@@ -97,33 +93,29 @@ export function upToRound<M extends StandingMatch>(matches: M[], maxRound: numbe
 export function computeStandings(
   teams: StandingTeam[],
   matches: StandingMatch[],
-  opts: { carryOver?: CarryOver; quarterPoints?: boolean } = {},
+  opts: { carryOver?: CarryOver } = {},
 ): StandingRow[] {
-  const quarters = opts.quarterPoints ?? false;
   const all = opts.carryOver ? [...matches, ...carriedOverMatches(teams, opts.carryOver)] : matches;
   const games = counted(all);
   const overall = table(
     teams.map((t) => t.id),
     games,
-    quarters,
   );
   const name = new Map(teams.map((t) => [t.id, t.name]));
 
   // D.1.3: među izjednačenim ekipama mini-tabela (bodovi, koš razlika, postignuti koševi)
   // samo iz njihovih međusobnih utakmica; ako se grupa razdvoji, ponavlja se za preostale izjednačene.
   // Kad mini-tabela ne razdvaja: ukupna koš razlika, ukupno postignuti koševi, naziv.
-  // Bodovi četvrtina: mini-tabela po bodovima četvrtina iz međusobnih utakmica, zatim ukupan broj pobjeda, naziv.
   function resolve(group: string[]): string[] {
     if (group.length < 2) return group;
     const set = new Set(group);
     const mini = table(
       group,
       games.filter((g) => set.has(g.home) && set.has(g.away)),
-      quarters,
     );
     const key = (id: string) => {
       const r = mini.get(id)!;
-      return quarters ? [r.pts] : [r.pts, r.pf - r.pa, r.pf];
+      return [r.pts, r.pf - r.pa, r.pf];
     };
     const sorted = [...group].sort((a, b) => compareKeys(key(b), key(a)));
     const parts = partition(sorted, (a, b) => compareKeys(key(a), key(b)) === 0);
@@ -131,7 +123,7 @@ export function computeStandings(
 
     const o = (id: string) => {
       const r = overall.get(id)!;
-      return quarters ? [r.won] : [r.pf - r.pa, r.pf];
+      return [r.pf - r.pa, r.pf];
     };
     return [...group].sort(
       (a, b) => compareKeys(o(b), o(a)) || name.get(a)!.localeCompare(name.get(b)!, "bs"),

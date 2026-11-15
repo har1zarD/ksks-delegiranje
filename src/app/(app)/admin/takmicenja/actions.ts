@@ -7,7 +7,6 @@ import { invalidate } from "@/lib/cache";
 import { CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewToRow } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, sarajevoToISO } from "@/lib/format";
-import { usesQuarterPoints } from "@/lib/quarter-points";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
 import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
 import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
@@ -136,7 +135,7 @@ async function standingsFor(supabase: Awaited<ReturnType<typeof createClient>>, 
     carryOver = { parentTeams: pt.data ?? [], parentMatches: pm.data ?? [] };
   }
   const list = maxRound ? upToRound(matches.data ?? [], maxRound) : (matches.data ?? []);
-  const rows = computeStandings(teams.data ?? [], list, { carryOver, quarterPoints: usesQuarterPoints(comp.data.category) });
+  const rows = computeStandings(teams.data ?? [], list, { carryOver });
   const byId = new Map<string, Team>((teams.data ?? []).map((t) => [t.id, t]));
   return { competition: comp.data, ordered: rows.map((r) => byId.get(r.teamId)!) };
 }
