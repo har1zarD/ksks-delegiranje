@@ -17,8 +17,8 @@ const GRID = "grid grid-cols-[2.5rem_1fr_1fr_3.75rem] items-center gap-2 px-3 py
 
 /**
  * Minibasket: koševi po četvrtinama, upisani odjednom na kraju utakmice. Svaka četvrtina nosi bod
- * (dobijena 1, neriješena 0,5, izgubljena 0); zbir bodova je rezultat utakmice. Nakon slanja utakmica je završena;
- * sudije i pomoćne sudije ga u roku (undoUntil) još mogu ispraviti ili poništiti, poslije toga samo savez.
+ * (dobijena 1, neriješena 0,5, izgubljena 0); zbir bodova je rezultat utakmice, a kod 2:2 ekipa s više koševa dobija još 1 bod.
+ * Nakon slanja utakmica je završena; sudije i pomoćne sudije ga u roku (undoUntil) još mogu ispraviti ili poništiti, poslije toga samo savez.
  */
 export function QuarterScoreForm({
   matchId,
@@ -54,6 +54,7 @@ export function QuarterScoreForm({
 
   const filled = quarters.filter((q) => q.home !== "" && q.away !== "").map((q) => ({ home: Number(q.home), away: Number(q.away) }));
   const total = quarterPoints(filled);
+  const baskets = filled.reduce((t, q) => ({ home: t.home + q.home, away: t.away + q.away }), { home: 0, away: 0 });
   const result = `${formatScore(total.home)} : ${formatScore(total.away)}`;
 
   function update(index: number, side: keyof Quarter, value: string) {
@@ -64,7 +65,7 @@ export function QuarterScoreForm({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[14px] text-fg-muted">
-        Upiši koševe obje ekipe za svaku četvrtinu. Dobijena četvrtina je 1 bod, neriješena 0,5 svakoj ekipi; zbir bodova je rezultat utakmice.
+        Upiši koševe obje ekipe za svaku četvrtinu. Dobijena četvrtina je 1 bod, neriješena 0,5 svakoj ekipi; zbir bodova je rezultat utakmice. Kod 2:2 ekipa s više ukupnih koševa dobija još 1 bod.
       </p>
       <form
         action={action}
@@ -118,6 +119,15 @@ export function QuarterScoreForm({
               );
             })}
           </ul>
+          <div className={`${GRID} border-t border-line`}>
+            <span className="text-[13px] font-semibold text-fg-muted">Koševi</span>
+            {(["home", "away"] as const).map((side) => (
+              <span key={side} className="scoreboard whitespace-nowrap text-center text-[22px] font-semibold text-fg-muted">
+                {filled.length > 0 ? baskets[side] : "–"}
+              </span>
+            ))}
+            <span aria-hidden />
+          </div>
           <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-3 sm:px-4">
             <span className="text-[13px] font-semibold text-fg-muted">Rezultat utakmice</span>
             <span role="status" className="scoreboard whitespace-nowrap text-[26px] font-semibold">

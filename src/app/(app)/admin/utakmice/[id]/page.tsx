@@ -181,13 +181,13 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
               const declined = assignments.find((a) => a.position === position && a.status === "declined");
               const amount = current?.status === "accepted" ? amountOf(current) : null;
               return (
-                <li key={position} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="text-[13px] font-semibold text-fg-muted sm:w-32 sm:shrink-0">{positionName(position, crew.digital)}</div>
+                <li key={position} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:gap-4 sm:py-4">
+                  <div className="text-[12px] font-semibold text-fg-muted sm:w-32 sm:shrink-0 sm:text-[13px]">{positionName(position, crew.digital)}</div>
                   {current ? (
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
                       {/* Na mobitelu ime u svom redu, dugmad ispod */}
                       <div className="min-w-0 flex-1 basis-full sm:basis-0">
-                        <div className="truncate text-[17px] font-semibold">{current.profile!.full_name}</div>
+                        <div className="truncate text-[15px] font-semibold sm:text-[17px]">{current.profile!.full_name}</div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                           {current.status === "accepted" ? (
                             <Status tone="mint">Prihvaćeno</Status>
@@ -215,7 +215,7 @@ async function Delegation({ params }: { params: Promise<{ id: string }> }) {
                       />
                       <form action={unassign}>
                         <input type="hidden" name="id" value={current.id} />
-                        <button type="submit" className={buttonClass("destructive", "h-10 text-[14px]")}>
+                        <button type="submit" className={buttonClass("destructive", "h-8! text-[13px]! sm:h-10! sm:text-[14px]!")}>
                           Ukloni
                         </button>
                       </form>
@@ -452,18 +452,18 @@ function DelegationSkeleton() {
           </SectionTitle>
           <ul className={ROWS}>
             {times(5, (i) => (
-              <li key={i} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
-                <Text className="text-[13px] font-semibold sm:w-32 sm:shrink-0" w="w-20" />
+              <li key={i} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:gap-4 sm:py-4">
+                <Text className="text-[12px] font-semibold sm:w-32 sm:shrink-0 sm:text-[13px]" w="w-20" />
                 {i < 2 ? (
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
                     <div className="min-w-0 flex-1 basis-full sm:basis-0">
-                      <Text className="text-[17px] font-semibold" w={i ? "w-36" : "w-44"} />
+                      <Text className="text-[15px] font-semibold sm:text-[17px]" w={i ? "w-36" : "w-44"} />
                       <div className="mt-0.5">
                         <StatusSkeleton w="w-20" />
                       </div>
                     </div>
-                    <ButtonSkeleton className="h-10 w-24 sm:h-10" />
-                    <TextButtonSkeleton />
+                    <ButtonSkeleton className="h-8! w-20 sm:h-10! sm:w-24" />
+                    <TextButtonSkeleton className="h-8! sm:h-10!" />
                   </div>
                 ) : (
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">

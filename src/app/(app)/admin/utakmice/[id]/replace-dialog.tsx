@@ -31,7 +31,7 @@ export function ReplaceButton({
 
   return (
     <>
-      <button type="button" onClick={() => dialog.current?.showModal()} className={buttonClass("secondary", "h-10 text-[14px]")}>
+      <button type="button" onClick={() => dialog.current?.showModal()} className={buttonClass("secondary", "h-8! px-3! text-[13px]! sm:h-10! sm:px-4! sm:text-[14px]!")}>
         Zamijeni
       </button>
       {state.done && (

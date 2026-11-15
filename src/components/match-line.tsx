@@ -2,7 +2,7 @@ import { TeamName, type TeamIdentity } from "@/components/team-name";
 import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
 import { formatTime, isoToSarajevo, matchKindLabel, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS, type MatchKind } from "@/lib/format";
-import { formatScore } from "@/lib/quarter-points";
+import { formatScore, usesQuarterPoints } from "@/lib/quarter-points";
 
 export type PeriodScore = { period: number; home_points: number; away_points: number };
 
@@ -14,7 +14,7 @@ export type MatchSummary = {
   round: number | null;
   home_score: number | null;
   away_score: number | null;
-  competition: { short_name: string | null; name: string } | null;
+  competition: { short_name: string | null; name: string; category?: string | null } | null;
   home: TeamIdentity | null;
   away: TeamIdentity | null;
   hall: { name: string } | null;
@@ -161,6 +161,7 @@ export function MatchLine({
 
 /**
  * Box score: red po ekipi, kolone po četvrtini, ukupno desno (vodeća ekipa u akcentu).
+ * Minibasket: ukupno su bodovi četvrtina, a ispred njih kolona "Koš." sa zbirom koševa (npr. 23 : 25 → 2 : 3).
  * `size="lg"` za zaglavlje utakmice.
  */
 export function BoxScore({
@@ -170,20 +171,23 @@ export function BoxScore({
   badge,
   size = "sm",
 }: {
-  match: Pick<MatchSummary, "home" | "away" | "home_score" | "away_score">;
+  match: Pick<MatchSummary, "home" | "away" | "home_score" | "away_score"> & { competition?: MatchSummary["competition"] };
   periods: PeriodScore[];
   label?: React.ReactNode;
   badge?: React.ReactNode;
   size?: "sm" | "lg";
 }) {
   const cols = periodColumns(periods);
+  const baskets = usesQuarterPoints(match.competition?.category) && periods.length > 0
+    ? periods.reduce((t, p) => ({ home: t.home + p.home_points, away: t.away + p.away_points }), { home: 0, away: 0 })
+    : null;
   const home = match.home_score ?? 0;
   const away = match.away_score ?? 0;
   const lg = size === "lg";
   const team = cx("truncate font-semibold tracking-[-0.02em]", lg ? "text-[17px] sm:text-[20px]" : "text-[16px] sm:text-[17px]");
   const quarter = cx("scoreboard text-center", lg ? "text-[15px] sm:text-[17px]" : "text-[13px] sm:text-[14px]");
   const total = cx("scoreboard text-right font-semibold leading-none", lg ? "text-[30px] sm:text-[40px]" : "text-[22px]");
-  const head = "text-center text-[11px] font-semibold text-fg-faint";
+  const head = cx("text-center font-semibold text-fg-muted", lg ? "text-[12px] sm:text-[13px]" : "text-[12px]");
 
   // U listi (sm) naziv utakmice i stanje stoje u zaglavlju tabele, u ravni s Q1–Uk.; na stranici utakmice (lg) iznad tabele
   const heading = (label || badge) && (
@@ -202,8 +206,12 @@ export function BoxScore({
         className={cx(
           "grid min-w-[340px] items-center gap-x-1 sm:min-w-0 sm:gap-x-2",
           lg
-            ? "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),3.5rem)_5rem]"
-            : "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_3.5rem]",
+            ? baskets
+              ? "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_2.25rem_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),3.5rem)_3.5rem_5rem]"
+              : "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.75rem)_3.25rem] gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),3.5rem)_5rem]"
+            : baskets
+              ? "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2rem_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_2.75rem_3.5rem]"
+              : "grid-cols-[minmax(0,1fr)_repeat(var(--n),1.5rem)_2.5rem] gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_repeat(var(--n),2.75rem)_3.5rem]",
         )}
       >
         {!lg && heading ? heading : <span aria-hidden />}
@@ -212,6 +220,7 @@ export function BoxScore({
             {periodShort(c.period)}
           </span>
         ))}
+        {baskets && <span className={head} title="Ukupno koševa">Koš.</span>}
         <span className={cx(head, "text-right")}>Uk.</span>
 
       {(["home", "away"] as const).map((side) => {
@@ -232,6 +241,11 @@ export function BoxScore({
               </span>
             );
           }),
+          baskets && (
+            <span key={`${side}-baskets`} className={cx(quarter, "font-semibold text-fg-muted")}>
+              {baskets[side]}
+            </span>
+          ),
           <span key={`${side}-total`} className={cx(total, leads || points === other ? "text-fg" : "text-fg-faint")}>
             {formatScore(points)}
           </span>,
