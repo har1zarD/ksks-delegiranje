@@ -4,11 +4,13 @@ import { crewOf, crewPositions, nominationGroupOf, skillsFor, type Crew } from "
 import { LIFE, TAG, tag } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { BulletinDraft, SavedBulletin } from "@/lib/bulletin";
+import { BULLETIN_FIXTURES, type BulletinDraft, type SavedBulletin } from "@/lib/bulletin";
 import type { ScheduleDraft } from "@/lib/social-image";
 import { usesQuarterPoints } from "@/lib/quarter-points";
 import { addDays, addMonths, formatAbsence, isoToSarajevo, matchWindow, POSITION_ORDER, sarajevoToISO, todayISO, type AssignmentStatus, type Position } from "@/lib/format";
 import { row, rows } from "./db";
+import { getLeagueFibaResults } from "./social";
+import { FIBA_RESULT_PREFIX } from "@/lib/league-fiba";
 import {
   ADMIN_MATCH_SELECT,
   ASSIGNMENT_WITH_TIME_SELECT,
@@ -534,10 +536,10 @@ async function bulletinRows() {
  */
 export async function getBulletinData() {
   await requireRole("admin");
-  const data = await bulletinRows();
+  const [data, fiba] = await Promise.all([bulletinRows(), getLeagueFibaResults()]);
   // Minibasket: rezultat utakmice su bodovi četvrtina (upisuje ih okidač u matches), četvrtine su koševi
   const quarterIds = new Set(data.competitions.filter((c) => usesQuarterPoints(c.category)).map((c) => c.id));
-  const matches = data.matches.map((m) => {
+  const own = data.matches.map((m) => {
     // match_reports je 1:1 (PK = match_id), ali PostgREST ga može vratiti i kao listu
     const raw = m.match_reports;
     const report = Array.isArray(raw) ? (raw[0] ?? null) : raw;
@@ -571,6 +573,40 @@ export async function getBulletinData() {
         : null,
     };
   });
+  // Lige saveza (A2 jug, A1 žene): utakmice kola koje nisu napravljene u aplikaciji, a odigrane su po FIBA statistici,
+  // ulaze u bilten kao i ostale (rezultat i četvrtine sa statistike; komesar i sudije preko fibaGameId)
+  // Broj utakmice: brojevi kola iz rasporeda saveza koje utakmice u aplikaciji nisu zauzele, redom (kao u nominaciji)
+  const freeNumbers = new Map<string, number[]>();
+  const numberOf = (r: (typeof fiba)[number]) => {
+    const key = `${r.competitionId}|${r.round}`;
+    if (!freeNumbers.has(key)) {
+      const taken = new Set(own.filter((m) => m.competitionId === r.competitionId && m.round === r.round).map((m) => m.number));
+      freeNumbers.set(key, (BULLETIN_FIXTURES[r.competitionId] ?? []).filter((f) => f.round === r.round && !taken.has(f.number)).map((f) => f.number));
+    }
+    return freeNumbers.get(key)!.shift() ?? r.number;
+  };
+  const played: typeof own = fiba
+    .filter((r) => data.competitions.some((c) => c.id === r.competitionId))
+    .map((r) => ({
+      id: `${FIBA_RESULT_PREFIX}${r.gameId}`,
+      number: numberOf(r),
+      round: r.round,
+      startsAt: r.startsAt,
+      status: "finished",
+      competitionId: r.competitionId,
+      homeId: "",
+      awayId: "",
+      home: r.home,
+      away: r.away,
+      hall: r.hall,
+      fibaGameId: r.gameId,
+      quarters: false,
+      score: { home: r.homeScore, away: r.awayScore },
+      periods: r.periods,
+      officials: [],
+      report: null,
+    }));
+  const matches = played.length ? [...own, ...played].sort((a, b) => a.startsAt.localeCompare(b.startsAt)) : own;
   const competitions = data.competitions
     .filter((c) => matches.some((m) => m.competitionId === c.id))
     .map((c) => ({
@@ -582,7 +618,7 @@ export async function getBulletinData() {
       quarters: quarterIds.has(c.id),
       season: c.season?.name ?? null,
     }));
-  const last = matches.filter((m) => m.status === "finished").at(-1) ?? matches[0];
+  const last = own.filter((m) => m.status === "finished").at(-1) ?? matches[0];
   return { competitions, matches, suggested: last ? { competitionId: last.competitionId, round: last.round } : null };
 }
 

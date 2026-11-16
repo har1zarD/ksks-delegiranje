@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Oswald } from "next/font/google";
 import { Images } from "lucide-react";
-import { getSocialResults, getSocialRound, getSocialSchedules, type SocialMatch } from "@/lib/data/social";
+import { getSocialFibaResults, getSocialResults, getSocialRound, getSocialSchedules, type SocialMatch } from "@/lib/data/social";
 import { getSocialTables } from "@/lib/data/results";
 import { getSavedSocialSchedule, getSavedSocialSchedules } from "@/lib/data/admin";
 import { PageHeader } from "@/components/ui";
@@ -54,13 +54,15 @@ const FIXTURES_BY_COMPETITION: Record<string, Fixture[]> = {
 };
 
 async function Studio({ searchParams }: { searchParams: SearchParams }) {
-  const [data, results, round, tables, saved, { takmicenje, vrsta, r }] = await Promise.all([
-    getSocialSchedules(), getSocialResults(), getSocialRound(), getSocialTables(), getSavedSocialSchedules(), searchParams,
+  const [data, results, round, fiba, tables, saved, { takmicenje, vrsta, r }] = await Promise.all([
+    getSocialSchedules(), getSocialResults(), getSocialRound(), getSocialFibaResults(), getSocialTables(), getSavedSocialSchedules(), searchParams,
   ]);
+  // Lige saveza: rezultati s FIBA statistike za parove iz rasporeda koji nemaju utakmicu u aplikaciji idu uz naše, po terminu
+  const withFiba = (list: SocialMatch[]) => [...list, ...fiba].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const withRound = (list: SocialMatch[]) => list.map((m) => ({ ...m, round: m.round ?? FIXTURE_ROUND.get(`${m.competitionId}|${m.home}|${m.away}`) ?? null }));
   const kind = SOCIAL_KINDS.find((k) => k.param === vrsta)?.id ?? "schedule";
-  // Parovi koji već postoje kao prava utakmica (bilo kog statusa osim otkazane): izostavljaju se iz prijedloga rasporeda
-  const knownPairings = round.map((m) => `${m.competitionId}|${m.home}|${m.away}`);
+  // Parovi koji već postoje kao prava utakmica (bilo kog statusa osim otkazane) ili su odigrani po FIBA statistici: izostavljaju se iz prijedloga rasporeda
+  const knownPairings = [...round, ...fiba].map((m) => `${m.competitionId}|${m.home}|${m.away}`);
   // Bez ?r ili ?r=novi: odmah u bilder (podrazumijevano, kao i do sada). ?r=lista: sačuvani rasporedi. ?r=<uuid>: otvori sačuvan.
   const draftId = typeof r === "string" && r !== "novi" && r !== "lista" ? r : null;
   const draft = draftId ? await getSavedSocialSchedule(draftId) : null;
@@ -68,7 +70,7 @@ async function Studio({ searchParams }: { searchParams: SearchParams }) {
   return (
     <SocialStudio
       key={typeof r === "string" ? r : "builder"}
-      {...data} matches={withRound(data.matches)} results={withRound(results)} round={withRound(round)} tables={tables}
+      {...data} matches={withRound(data.matches)} results={withFiba(withRound(results))} round={withFiba(withRound(round))} tables={tables}
       kind={kind} competition={typeof takmicenje === "string" ? takmicenje : undefined} font={poster.style.fontFamily}
       fixturesByCompetition={FIXTURES_BY_COMPETITION} knownPairings={knownPairings} schedule={schedule}
     />
