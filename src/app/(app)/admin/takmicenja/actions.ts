@@ -13,15 +13,17 @@ import { A1_ZENE_FIXTURES, A1_ZENE_ID } from "@/lib/a1-zene-raspored";
 import { MINIBASKET_FIXTURES, MINIBASKET_ID } from "@/lib/minibasket-raspored";
 import { KADETI_G2_FIXTURES, KADETI_G2_ID } from "@/lib/kadeti-g2-raspored";
 import { JUNIORI_FIXTURES, JUNIORI_ID } from "@/lib/juniori-raspored";
+import { UNOBASKET_FIXTURES, UNOBASKET_ID } from "@/lib/unobasket-raspored";
 
 /** Takmičenja koja imaju gotov raspored saveza umjesto generatora po Bergeru */
-const FEDERATION_FIXTURE_IDS = new Set([A2_JUG_ID, A1_ZENE_ID, MINIBASKET_ID, KADETI_G2_ID, JUNIORI_ID]);
+const FEDERATION_FIXTURE_IDS = new Set([A2_JUG_ID, A1_ZENE_ID, MINIBASKET_ID, KADETI_G2_ID, JUNIORI_ID, UNOBASKET_ID]);
 const FEDERATION_FIXTURES: Record<string, (typeof A2_JUG_FIXTURES)> = {
   [A2_JUG_ID]: A2_JUG_FIXTURES,
   [A1_ZENE_ID]: A1_ZENE_FIXTURES,
   [MINIBASKET_ID]: MINIBASKET_FIXTURES,
   [KADETI_G2_ID]: KADETI_G2_FIXTURES,
   [JUNIORI_ID]: JUNIORI_FIXTURES,
+  [UNOBASKET_ID]: UNOBASKET_FIXTURES,
 };
 
 export type FormState = { error?: string; ok?: number };

@@ -23,6 +23,8 @@ import { KADETI_G2_ID } from "@/lib/kadeti-g2-raspored";
 import { KadetiG2Raspored } from "./kadeti-g2-objava";
 import { JUNIORI_ID } from "@/lib/juniori-raspored";
 import { JunioriRaspored } from "./juniori-objava";
+import { UNOBASKET_ID } from "@/lib/unobasket-raspored";
+import { UnobasketRaspored } from "./unobasket-objava";
 
 export const metadata = { title: "Takmičenje — KSKS" };
 
@@ -50,7 +52,8 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
   const isMinibasket = c.id === MINIBASKET_ID;
   const isKadetiG2 = c.id === KADETI_G2_ID;
   const isJuniori = c.id === JUNIORI_ID;
-  const hasFederationSchedule = isA2South || isA1Women || isMinibasket || isKadetiG2 || isJuniori;
+  const isUnobasket = c.id === UNOBASKET_ID;
+  const hasFederationSchedule = isA2South || isA1Women || isMinibasket || isKadetiG2 || isJuniori || isUnobasket;
 
   return (
     <div className="flex flex-col gap-10">
@@ -152,6 +155,10 @@ async function Competition({ params }: { params: Promise<{ id: string }> }) {
       ) : isJuniori ? (
         <Suspense fallback={<RasporedSkeleton />}>
           <JunioriRaspored teams={teams} />
+        </Suspense>
+      ) : isUnobasket ? (
+        <Suspense fallback={<RasporedSkeleton />}>
+          <UnobasketRaspored teams={teams} />
         </Suspense>
       ) : null}
 
