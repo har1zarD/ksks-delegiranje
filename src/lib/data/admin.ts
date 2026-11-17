@@ -177,9 +177,10 @@ async function matchPool(when: "upcoming" | "past", competitionId: string | null
   cacheTag(TAG.matches, TAG.competitions, TAG.teams, TAG.clubs, TAG.halls, TAG.assignments, TAG.periods, TAG.profiles);
   let q = createAdminClient().from("matches").select(ADMIN_MATCH_SELECT);
   if (competitionId) q = q.eq("competition_id", competitionId);
-  // Završena utakmica je odigrana čim je neko označi završenom, i kad je datum u budućnosti
-  if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.eq.live`).neq("status", "finished");
-  else q = q.or(`starts_at.lt.${sarajevoToISO(addDays(day, 1), "00:00")},status.eq.finished`).neq("status", "live");
+  // Završena utakmica je odigrana čim je neko označi završenom, i kad je datum u budućnosti; odgođena predstoji
+  // (čeka novi termin) i kad je prvobitni datum prošao
+  if (when === "upcoming") q = q.or(`starts_at.gte.${sarajevoToISO(day, "00:00")},status.in.(live,postponed)`).neq("status", "finished");
+  else q = q.or(`starts_at.lt.${sarajevoToISO(addDays(day, 1), "00:00")},status.eq.finished`).not("status", "in", "(live,postponed)");
   return rows(await q.order("starts_at", { ascending: when === "upcoming" }).limit(POOL_LIMIT));
 }
 
@@ -191,8 +192,12 @@ export async function getAdminMatches(opts: { when: "upcoming" | "past"; competi
   const pool = await matchPool(opts.when, opts.competitionId ?? null, todayISO());
   const windowEnd = opts.days ? new Date(now + opts.days * 86_400_000).toISOString() : null;
   return pool
-    // Utakmica uživo je "predstoji" i kad je prošlo vrijeme početka; završena je odigrana i kad je datum u budućnosti
-    .filter((m) => (opts.when === "upcoming" ? (m.starts_at >= nowIso || m.status === "live") && m.status !== "finished" : m.starts_at < nowIso || m.status === "finished"))
+    // Utakmica uživo i odgođena "predstoje" i kad je prošlo vrijeme početka; završena je odigrana i kad je datum u budućnosti
+    .filter((m) =>
+      opts.when === "upcoming"
+        ? (m.starts_at >= nowIso || m.status === "live" || m.status === "postponed") && m.status !== "finished"
+        : (m.starts_at < nowIso || m.status === "finished") && m.status !== "postponed",
+    )
     .filter((m) => !windowEnd || m.starts_at < windowEnd)
     .slice(0, MATCH_LIMIT)
     .map(({ assignments, ...m }) => ({

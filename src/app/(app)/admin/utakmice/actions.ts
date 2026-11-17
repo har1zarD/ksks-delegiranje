@@ -83,7 +83,11 @@ export async function updateSchedule(id: string, date: string, time: string, hal
   const supabase = await createClient();
   const { data: before } = await supabase.from("matches").select("starts_at, hall_id, status, published_at").eq("id", id).maybeSingle();
   if (!before) return { error: "Utakmica nije pronađena." };
-  const row = { starts_at: sarajevoToISO(date, time), hall_id: hallId || null };
+  const starts = sarajevoToISO(date, time);
+  // Odgođena utakmica s novim datumom u budućnosti ponovo je zakazana (pa joj se bira i vrijeme)
+  const at = new Date(starts).getTime();
+  const rescheduled = before.status === "postponed" && at > Date.now() && at !== new Date(before.starts_at).getTime();
+  const row = { starts_at: starts, hall_id: hallId || null, ...(rescheduled && { status: "scheduled" as const }) };
   const { error } = await supabase.from("matches").update(row).eq("id", id);
   if (error) return { error: "Izmjena nije sačuvana. Pokušaj ponovo." };
 
