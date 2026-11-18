@@ -50,9 +50,11 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   if (number && (!Number.isInteger(Number(number)) || Number(number) < 1)) return { error: "Broj utakmice mora biti pozitivan broj." };
 
   const supabase = await createClient();
-  const row = { ...match, starts_at: sarajevoToISO(date, time) };
   // Aktivirana utakmica: stari termin, dvorana i status, da se izmjena javi službenim licima i klubovima
   const before = id ? (await supabase.from("matches").select("starts_at, hall_id, status, published_at").eq("id", id).maybeSingle()).data : null;
+  // Odgođena vraćena u zakazane je nova nominacija: ponovo neaktivirana, šalje se s ostalima (ne kao izmjena)
+  const rescheduled = before?.status === "postponed" && match.status === "scheduled";
+  const row = { ...match, starts_at: sarajevoToISO(date, time), ...(rescheduled && { published_at: null }) };
   const { data, error } = id
     ? await supabase.from("matches").update(row).eq("id", id).select("id").single()
     : await supabase.from("matches").insert(row).select("id").single();
@@ -63,6 +65,7 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   invalidate({ table: "matches", match: data.id });
   if (
     id &&
+    !rescheduled &&
     before?.published_at &&
     (new Date(before.starts_at).getTime() !== new Date(row.starts_at).getTime() || before.hall_id !== row.hall_id || (row.status && before.status !== row.status))
   ) {
@@ -87,12 +90,13 @@ export async function updateSchedule(id: string, date: string, time: string, hal
   // Odgođena utakmica s novim datumom u budućnosti ponovo je zakazana (pa joj se bira i vrijeme)
   const at = new Date(starts).getTime();
   const rescheduled = before.status === "postponed" && at > Date.now() && at !== new Date(before.starts_at).getTime();
-  const row = { starts_at: starts, hall_id: hallId || null, ...(rescheduled && { status: "scheduled" as const }) };
+  // Novi termin odgođene je nova nominacija: vraća se u neaktivirane i šalje se s ostalima, ne kao izmjena
+  const row = { starts_at: starts, hall_id: hallId || null, ...(rescheduled && { status: "scheduled" as const, published_at: null }) };
   const { error } = await supabase.from("matches").update(row).eq("id", id);
   if (error) return { error: "Izmjena nije sačuvana. Pokušaj ponovo." };
 
   invalidate({ table: "matches", match: id });
-  if (before.published_at && (new Date(before.starts_at).getTime() !== new Date(row.starts_at).getTime() || before.hall_id !== row.hall_id)) {
+  if (!rescheduled && before.published_at && (new Date(before.starts_at).getTime() !== new Date(row.starts_at).getTime() || before.hall_id !== row.hall_id)) {
     const snapshot = { starts_at: before.starts_at, hall_id: before.hall_id, status: before.status };
     after(() => notifyMatchChanged(createAdminClient(), id, snapshot));
   }
