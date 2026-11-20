@@ -7,7 +7,7 @@ export const KADETI_G2_ID = "efa174a7-1a9a-464c-ad1d-5c8ba0aee67b";
 
 /** Takmičarski brojevi iz PDF-a → naziv ekipe u takmičenju (12 = Slobodna ekipa, bez tima) */
 const TEAMS = [
-  "KK Point", "KK MVP B", "KK BBY 3x3", "KK Realway B", "KK Koš B", "KK Realway Akademija",
+  "KK Point", "KK MVP B", "KK BBY 3x3", "KK Realway Plavi", "KK Koš B", "KK Realway Bijeli",
   "KK GEN", "KK Hrasnica", "KK Mladost", "KK Ilidža Black", "KK BBY", "Slobodna ekipa",
 ];
 
