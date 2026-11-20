@@ -1,6 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
-import { LIFE, TAG, tag } from "@/lib/cache";
+import { LIFE, TAG } from "@/lib/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import { sarajevoToISO, todayISO } from "@/lib/format";
@@ -63,16 +63,16 @@ export async function getMyUnavailability() {
   return unavailabilityRows(user.id, todayISO());
 }
 
-/** Ekipa jedne utakmice (samo poslane nominacije). Dijeli se između svih koji su na utakmici. */
-async function crewRows(matchId: string) {
+/** Ekipe utakmica (samo poslane nominacije), jednim upitom; `matchIds` sortirani, pa isti skup dijeli keš */
+async function crewRows(matchIds: string[]) {
   "use cache: remote";
   cacheLife(LIFE.live);
-  cacheTag(tag.match(matchId), TAG.profiles);
+  cacheTag(TAG.assignments, TAG.profiles);
   return rows(
     await createAdminClient()
       .from("assignments")
       .select(CREW_SELECT)
-      .eq("match_id", matchId)
+      .in("match_id", matchIds)
       .in("status", ["pending", "accepted"])
       .not("notified_at", "is", null),
   );
@@ -85,15 +85,14 @@ export async function getCrews(matchIds: string[]) {
 
   const user = await getCurrentUser();
   const mine = new Set((await myAssignmentRows(user.id)).flatMap((a) => (a.match ? [a.match.id] : [])));
-  const allowed = [...new Set(matchIds)].filter((id) => mine.has(id));
+  const allowed = [...new Set(matchIds)].filter((id) => mine.has(id)).sort();
+  if (allowed.length === 0) return crews;
 
-  for (const data of await Promise.all(allowed.map((id) => crewRows(id)))) {
-    for (const a of data) {
-      if (!a.profile) continue;
-      const crew = crews.get(a.match_id) ?? [];
-      crew.push({ position: a.position, status: a.status, name: a.profile.full_name, phone: a.profile.phone });
-      crews.set(a.match_id, crew);
-    }
+  for (const a of await crewRows(allowed)) {
+    if (!a.profile) continue;
+    const crew = crews.get(a.match_id) ?? [];
+    crew.push({ position: a.position, status: a.status, name: a.profile.full_name, phone: a.profile.phone });
+    crews.set(a.match_id, crew);
   }
   return crews;
 }
