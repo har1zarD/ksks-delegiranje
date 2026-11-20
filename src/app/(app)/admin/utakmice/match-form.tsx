@@ -75,6 +75,8 @@ export function MatchForm({
         // Aktivirana utakmica: promjena termina, dvorane ili statusa ide mailom, pa prvo upozorenje
         if (!isEdit || !values.published_at) return;
         const f = new FormData(e.currentTarget);
+        // Odgođena vraćena u zakazane ne šalje izmjenu: ponovo čeka aktiviranje kao nova nominacija
+        if (values.status === "postponed" && f.get("status") === "scheduled") return;
         const changed =
           f.get("date") !== values.date || f.get("time") !== values.time || String(f.get("hall_id") ?? "") !== (values.hall_id ?? "") || f.get("status") !== values.status;
         if (!changed) return;
