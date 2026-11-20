@@ -7,7 +7,6 @@ import { getFibaAliases, getFibaGame, getFibaGames, getLinkCandidates } from "@/
 import { feedState, fibaCategoryLabel, fibaGameUrl, properName, type FibaExtra, type FibaGame, type FibaLine, type FibaPlayer, type FibaTeam } from "@/lib/fiba";
 import { fibaPlayerId, plusMinusText } from "@/lib/fiba-stats";
 import { formatDayHeading, formatDayMonth, formatTime, isoToSarajevo, matchNo, periodShort } from "@/lib/format";
-import { AutoRefresh } from "@/components/auto-refresh";
 import { BoxScore } from "@/components/match-line";
 import { Bone, SectionTitleSkeleton, Skeleton, Text } from "@/components/skeleton";
 import { cx, Empty, SectionTitle, Status } from "@/components/ui";
@@ -61,8 +60,6 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <div className="flex flex-col gap-10">
-      {state === "live" && <AutoRefresh seconds={15} />}
-
       <section className="rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3">
           <span className="text-[13px] font-semibold text-fg-muted">

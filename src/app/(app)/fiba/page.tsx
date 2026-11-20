@@ -7,7 +7,6 @@ import { FIBA_CATEGORIES, feedState, fibaCategoryLabel } from "@/lib/fiba";
 import { fibaStandings, matchFibaTeamNames, seasonOf, seasonsOf } from "@/lib/fiba-stats";
 import { dayKey, formatDayHeading, matchNo } from "@/lib/format";
 import { pageParam, pageRange, paginateDays } from "@/lib/paginate";
-import { AutoRefresh } from "@/components/auto-refresh";
 import { MatchLine, type MatchSummary } from "@/components/match-line";
 import { Bone, MatchRowsSkeleton, SectionTitleSkeleton, SegmentsSkeleton, Skeleton, StandingsSkeleton, times } from "@/components/skeleton";
 import { FilterContent, FilterNavProvider, FilterSegment, FilterSegments } from "@/components/filter-nav";
@@ -187,8 +186,6 @@ async function Games({ all, selected, sp, href }: { all: Games; selected: string
 
   return (
     <div className="flex flex-col gap-10">
-      {/* Utakmica uživo: lista se osvježava sama (FIBA kešira 30 s) */}
-      {live.length > 0 && <AutoRefresh seconds={20} />}
       {user.role === "admin" && <AddFibaGame competitions={competitions} />}
       {games.length === 0 && (
         <Empty icon={<Radio />}>Još nema utakmica. Spisak se puni sam čim FIBA objavi utakmice takmičenja; admin može dodati utakmicu FIBA linkom.</Empty>
