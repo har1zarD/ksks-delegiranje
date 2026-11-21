@@ -6,6 +6,7 @@ import { Shield } from "lucide-react";
 import { cx } from "@/components/ui";
 
 export type TeamIdentity = {
+  id?: string;
   name: string;
   club: { logo_url: string | null } | null;
 };
@@ -23,8 +24,10 @@ export function ClubLogo({ src, eager = false }: { src?: string | null; eager?: 
   );
 }
 
-export function TeamName({ name, logoUrl, className, wrap = false, eager = false }: {
+export function TeamName({ name, logoUrl, rank, className, wrap = false, eager = false }: {
   name: string;
+  /** Pozicija na tabeli, diskretno desno od naziva */
+  rank?: number | null;
   logoUrl?: string | null;
   className?: string;
   wrap?: boolean;
@@ -34,6 +37,11 @@ export function TeamName({ name, logoUrl, className, wrap = false, eager = false
     <span className={cx("flex min-w-0 items-center gap-2", className)}>
       <ClubLogo src={logoUrl} eager={eager} />
       <span className={cx("min-w-0 max-w-full", wrap ? "break-words" : "truncate")} title={name}>{name}</span>
+      {rank != null && (
+        <span className="shrink-0 text-[0.72em] font-medium tabular-nums tracking-normal text-fg-faint" title={`${rank}. mjesto na tabeli`}>
+          {rank}.
+        </span>
+      )}
     </span>
   );
 }

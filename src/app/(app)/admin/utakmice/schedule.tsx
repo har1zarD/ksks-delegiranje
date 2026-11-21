@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, FileImage, MapPin } from "lucide-react";
 import { delegatedHere, getAdminMatches, getCompetitions, getHalls, type MatchPayment } from "@/lib/data/admin";
+import { getTeamRanks } from "@/lib/data/results";
 import { matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatTime, formatWeekday, isoToSarajevo, MATCH_STATUS_LABEL, MONTHS_SHORT } from "@/lib/format";
 import { FilterChip, FilterContent, FilterNavProvider, FilterSegment, FilterSelect, PageLink, PageStep } from "@/components/filter-nav";
@@ -41,11 +42,12 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
   // Delegiranje (samo predstojeće): zakazane kojima nedostaje pozicija ili su sve popunjene
   const staffingFilter: StaffingFilter | undefined = !past && (sp.delegiranje === "nedostaje" || sp.delegiranje === "popunjeno") ? sp.delegiranje : undefined;
 
-  const [competitions, all, withSheets, halls] = await Promise.all([
+  const [competitions, all, withSheets, halls, ranks] = await Promise.all([
     getCompetitions(),
     getAdminMatches({ when: past ? "past" : "upcoming", competitionId }),
     matchesWithScoresheets(),
     getHalls(),
+    getTeamRanks(),
   ]);
 
   // Dvorana: id iz šifarnika ili NO_HALL (utakmice bez dvorane); nepoznata vrijednost = bez filtera
@@ -224,6 +226,7 @@ export async function MatchSchedule({ sp, mode, basePath }: { sp: ScheduleParams
                             <Link href={`/admin/utakmice/${m.id}`} className={cx("flex min-w-0 flex-1 items-center gap-3 py-4", editable && "pb-2.5")}>
                               <MatchLine
                                 match={m}
+                                ranks={ranks}
                                 hideDate={selectable}
                                 hideTime={m.status === "postponed"}
                                 hideHall={editable}

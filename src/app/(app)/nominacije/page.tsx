@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock, CheckCircle2 } from "lucide-react";
 import { Suspense } from "react";
 import { getCrews, getMyAssignments } from "@/lib/data/official";
+import { getTeamRanks } from "@/lib/data/results";
 import { positionName } from "@/lib/format";
 import { PageIntro } from "@/components/page-intro";
 import { MatchLine } from "@/components/match-line";
@@ -25,7 +26,7 @@ export default function NominationsPage() {
 }
 
 async function Nominations() {
-  const { upcoming: all } = await getMyAssignments();
+  const [{ upcoming: all }, ranks] = await Promise.all([getMyAssignments(), getTeamRanks()]);
   const pending = all.filter((a) => a.status === "pending");
   const accepted = all.filter((a) => a.status === "accepted");
   const crews = await getCrews(all.map((a) => a.match.id));
@@ -42,7 +43,7 @@ async function Nominations() {
               <li key={a.id} className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
                 <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center">
                   <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 px-2 py-1">
-                    <MatchLine match={a.match} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                    <MatchLine match={a.match} ranks={ranks} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
                   </Link>
                   <RespondForm id={a.id} />
                 </div>
@@ -60,7 +61,7 @@ async function Nominations() {
               <li key={a.id} className="relative overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
                 <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:py-5">
                   <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 pl-2 pr-24 py-1 sm:pr-2">
-                    <MatchLine match={a.match} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                    <MatchLine match={a.match} ranks={ranks} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
                   </Link>
                   <RespondForm id={a.id} accepted />
                 </div>

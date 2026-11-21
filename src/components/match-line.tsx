@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
 import { formatTime, isoToSarajevo, matchKindLabel, matchNo, MONTHS_SHORT, periodShort, WEEKDAYS, type MatchKind } from "@/lib/format";
 import { formatScore, usesQuarterPoints } from "@/lib/quarter-points";
+import type { TeamRanks } from "@/lib/data/results";
 
 export type PeriodScore = { period: number; home_points: number; away_points: number };
 
@@ -55,6 +56,9 @@ export function DateTile({ iso, size = "md", selected, hideTime, className }: { 
   );
 }
 
+/** Pozicija ekipe na tabeli, ako je tabela poznata */
+const rankOf = (ranks: TeamRanks | undefined, team: TeamIdentity | null) => (ranks && team?.id ? ranks[team.id] : undefined);
+
 /** Uvijek 4 četvrtine, pa produžeci koji postoje */
 export function periodColumns(periods: PeriodScore[]) {
   const max = Math.max(4, ...periods.map((p) => p.period));
@@ -90,8 +94,11 @@ export function MatchLine({
   hideTime,
   hideHall,
   hideLabelOnMobile,
+  ranks,
 }: {
   match: MatchSummary;
+  /** Pozicije ekipa na tabeli (getTeamRanks), diskretno uz naziv */
+  ranks?: TeamRanks;
   /** Broj i takmičenje se na telefonu crtaju izvan reda (npr. u jezičku kartice) */
   hideLabelOnMobile?: boolean;
   /** Datum se crta izvan reda (npr. kao dugme za označavanje) */
@@ -120,7 +127,7 @@ export function MatchLine({
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
         {!hideDate && <DateTile iso={match.starts_at} hideTime={hideTime} />}
         <div className="min-w-0 flex-1 basis-40">
-          <BoxScore match={match} periods={periods} label={competition} badge={badge} />
+          <BoxScore match={match} periods={periods} label={competition} badge={badge} ranks={ranks} />
           {hall}
           {meta && <div className="mt-2 text-[14px]">{meta}</div>}
         </div>
@@ -143,11 +150,11 @@ export function MatchLine({
         </div>
         <div className={cx("mt-1 grid items-center gap-x-3 gap-y-1", score ? "grid-cols-[1fr_auto]" : "grid-cols-1")}>
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !homeWon && "text-fg-muted")}>
-            <TeamName name={match.home?.name ?? "—"} logoUrl={match.home?.club?.logo_url} />
+            <TeamName name={match.home?.name ?? "—"} logoUrl={match.home?.club?.logo_url} rank={rankOf(ranks, match.home)} />
           </span>
           {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", homeWon ? "text-brand" : "text-fg-muted")}>{formatScore(match.home_score!)}</span>}
           <span className={cx("truncate text-[17px] font-semibold leading-snug tracking-[-0.02em]", score && !awayWon && "text-fg-muted")}>
-            <TeamName name={match.away?.name ?? "—"} logoUrl={match.away?.club?.logo_url} />
+            <TeamName name={match.away?.name ?? "—"} logoUrl={match.away?.club?.logo_url} rank={rankOf(ranks, match.away)} />
           </span>
           {score && <span className={cx("scoreboard whitespace-nowrap text-[22px] font-semibold leading-tight", awayWon ? "text-brand" : "text-fg-muted")}>{formatScore(match.away_score!)}</span>}
         </div>
@@ -170,12 +177,14 @@ export function BoxScore({
   label,
   badge,
   size = "sm",
+  ranks,
 }: {
   match: Pick<MatchSummary, "home" | "away" | "home_score" | "away_score"> & { competition?: MatchSummary["competition"] };
   periods: PeriodScore[];
   label?: React.ReactNode;
   badge?: React.ReactNode;
   size?: "sm" | "lg";
+  ranks?: TeamRanks;
 }) {
   const cols = periodColumns(periods);
   const baskets = usesQuarterPoints(match.competition?.category) && periods.length > 0
@@ -230,7 +239,7 @@ export function BoxScore({
         const key = side === "home" ? "home_points" : "away_points";
         return [
           <span key={`${side}-name`} className={cx(team, !leads && points !== other && "text-fg-muted")}>
-            <TeamName name={match[side]?.name ?? "—"} logoUrl={match[side]?.club?.logo_url} />
+            <TeamName name={match[side]?.name ?? "—"} logoUrl={match[side]?.club?.logo_url} rank={rankOf(ranks, match[side])} />
           </span>,
           ...cols.map((c) => {
             const v = c[key];

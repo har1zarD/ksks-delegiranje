@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ChevronRight, CalendarDays, CheckCircle2 } from "lucide-react";
 import { getCrews, getMyAssignments } from "@/lib/data/official";
+import { getTeamRanks } from "@/lib/data/results";
 import { positionName } from "@/lib/format";
 import { MatchLine } from "@/components/match-line";
 import { CrewList, CrewListSkeleton } from "@/components/crew-list";
@@ -23,7 +24,7 @@ export default function MyMatchesPage() {
 }
 
 async function MyMatches() {
-  const mine = await getMyAssignments();
+  const [mine, ranks] = await Promise.all([getMyAssignments(), getTeamRanks()]);
   const upcoming = mine.upcoming.filter((a) => a.status === "accepted");
   const past = mine.past.filter((a) => a.status === "accepted");
   const crews = await getCrews([...upcoming, ...past].map((a) => a.match.id));
@@ -50,6 +51,7 @@ async function MyMatches() {
                 <Link href={`/utakmice/${a.match.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 sm:py-5">
                   <MatchLine
                     match={a.match}
+                    ranks={ranks}
                     periods={a.match.status === "live" ? a.match.periods : undefined}
                     badge={a.match.status === "live" ? <Status tone="crest" pulse>Uživo</Status> : undefined}
                     meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>}
@@ -71,6 +73,7 @@ async function MyMatches() {
                 <Link href={`/utakmice/${a.match.id}`} className="-mx-4 flex px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6 sm:py-5">
                   <MatchLine
                     match={a.match}
+                    ranks={ranks}
                     showScore
                     periods={a.match.periods.length > 0 ? a.match.periods : undefined}
                   />

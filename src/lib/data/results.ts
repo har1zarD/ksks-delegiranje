@@ -227,3 +227,37 @@ export async function getSocialTables() {
 }
 
 export type SocialTable = Awaited<ReturnType<typeof getSocialTables>>[number];
+
+/** Pozicija ekipe na tabeli (id ekipe → mjesto), za prikaz uz naziv ekipe u listama utakmica */
+export type TeamRanks = Record<string, number>;
+
+/**
+ * Takmičenja čije se mjesto na tabeli prikazuje uz naziv ekipe (omladinske lige KSKS).
+ * Ostala (Srednje škole, WABA U15, seniorske lige i lige saveza) bez pozicije.
+ */
+const RANKED_COMPETITIONS = new Set([
+  "c6b366f8-1d26-4b9d-94fe-bfefd988ca60", // Unobasket
+  "ecd30198-7ae7-4856-a411-d7bb0c7e35d3", // Minibasket
+  "ad3e34d0-8393-46ec-a464-e0db6a898cb9", // Pioniri G1
+  "9a46987b-ee80-4ad4-b956-4dd29bebaf37", // Pioniri G2
+  "e5da2f34-3891-40b5-b946-9484f3750e34", // Kadeti G1
+  "efa174a7-1a9a-464c-ad1d-5c8ba0aee67b", // Kadeti G2
+  "76190da0-e3cd-4939-81e9-c05cd590890c", // Juniori
+  "c661f272-7329-486d-ba5e-5edeb7924586", // ŽOL — Pionirke
+  "ce36b0c1-7df5-4ac5-a391-de280bd0d220", // ŽOL — Kadetkinje
+]);
+
+/**
+ * Pozicije ekipa iz RANKED_COMPETITIONS, iz istih tabela kao Rezultati (isti keš kao slike tabele).
+ * Bez pozicije dok takmičenje nema nijednu odigranu utakmicu lige.
+ */
+export async function getTeamRanks(): Promise<TeamRanks> {
+  await getCurrentUser();
+  const ranks: TeamRanks = {};
+  for (const table of await socialTablesData()) {
+    if (!RANKED_COMPETITIONS.has(table.id)) continue;
+    if (table.standings.length < 2 || !table.standings.some((s) => s.played > 0)) continue;
+    table.standings.forEach((s, i) => (ranks[s.teamId] = i + 1));
+  }
+  return ranks;
+}

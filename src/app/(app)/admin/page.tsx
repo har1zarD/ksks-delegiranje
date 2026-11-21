@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { Plus, CalendarDays, CheckCircle2, Clock, Users, Radio, ClipboardList, Send, Wallet } from "lucide-react";
 import { delegatedHere, getActivatedMatches, getAdminMatches, OVERVIEW_DAYS } from "@/lib/data/admin";
+import { getTeamRanks } from "@/lib/data/results";
 import { formatKM, matchCost, matchesLabel } from "@/lib/finance";
 import { dayKey, formatDayHeading, formatDayMonth, formatTime, positionName } from "@/lib/format";
 import { PingPending, type PingItem } from "./ping-pending";
@@ -51,7 +52,7 @@ export default function AdminHome({ searchParams }: { searchParams: SearchParams
 }
 
 async function Overview() {
-  const [soon, activatedList] = await Promise.all([getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }), getActivatedMatches()]);
+  const [soon, activatedList, ranks] = await Promise.all([getAdminMatches({ when: "upcoming", days: DAYS_AHEAD }), getActivatedMatches(), getTeamRanks()]);
   const live = soon.filter((m) => m.status === "live");
 
   // Aktivirane (nominacija poslana) utakmice stoje na vrhu dok se ne upiše rezultat, po danu; neaktivirane su ispod (Za aktiviranje)
@@ -86,6 +87,7 @@ async function Overview() {
                 <Link href={`/admin/utakmice/${m.id}`} className="-mx-4 flex items-center gap-3 px-4 py-4 transition-colors hover:bg-panel-2 sm:-mx-6 sm:px-6">
                   <MatchLine
                     match={m}
+                    ranks={ranks}
                     periods={m.periods}
                     badge={
                       <Status tone="crest" pulse>
@@ -143,7 +145,7 @@ async function Overview() {
                     <li key={m.id} className="relative flex items-center pt-5 transition-colors hover:bg-panel-2 sm:pt-0">
                       <StaffingTab match={m} staffing={m.staffing} publishedAt={m.published_at} fiba={m.fiba} />
                       <Link href={`/admin/utakmice/${m.id}`} className="flex min-w-0 flex-1 items-center py-3 sm:py-4">
-                        <MatchLine match={m} hideLabelOnMobile aside={<StaffingCrew staffing={m.staffing} digital={m.digital_scoresheet} />} />
+                        <MatchLine match={m} ranks={ranks} hideLabelOnMobile aside={<StaffingCrew staffing={m.staffing} digital={m.digital_scoresheet} />} />
                       </Link>
                     </li>
                   ))}
