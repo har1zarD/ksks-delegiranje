@@ -3,19 +3,29 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-/** Podaci izvan naše baze (FIBA LiveStats): osvježavanje stranice svakih `seconds` dok je kartica vidljiva */
-export function AutoRefresh({ seconds = 20 }: { seconds?: number }) {
+/**
+ * Povratak u aplikaciju (otključan telefon, aplikacija s početnog ekrana, drugi tab): ako je stranica starija od
+ * `seconds`, server ponovo učita podatke. Bez ovoga ostavljena stranica satima prikazuje staro stanje (npr. tabelu
+ * prije novog kola). Unos u formama ostaje (router.refresh ne briše stanje na klijentu).
+ */
+export function AutoRefresh({ seconds = 60 }: { seconds?: number }) {
   const router = useRouter();
 
   useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === "visible") router.refresh();
+    let last = Date.now();
+    const back = () => {
+      if (document.visibilityState !== "visible" || Date.now() - last < seconds * 1000) return;
+      last = Date.now();
+      router.refresh();
     };
-    const id = setInterval(tick, seconds * 1000);
-    document.addEventListener("visibilitychange", tick);
+    // pageshow: Safari vraća stranicu iz bfcache bez visibilitychange
+    document.addEventListener("visibilitychange", back);
+    window.addEventListener("focus", back);
+    window.addEventListener("pageshow", back);
     return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", tick);
+      document.removeEventListener("visibilitychange", back);
+      window.removeEventListener("focus", back);
+      window.removeEventListener("pageshow", back);
     };
   }, [seconds, router]);
 

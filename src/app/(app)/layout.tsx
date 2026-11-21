@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getCurrentUser, type Role } from "@/lib/auth";
 import { logout } from "@/app/prijava/actions";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { InstallApp } from "@/components/install-app";
 import { cx, GUTTER } from "@/components/ui";
 import { AppNav, AppNavSkeleton, type NavItem } from "./nav";
@@ -50,6 +51,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col overflow-x-clip lg:pl-64 print:pl-0">
         <main className={cx("mx-auto w-full max-w-6xl flex-1 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 sm:pt-10 lg:pb-20", GUTTER)}>
           <InstallApp dismissible floating />
+          {/* Stranica ostavljena otvorena (telefon, tab) se osvježi pri povratku, da niko ne gleda staro stanje */}
+          <AutoRefresh />
           {children}
         </main>
       </div>
