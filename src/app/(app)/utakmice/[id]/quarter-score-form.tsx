@@ -65,7 +65,7 @@ export function QuarterScoreForm({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[14px] text-fg-muted">
-        Upiši koševe obje ekipe za svaku četvrtinu. Dobijena četvrtina je 1 bod, neriješena 0,5 svakoj ekipi; zbir bodova je rezultat utakmice. Kod 2:2 ekipa s više ukupnih koševa dobija još 1 bod.
+        Upiši koševe obje ekipe za svaku četvrtinu. Dobijena četvrtina je 1 bod, neriješena 0,5 svakoj ekipi; zbir bodova je rezultat utakmice, zaokružen naviše (2,5 : 1,5 → 3 : 2). Kod 2:2 ekipa s više ukupnih koševa dobija još 1 bod.
       </p>
       <form
         action={action}
