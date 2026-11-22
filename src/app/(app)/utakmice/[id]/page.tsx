@@ -17,7 +17,6 @@ import { LockMatchButton } from "@/components/lock-match-button";
 import { MatchPaidButton } from "@/components/match-paid-button";
 import { BoxScore } from "@/components/match-line";
 import { usesQuarterPoints } from "@/lib/quarter-points";
-import { AdminScoreForm } from "./admin-score-form";
 import { FinalScore, ScoreBoard } from "./score-board";
 import { Scoresheets } from "./scoresheets";
 import { FibaMatchForm } from "@/app/(app)/fiba/link-match";
@@ -68,10 +67,7 @@ async function Match({ params }: { params: Params }) {
   const crewScores = !isAdmin && (quarters ? isTable || isReferee : isTable && !match.has_commissioner);
   const undoUntil = crewScores && match.status === "finished" ? scoreUndoUntil(match.score_entered_at) : null;
   // Upisuju rezultat dok ga nema (i kad je sudija već označio utakmicu završenom) ili dok traje rok za ispravku
-  const canFinal = !fiba && open && crewScores && (match.home_score == null || undoUntil !== null);
-  // Savez ispravlja rezultat svake utakmice koja nije u toku (u toku se unosi na semaforu): po četvrtinama ili samo konačni.
-  // FIBA utakmica samo po četvrtinama (konačni bi FIBA ponovo prepisala), Unobasket samo konačni (broj dobijenih četvrtina)
-  const adminFix = isAdmin && open && match.status !== "live";
+  const canFinal = !fiba && open && (isAdmin ? finalOnly : crewScores && (match.home_score == null || undoUntil !== null));
   // Zaključavanje bez unosa rezultata: sudije i sto na svojoj stranici, savez uvijek; utakmicu u toku završava komesar
   const canLock = open && match.status !== "finished" && (isAdmin || ((isReferee || isTable) && match.status !== "live"));
   // Slike zapisnika: savez, komesar, pomoćne sudije i sudije (svi prihvaćeni na utakmici)
@@ -115,12 +111,12 @@ async function Match({ params }: { params: Params }) {
               homeLogoUrl={match.home?.club?.logo_url ?? null}
               awayLogoUrl={match.away?.club?.logo_url ?? null}
               initial={periods}
-              canEdit={!fiba && (isAdmin || isCommissioner) && match.status === "live"}
+              canEdit={!fiba && (isAdmin ? open : isCommissioner && match.status === "live")}
             />
           )}
           {fiba && (
             <p className="pt-3 text-[14px] text-fg-muted">
-              Rezultat se automatski preuzima s FIBA LiveStats (svake minute){isAdmin ? "; savez ga može ispraviti u dijelu Zapisnik." : ", ne unosi se ručno."}
+              Rezultat se automatski preuzima s FIBA LiveStats (svake minute), ne unosi se ručno.
             </p>
           )}
           {!fiba && isCommissioner && !isAdmin && match.status === "scheduled" && (
@@ -187,28 +183,6 @@ async function Match({ params }: { params: Params }) {
             Zapisnik
           </SectionTitle>
           <div className="flex flex-col gap-5 rounded-lg border border-line bg-panel px-4 py-5 shadow-panel sm:px-6">
-            {adminFix && (
-              <div>
-                <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">Ispravka rezultata (savez)</h3>
-                <AdminScoreForm
-                  key={`${match.home_score}:${match.away_score}:${periods.length}`}
-                  matchId={match.id}
-                  homeName={homeName}
-                  awayName={awayName}
-                  homeLogoUrl={match.home?.club?.logo_url ?? null}
-                  awayLogoUrl={match.away?.club?.logo_url ?? null}
-                  periods={periods}
-                  home={match.home_score}
-                  away={match.away_score}
-                  quarterPointsLeague={quarters}
-                  allowQuarters={match.competition?.category !== "unobasket"}
-                  allowFinal={!fiba}
-                />
-                {fiba && (
-                  <p className="mt-3 text-[14px] text-fg-muted">Ispravljene četvrtine FIBA LiveStats više ne prepisuje.</p>
-                )}
-              </div>
-            )}
             {canFinal && quarters && (
               <div>
                 <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">Rezultat po četvrtinama sa zapisnika</h3>
@@ -249,7 +223,7 @@ async function Match({ params }: { params: Params }) {
             {!fiba && crewScores && open && !canFinal && (
               <p className="text-[14px] text-fg-muted">Rezultat je upisan i utakmica je završena. Za ispravku se javi savezu.</p>
             )}
-            <div className={cx((canFinal || adminFix) && "border-t border-line pt-5")}>
+            <div className={cx(canFinal && "border-t border-line pt-5")}>
               <h3 className="mb-3 text-[13px] font-semibold text-fg-muted">
                 Slike zapisnika, statistike i sl. <span className="font-normal text-faint">(nije obavezno)</span>
               </h3>
