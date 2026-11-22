@@ -69,9 +69,19 @@ const FOUL_PHRASE: Record<TechnicalFoul["type"], string> = {
   D: "diskvalifikujuća greška",
 };
 
+/** Tekst komesara bez sadržaja: "Bez primjedbi", "Nema.", "Nije bilo", "Sve uredno"… (i s greškom u kucanju, "Brz primjedbi") */
+const EMPTY_REMARK =
+  /^(?:(?:bez|brz) (?:primjedbi|primjedbe|primjedaba|napomene|napomena|problema|incidenata)|nema(?: (?:primjedbi|primjedbe|napomena|napomene|incidenata))?|nije bilo(?: (?:primjedbi|incidenata|problema))?|(?:sve )?(?:uredno|korektno|u redu))$/;
+
+/** Tekst za poređenje: mala slova, bez kvačica i interpunkcije, jedan razmak */
+const remarkKey = (text: string) =>
+  text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, " ").trim();
+
 /**
  * Primjedbe iz biltena komesara: svaka greška u svom redu ("Dosuđena tehnička greška ekipi Kakanj (Velić M.), 3. četvrtina, 4. min."),
  * pa incidenti i napomene; bez ičega "Bez primjedbi."
+ * Komesari u oba polja često upišu isto ili praznu frazu ("Bez primjedbi", "Nema."): prazne fraze se ne ispisuju, a tekst
+ * koji se ponavlja (isti ili sadržan u drugom) ide jednom, da u biltenu ne stoji dva puta "Bez primjedbi".
  */
 export function defaultRemarks(m: {
   home: string;
@@ -84,7 +94,16 @@ export function defaultRemarks(m: {
     const when = foulTimeLabel(t);
     return `Dosuđena ${FOUL_PHRASE[t.type]} ekipi ${t.team === "home" ? m.home : m.away}${t.player.trim() ? ` (${t.player.trim()})` : ""}${when ? `, ${when}` : ""}${t.reason.trim() ? ` — ${t.reason.trim()}` : ""}.`;
   });
-  for (const text of [r.incidents, r.remarks]) if (text?.trim()) lines.push(text.trim());
+  const notes: { text: string; key: string }[] = [];
+  for (const raw of [r.incidents, r.remarks]) {
+    const text = raw?.trim();
+    const key = text ? remarkKey(text) : "";
+    if (!text || !key || EMPTY_REMARK.test(key)) continue;
+    const same = notes.findIndex((n) => n.key.includes(key) || key.includes(n.key));
+    if (same < 0) notes.push({ text, key });
+    else if (key.length > notes[same].key.length) notes[same] = { text, key };
+  }
+  lines.push(...notes.map((n) => n.text));
   return lines.length > 0 ? lines.join("\n") : NO_REMARKS;
 }
 
