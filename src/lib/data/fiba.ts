@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser, requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
@@ -141,28 +140,26 @@ async function linkedMatches() {
   return rows(await createAdminClient().from("matches").select(LINKED_MATCH).not("fiba_game_id", "is", null));
 }
 
-/** Pamti utakmice iz feeda (kategorija omladinske lige, pristupni kod i veza se ne diraju) */
-async function storeFeed(games: (FibaFeedGame & { category?: string })[]) {
-  if (games.length === 0) return;
-  const now = new Date().toISOString();
-  const { error } = await createAdminClient()
-    .from("fiba_games")
-    .upsert(games.map((g) => ({ ...g, updated_at: now })));
-  if (error) console.error("[fiba] upis feeda:", error.message);
-}
-
 export async function getFibaCompetitions() {
   await getCurrentUser();
   return competitionRows();
 }
 
-/** Sve poznate FIBA utakmice (s našom utakmicom ako je povezana); feed ima prednost i upisuje se u bazu poslije odgovora */
+/**
+ * Sve poznate FIBA utakmice (s našom utakmicom ako je povezana); svježi feed ima prednost.
+ * U bazu feed upisuje samo pg_cron (sync_fiba_feed svake 2 minute): feed kasni i satima drži odigrane utakmice kao
+ * SCHEDULED, pa bi upis odavde brisao rezultat koji je sync_fiba_stats uzeo iz same utakmice (tabela bez tih utakmica).
+ */
 export async function getFibaGames() {
   await getCurrentUser();
   const [feed, stored, linked, logos] = await Promise.all([feedGames(), storedGames(), linkedMatches(), clubLogos()]);
-  after(() => storeFeed(feed));
   const byId = new Map<number, FibaGameRow>(stored.map((g) => [g.id, g]));
-  for (const g of feed) byId.set(g.id, { ...g, category: g.category ?? byId.get(g.id)?.category ?? null, stream_key: byId.get(g.id)?.stream_key ?? null });
+  for (const g of feed) {
+    const known = byId.get(g.id);
+    // Zakašnjeli feed ne vraća završenu utakmicu na "zakazana"
+    if (known?.status === "COMPLETE" && (g.status === "SCHEDULED" || g.status === "READY")) continue;
+    byId.set(g.id, { ...g, category: g.category ?? known?.category ?? null, stream_key: known?.stream_key ?? null });
+  }
   const matchOf = new Map(linked.map((m) => [m.fiba_game_id!, m]));
   return [...byId.values()].map((g) => ({ ...withClubLogos(g, logos), match: matchOf.get(g.id) ?? null }));
 }
