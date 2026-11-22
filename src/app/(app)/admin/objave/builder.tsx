@@ -463,32 +463,45 @@ function useMatchPicker(
   /** Sačuvano stanje (umjesto izračunatih podrazumijevanih vrijednosti) */
   preset?: { filters: Filters; texts: SocialTextOptions; selected: string[] },
 ) {
-  const [filters, setFilters] = useState<Filters>(() => preset?.filters ?? initialFilters());
-  const [selected, setSelected] = useState(() => new Set(preset ? preset.selected : filterMatches(matches, filters).map((m) => m.id)));
+  // Filter i izbor koje je korisnik sam napravio ili ih nosi sačuvan raspored. Dok ih nema, važi podrazumijevani filter
+  // nad svježim podacima: stranica koja ostane otvorena poslije novog kola pokaže nove utakmice, a ne izbor iz trenutka
+  // kad je otvorena.
+  const [own, setOwn] = useState<{ filters: Filters; selected: Set<string> } | null>(() => (preset ? { filters: preset.filters, selected: new Set(preset.selected) } : null));
+  const autoKey = JSON.stringify(initialFilters());
+  const auto = useMemo(() => {
+    const filters = JSON.parse(autoKey) as Filters;
+    return { filters, selected: new Set(filterMatches(matches, filters).map((m) => m.id)) };
+  }, [matches, autoKey]);
+  const { filters, selected } = own ?? auto;
   const [page, setPage] = useState(0);
   const [texts, setTexts] = useState<SocialTextOptions>(() => preset?.texts ?? follow(defaultTexts(title, layout), "", filters.competition, headline(matches, filters)));
+  // Podrazumijevani filter se promijenio sa svježim podacima (npr. novo kolo): podnaslov ga prati kao kod ručne promjene
+  const [followed, setFollowed] = useState(autoKey);
+  if (!own && followed !== autoKey) {
+    const before = JSON.parse(followed) as Filters;
+    setFollowed(autoKey);
+    setTexts((old) => follow(old, headline(matches, before), auto.filters.competition, headline(matches, auto.filters)));
+    setPage(0);
+  }
   const chosen = useMemo(() => matches.filter((m) => selected.has(m.id)), [matches, selected]);
 
   function filter(patch: Partial<Filters>) {
     const next = { ...filters, ...patch };
-    setFilters(next);
     setTexts((old) => follow(old, headline(matches, filters), next.competition, headline(matches, next)));
-    setSelected(new Set(filterMatches(matches, next).map((m) => m.id).filter(isSelectable)));
+    setOwn({ filters: next, selected: new Set(filterMatches(matches, next).map((m) => m.id).filter(isSelectable)) });
     setPage(0);
   }
 
   function select(ids: Set<string>) {
-    setSelected(ids);
+    setOwn({ filters, selected: ids });
     setPage(0);
   }
 
   function toggle(id: string) {
-    setSelected((old) => {
-      const next = new Set(old);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setOwn({ filters, selected: next });
     setPage(0);
   }
 

@@ -37,7 +37,8 @@ export type BulletinInitial = { id: string | null; draft: BulletinDraft | null; 
 export function BulletinBuilder({ competitions, matches, suggested, initial }: BulletinData & { initial: BulletinInitial }) {
   const d = initial.draft;
   const [compIds, setCompIds] = useState<string[]>(() => d?.competitionIds ?? (suggested ? [suggested.competitionId] : competitions.slice(0, 1).map((c) => c.id)));
-  const [round, setRound] = useState<number | null>(d ? d.round : (suggested?.round ?? null));
+  // Novi bilten: bez izabranog kola važi zadnje odigrano kolo izabranih takmičenja (activeRound), i kad stignu novi rezultati
+  const [round, setRound] = useState<number | null>(d ? d.round : null);
   const [excluded, setExcluded] = useState<Set<string>>(() => new Set(d?.excluded ?? []));
   // Ispravljene primjedbe (id → tekst); bez zapisa = automatski iz biltena komesara
   const [remarks, setRemarks] = useState<Record<string, string>>(d?.remarks ?? {});
