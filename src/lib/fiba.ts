@@ -113,6 +113,8 @@ type RawTeam = {
   timeouts?: number;
   pl?: Record<string, RawPlayer>;
   [key: `p${number}_score`]: number | undefined;
+  /** Zbir svih produžetaka (FIBA ih ne vodi kao p5_score, p6_score…) */
+  ot_score?: number;
   tot_sPoints?: number;
   tot_sFieldGoalsMade?: number;
   tot_sFieldGoalsAttempted?: number;
@@ -282,9 +284,38 @@ export function fibaTeamRename(name: string) {
   return FIBA_TEAM_RENAMES[name.toLowerCase().replace(/\s+/g, " ").trim()] ?? name;
 }
 
-function team(t: RawTeam): FibaTeam {
+/** FIBA u produžetku period ponovo broji od 1 (periodType OVERTIME); kod nas su produžeci periodi 5, 6… */
+const periodNumber = (period: number, periodType?: string) => (periodType === "OVERTIME" ? 4 + period : period);
+
+/**
+ * Poeni ekipe po periodima: četvrtine (p1_score…), pa produžeci. Za produžetke FIBA daje samo zbir (ot_score), pa se
+ * raniji produžeci čitaju iz toka utakmice (rezultat na kraju tog produžetka), a zadnji je ostatak zbira: zbir perioda
+ * je uvijek konačni rezultat. Isto radi public.fiba_periods u bazi.
+ */
+function periodScores(g: RawGame, side: 1 | 2): number[] {
+  const t = g.tm[side === 1 ? "1" : "2"];
   const periods: number[] = [];
   for (let i = 1; t[`p${i}_score`] !== undefined; i++) periods.push(Number(t[`p${i}_score`]));
+  const overtime = (g.pbp ?? []).filter((a) => a.periodType === "OVERTIME");
+  const count = Math.max(g.periodType === "OVERTIME" ? g.period : 0, ...overtime.map((a) => a.period));
+  const regular = periods.reduce((sum, points) => sum + points, 0);
+  const total = t.ot_score ?? Number(t.score ?? regular) - regular;
+  let reached = regular;
+  let spent = 0;
+  for (let k = 1; k <= count; k++) {
+    let points = Math.max(total - spent, 0);
+    if (k < count) {
+      const ended = Math.max(reached, ...overtime.filter((a) => a.period === k).map((a) => Number(side === 1 ? a.s1 : a.s2) || 0));
+      points = ended - reached;
+      reached = ended;
+    }
+    spent += points;
+    periods.push(points);
+  }
+  return periods;
+}
+
+function team(t: RawTeam, periods: number[]): FibaTeam {
   const players = Object.values(t.pl ?? {})
     .map<FibaPlayer>((p) => ({
       number: p.shirtNumber,
@@ -371,13 +402,14 @@ function actions(g: RawGame): FibaAction[] {
   return [...(g.pbp ?? [])]
     .sort((a, b) => a.actionNumber - b.actionNumber)
     .map((a) => {
-      const length = a.period <= 4 ? regular : overtime;
+      const period = periodNumber(a.period, a.periodType);
+      const length = period <= 4 ? regular : overtime;
       const name = a.firstName || a.familyName ? fullName(a) : null;
       return {
         n: a.actionNumber,
-        period: a.period,
+        period,
         clock: a.gt,
-        elapsed: start(a.period) + Math.max(0, length - clockSeconds(a.gt)),
+        elapsed: start(period) + Math.max(0, length - clockSeconds(a.gt)),
         side: a.tno === 1 || a.tno === 2 ? a.tno : 0,
         type: a.actionType,
         subType: a.subType ?? "",
@@ -407,11 +439,11 @@ export async function fetchFibaGame(matchId: number, startsAt?: string | null): 
   return {
     id: matchId,
     state: stateOf(g) === "live" && startsAt && Date.now() - Date.parse(startsAt) > LIVE_MAX_MS ? "finished" : stateOf(g),
-    period: g.period,
+    period: periodNumber(g.period, g.periodType),
     clock: g.clock,
     attendance: g.attendance || null,
-    home: team(g.tm["1"]),
-    away: team(g.tm["2"]),
+    home: team(g.tm["1"], periodScores(g, 1)),
+    away: team(g.tm["2"], periodScores(g, 2)),
     officials: OFFICIALS.flatMap(([key, role]) => {
       const p = g.officials?.[key];
       const name = p && personName(p);
