@@ -580,16 +580,20 @@ export async function getBulletinData() {
   });
   // Lige saveza (A2 jug, A1 žene): utakmice kola koje nisu napravljene u aplikaciji, a odigrane su po FIBA statistici,
   // ulaze u bilten kao i ostale (rezultat i četvrtine sa statistike; komesar i sudije preko fibaGameId)
-  // Broj utakmice: brojevi kola iz rasporeda saveza koje utakmice u aplikaciji nisu zauzele, redom (kao u nominaciji)
-  const freeNumbers = new Map<string, number[]>();
-  const numberOf = (r: (typeof fiba)[number]) => {
-    const key = `${r.competitionId}|${r.round}`;
-    if (!freeNumbers.has(key)) {
-      const taken = new Set(own.filter((m) => m.competitionId === r.competitionId && m.round === r.round).map((m) => m.number));
-      freeNumbers.set(key, (BULLETIN_FIXTURES[r.competitionId] ?? []).filter((f) => f.round === r.round && !taken.has(f.number)).map((f) => f.number));
-    }
-    return freeNumbers.get(key)!.shift() ?? r.number;
-  };
+  // Broj utakmice: broj para iz rasporeda saveza (kao u nominaciji saveza); samo kad ga je utakmica u aplikaciji već zauzela,
+  // prvi slobodan broj tog kola
+  const fibaNumber = new Map<number, number>();
+  for (const key of new Set(fiba.map((r) => `${r.competitionId}|${r.round}`))) {
+    const results = fiba.filter((r) => `${r.competitionId}|${r.round}` === key);
+    const { competitionId, round } = results[0];
+    const taken = new Set(own.filter((m) => m.competitionId === competitionId && m.round === round).map((m) => m.number));
+    const free = (BULLETIN_FIXTURES[competitionId] ?? []).filter((f) => f.round === round && !taken.has(f.number)).map((f) => f.number);
+    const keeps = results.filter((r) => free.includes(r.number));
+    for (const r of keeps) fibaNumber.set(r.gameId, r.number);
+    const rest = free.filter((n) => !keeps.some((r) => r.number === n));
+    for (const r of results.filter((r) => !keeps.includes(r))) fibaNumber.set(r.gameId, rest.shift() ?? r.number);
+  }
+  const numberOf = (r: (typeof fiba)[number]) => fibaNumber.get(r.gameId) ?? r.number;
   const played: typeof own = fiba
     .filter((r) => data.competitions.some((c) => c.id === r.competitionId))
     .map((r) => ({

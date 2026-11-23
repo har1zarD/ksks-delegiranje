@@ -23,13 +23,13 @@ function nominationMatches(competitionId: string, round: number, matches: Bullet
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt) || (a.number ?? Infinity) - (b.number ?? Infinity) || 0);
   const fixtures = (BULLETIN_FIXTURES[competitionId] ?? []).filter((f) => f.round === round);
   const missing = missingFixtures(fixtures, own);
-  // Brojevi kola iz rasporeda koje utakmice u aplikaciji nisu zauzele, redom (domaćinstvo i broj u aplikaciji mogu odstupati od rasporeda)
+  // Par iz rasporeda nosi svoj broj iz rasporeda saveza; samo kad ga je utakmica u aplikaciji zauzela, prvi slobodan broj kola
   const taken = new Set(own.map((m) => m.number));
-  const free = fixtures.map((f) => f.number).filter((n) => !taken.has(n));
+  const free = fixtures.map((f) => f.number).filter((n) => !taken.has(n) && !missing.some((f) => f.number === n));
   return [
     // Liga saveza: utakmica u aplikaciji bez komesara i sudija u sastavu dobija ista prazna polja kao parovi iz rasporeda
     ...own.map((m) => ({ number: m.number, home: m.home, away: m.away, date: formatDate(isoToSarajevo(m.startsAt).date), hall: m.hall, officials: fixtures.length > 0 && m.officials.length === 0 ? FIXTURE_OFFICIALS : m.officials })),
-    ...missing.map((f, i) => ({ number: free[i] ?? f.number, home: f.home, away: f.away, date: f.roundDate ? roundWeekend(f.roundDate) : "datum nije određen", hall: f.hall, officials: FIXTURE_OFFICIALS })),
+    ...missing.map((f) => ({ number: taken.has(f.number) ? (free.shift() ?? f.number) : f.number, home: f.home, away: f.away, date: f.roundDate ? roundWeekend(f.roundDate) : "datum nije određen", hall: f.hall, officials: FIXTURE_OFFICIALS })),
   ];
 }
 
