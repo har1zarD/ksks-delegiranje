@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
 import { CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewToRow } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
+import { leagueMatchNumber } from "@/lib/league-number";
 import { addDays, sarajevoToISO } from "@/lib/format";
 import { bergerSchedule, computeStandings, upToRound } from "@/lib/standings";
 import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
@@ -316,6 +317,8 @@ export async function createFixtureMatch(prev: FormState, f: FormData): Promise<
   const name = (id: string) => teams?.find((t) => t.id === id)?.name;
   if (!fixtures.some((x) => x.round === round && x.home === name(homeId) && x.away === name(awayId))) return { error: "Utakmica nije u rasporedu." };
   if (count) return { error: "Ova utakmica je već napravljena." };
+  // Liga saveza bez upisanog broja: broj para iz rasporeda saveza, ne "zadnji + 1" iz okidača
+  const leagueNumber = number ? null : await leagueMatchNumber(supabase, { competition_id: competitionId, round, home_team_id: homeId, away_team_id: awayId });
 
   const { error } = await supabase.from("matches").insert({
     competition_id: competitionId,
@@ -324,7 +327,7 @@ export async function createFixtureMatch(prev: FormState, f: FormData): Promise<
     away_team_id: awayId,
     hall_id: text(f, "hall_id") || null,
     starts_at: sarajevoToISO(date, time),
-    ...(number ? { number: Number(number) } : {}),
+    ...(number ? { number: Number(number) } : leagueNumber ? { number: leagueNumber } : {}),
     // Sastav ekipe po pravilima takmičenja (Naknade)
     ...(competition ? crewToRow(crewDefaultsOf(competition)) : {}),
   });

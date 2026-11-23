@@ -79,6 +79,7 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
     return { competition: c, matches, manual: manualOfGroup, missing };
   });
   const chosen = groups.flatMap((g) => g.matches.filter((m) => !excluded.has(m.id)));
+  const droppedPlayed = groups.flatMap((g) => g.matches.filter((m) => excluded.has(m.id) && m.status === "finished"));
   const chosenManual = groups.flatMap((g) => g.manual);
   const nominated =
     nextRound === null
@@ -569,6 +570,12 @@ export function BulletinBuilder({ competitions, matches, suggested, initial }: B
           )}
         </div>
         {error && <p className="text-[13px] font-medium text-crest">{error}</p>}
+        {/* Odigrana utakmica kola skinuta kvačicom ne ide u bilten: vidi se prije preuzimanja, da ne ispadne slučajno */}
+        {registration && droppedPlayed.length > 0 && (
+          <p className="text-[13px] font-medium text-orange">
+            Nije u biltenu (isključena): {droppedPlayed.map((m) => `${m.home} – ${m.away}`).join(", ")}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" disabled={!preview} onClick={() => preview && window.open(preview, "_blank", "noopener")}>
             <ExternalLink className="size-4" aria-hidden="true" /> Otvori

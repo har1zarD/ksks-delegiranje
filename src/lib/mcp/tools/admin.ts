@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { invalidateFromRoute } from "@/lib/cache";
+import { leagueMatchNumber } from "@/lib/league-number";
 import { CREW_COLUMNS, CREW_DEFAULT_COLUMNS, crewDefaultsOf, crewOf, crewPositions, crewToRow, type Crew } from "@/lib/crew";
 import { ADMIN_MATCH_SELECT, ASSIGNMENT_WITH_TIME_SELECT, MATCH_SELECT } from "@/lib/data/selects";
 import { assignPerson, eligibleFor, removeAssignment } from "@/lib/delegation";
@@ -154,6 +155,10 @@ export const createMatch = defineTool({
     const rules = must(
       await db.from("competitions").select(CREW_DEFAULT_COLUMNS).eq("id", a.takmicenje_id).single(),
     );
+    // Liga saveza bez navedenog broja: broj para iz rasporeda saveza, ne "zadnji + 1" iz okidača
+    const leagueNumber = a.broj_utakmice
+      ? null
+      : await leagueMatchNumber(db, { competition_id: a.takmicenje_id, round: a.kolo ?? null, home_team_id: a.domacin_id, away_team_id: a.gost_id });
     const row = must(
       await db
         .from("matches")
@@ -163,7 +168,7 @@ export const createMatch = defineTool({
           away_team_id: a.gost_id,
           starts_at: sarajevoToISO(a.datum, a.vrijeme),
           round: a.kolo ?? null,
-          ...(a.broj_utakmice ? { number: a.broj_utakmice } : {}),
+          ...(a.broj_utakmice ? { number: a.broj_utakmice } : leagueNumber ? { number: leagueNumber } : {}),
           hall_id: a.dvorana_id ?? homeHall,
           ...crewToRow(crewWith(crewDefaultsOf(rules), a)),
           notes: a.napomena ?? null,

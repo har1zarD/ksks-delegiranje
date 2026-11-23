@@ -29,14 +29,19 @@ const ROUNDS: [string, [number, number][]][] = [
   ["2027-03-27", [[10, 5], [4, 6], [3, 7], [2, 8], [1, 9]]],
 ];
 
-/** Sve utakmice po kolima; svako kolo ima tačno jednu slobodnu ekipu, pa 4 odigrane utakmice po kolu */
+/**
+ * Sve utakmice po kolima; svako kolo ima tačno jednu slobodnu ekipu, pa 4 odigrane utakmice po kolu.
+ * Broj utakmice kao kod saveza: savez broji i par slobodne ekipe (5 brojeva po kolu, broj tog para se ne koristi),
+ * npr. 1. kolo 2–5, 3. kolo 11, 13, 14, 15.
+ */
 export const A1_ZENE_FIXTURES: Fixture[] = ROUNDS.flatMap(([date, pairs], r) =>
   pairs
-    .filter(([h, a]) => h !== 1 && a !== 1)
-    .map(([h, a], i) => ({
+    .map(([h, a], i) => ({ h, a, number: r * pairs.length + i + 1 }))
+    .filter(({ h, a }) => h !== 1 && a !== 1)
+    .map(({ h, a, number }) => ({
       round: r + 1,
       roundDate: date,
-      number: r * 4 + i + 1,
+      number,
       home: TEAMS[h - 1],
       away: TEAMS[a - 1],
       date,

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { invalidate } from "@/lib/cache";
-import { A2_JUG_FIXTURES, A2_JUG_ID } from "@/lib/a2-jug-raspored";
+import { leagueMatchNumber } from "@/lib/league-number";
 import { crewFromForm, crewToRow } from "@/lib/crew";
 import { candidateFits, getDelegation, type Candidate } from "@/lib/data/admin";
 import { assignPerson, DelegationError, removeAssignment, replaceAssignment } from "@/lib/delegation";
@@ -51,16 +51,10 @@ export async function saveMatch(_prev: MatchFormState, formData: FormData): Prom
   if (number && (!Number.isInteger(Number(number)) || Number(number) < 1)) return { error: "Broj utakmice mora biti pozitivan broj." };
 
   const supabase = await createClient();
-  // Nova utakmica A2 lige jug bez upisanog broja: broj para iz rasporeda saveza (kao u nominaciji saveza), ne "zadnji + 1"
-  // iz okidača; zauzet broj ostaje okidaču. (A1 žene u bazi broji i par slobodne ekipe, pa se ne dira.)
-  if (!id && !number && match.round !== null && match.competition_id === A2_JUG_ID) {
-    const { data: teams } = await supabase.from("teams").select("id, name").in("id", [match.home_team_id, match.away_team_id]);
-    const names = [match.home_team_id, match.away_team_id].map((t) => teams?.find((x) => x.id === t)?.name).sort().join("|");
-    const fixture = A2_JUG_FIXTURES.find((f) => f.round === match.round && [f.home, f.away].sort().join("|") === names);
-    if (fixture) {
-      const { count } = await supabase.from("matches").select("id", { count: "exact", head: true }).eq("competition_id", match.competition_id).eq("number", fixture.number);
-      if (count === 0) Object.assign(match, { number: fixture.number });
-    }
+  // Nova utakmica lige saveza bez upisanog broja: broj para iz rasporeda saveza, ne "zadnji + 1" iz okidača
+  if (!id && !number) {
+    const leagueNumber = await leagueMatchNumber(supabase, match);
+    if (leagueNumber) Object.assign(match, { number: leagueNumber });
   }
   // Aktivirana utakmica: stari termin, dvorana i status, da se izmjena javi službenim licima i klubovima
   const before = id ? (await supabase.from("matches").select("starts_at, hall_id, status, published_at").eq("id", id).maybeSingle()).data : null;
