@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, LoaderCircle, Pencil, Plus, Save, Search, Shield, Trophy, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, LoaderCircle, Pencil, Plus, Save, Search, Shield, Trophy, X } from "lucide-react";
 import { Button, ButtonLink, CARD, cx, Empty, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
+import { Popover } from "@/components/popover";
 import { DateField, TimeField } from "@/components/date-picker";
 import type { SocialMatch } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
@@ -23,7 +24,7 @@ import { SavedSchedules } from "./saved-schedules";
 import { saveSocialSchedule } from "./actions";
 
 const DEFAULT_DESIGN: SocialDesignOptions = {
-  format: "portrait", template: "fire", accent: "",
+  format: "portrait", template: "fire", accent: "", statehoodDay: false,
   showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true, year: "full",
 };
 
@@ -53,7 +54,10 @@ export function SocialStudio({ matches, results, round, today, now, competition,
   schedule: { view: "list" | "builder" | "missing"; saved: SavedSocialSchedule[]; initial: { id: string; draft: ScheduleDraft; updatedAt: string } | null };
 }) {
   const [kind, setKind] = useState<SocialKind>(initialKind);
-  const [design, setDesign] = useState(schedule.initial?.draft.design ?? DEFAULT_DESIGN);
+  const [design, setDesign] = useState<SocialDesignOptions>(() => {
+    const initial = { ...DEFAULT_DESIGN, ...schedule.initial?.draft.design };
+    return { ...initial, template: SOCIAL_TEMPLATES.find((template) => template.id === initial.template)?.id ?? "arena" };
+  });
   const onDesign: DesignChange = (key, value) => setDesign((old) => ({ ...old, [key]: value }));
   const shared = { design, onDesign, font };
 
@@ -893,12 +897,11 @@ function LayoutPicker({ kind, value, onChange }: { kind: SocialKind; value: stri
   return (
     <div className="flex flex-col gap-2.5">
       <h3 className="text-[14px] font-semibold">Raspored</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Raspored elemenata">
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Raspored elemenata">
         {SOCIAL_LAYOUTS[kind].map((layout) => (
-          <button key={layout.id} type="button" aria-pressed={value === layout.id} onClick={() => onChange(layout.id)} className={cx("rounded-lg border p-3 text-left transition-colors", value === layout.id ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-line hover:bg-panel-2")}>
+          <button key={layout.id} type="button" aria-pressed={value === layout.id} title={layout.description} onClick={() => onChange(layout.id)} className={cx("min-w-0 rounded-lg border p-2 text-left transition-colors sm:p-3", value === layout.id ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-line hover:bg-panel-2")}>
             <LayoutGlyph kind={kind} id={layout.id} />
-            <span className="mt-2 block text-[13px] font-semibold">{layout.name}</span>
-            <span className="mt-0.5 block text-[11px] leading-snug text-fg-muted">{layout.description}</span>
+            <span className="mt-1.5 block truncate text-center text-[12px] font-semibold sm:text-[13px]">{layout.name}</span>
           </button>
         ))}
       </div>
@@ -910,7 +913,7 @@ function LayoutPicker({ kind, value, onChange }: { kind: SocialKind; value: stri
 function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
   const bar = "rounded-[2px] bg-fg-faint/40";
   const dot = "size-2.5 shrink-0 rounded-[2px] bg-fg-faint/70";
-  if (kind === "schedule" && id === "cards") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1">{[0, 1].map((n) => <span key={n} className="flex flex-col items-center gap-0.5"><span className={cx(bar, "h-0.5 w-1/2")} /><span className="flex h-3.5 w-full items-center justify-between rounded-[4px] bg-fg-faint/20 px-1"><span className={dot} /><span className="h-1.5 w-4 rounded-[2px] bg-fg-faint/70" /><span className={dot} /></span></span>)}</span>;
+  if (kind === "schedule" && id === "cards") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1">{[0, 1].map((n) => <span key={n} className="overflow-hidden rounded-[4px] bg-fg-faint/15"><span className="flex h-3.5 items-center justify-between gap-1 px-1"><span className={dot} /><span className={cx(bar, "h-1 flex-1")} /><span className="h-2 w-4 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 flex-1")} /><span className={dot} /></span><span className="mx-auto mb-0.5 block h-0.5 w-1/2 rounded-[2px] bg-fg-faint/40" /></span>)}</span>;
   if (kind === "round" && id === "split") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-[3px]">{[0, 1].map((n) => <span key={n} className="flex flex-col gap-[3px]"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{Array.from({ length: n ? 1 : 2 }, (_, k) => <span key={k} className="flex h-2.5 items-center justify-between rounded-[3px] bg-fg-faint/20 px-1"><span className="size-1.5 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 w-1/4")} /><span className="size-1.5 rounded-[2px] bg-fg-faint/70" /></span>)}</span>)}</span>;
   if ((kind === "schedule" || kind === "results" || kind === "round") && id === "list") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1"><span className="h-0.5 w-1/3 rounded-[2px] bg-fg-faint/70" />{[0, 1, 2].map((n) => <span key={n} className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-[2px] bg-fg-faint/70" /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
   if (kind === "standings" && id === "board") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-0 rounded-[4px] bg-fg-faint/15 p-1">{[0, 1, 2, 3].map((n) => <span key={n} className="flex items-center gap-1 border-b border-fg-faint/30 py-0.5 last:border-0"><span className={cx(bar, "h-1 w-1/2")} /><span className="ml-auto h-1 w-3 rounded-[2px] bg-fg-faint/60" /></span>)}</span>;
@@ -924,31 +927,69 @@ function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
 function SocialDesign({ design, onDesign: change, brand }: { design: SocialDesignOptions; onDesign: DesignChange; brand: SocialTextOptions["brand"] }) {
   return (
     <>
-      <div className="flex flex-col gap-2.5">
+      <label className={cx("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors", design.statehoodDay ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-line hover:bg-panel-2")}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- mala statična sličica */}
+        <img src="/social/bih-statehood-thumb-v1.png" alt="" aria-hidden="true" width={40} height={40} className="size-10 shrink-0 rounded-md object-cover" />
+        <span className="min-w-0 flex-1 text-[14px] font-semibold">Dan državnosti BiH</span>
+        <input type="checkbox" role="switch" aria-label="Dan državnosti BiH" checked={design.statehoodDay} onChange={(event) => change("statehoodDay", event.target.checked)} className="size-5 shrink-0 accent-brand" />
+      </label>
+      {!design.statehoodDay && <div className="flex flex-col gap-2.5">
         <h3 className="text-[14px] font-semibold">Tema</h3>
         <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4" role="group" aria-label="Tema">
           {SOCIAL_TEMPLATES.map((template) => <TemplateThumb key={template.id} id={template.id} brand={brand} accent={design.accent} active={design.template === template.id} onPick={() => change("template", template.id)} />)}
         </div>
-      </div>
-      <div className="flex flex-col gap-2.5">
-        <h3 className="text-[14px] font-semibold">Boja akcenta</h3>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Boja akcenta">
-          {SOCIAL_ACCENTS.map((accent) => {
-            const active = design.accent === accent.id;
-            const color = accent.id || templateOf(design.template).accent;
-            return (
-              <button key={accent.id || "template"} type="button" aria-pressed={active} title={accent.name} onClick={() => change("accent", accent.id)} className={cx("flex h-9 items-center gap-2 rounded-md border px-2.5 text-[12px] font-semibold transition-colors", active ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-hover")}>
-                <span aria-hidden="true" className="size-4 rounded-sm border border-black/10" style={{ backgroundColor: color }} />
-                {accent.id ? <span className="sr-only sm:not-sr-only">{accent.name}</span> : accent.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      </div>}
+      <AccentPicker value={design.accent} templateAccent={templateOf(design.template, design.statehoodDay).accent} onChange={(accent) => change("accent", accent)} />
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="Format slike">
         {SOCIAL_FORMATS.map((item) => <button key={item.id} type="button" aria-pressed={design.format === item.id} onClick={() => change("format", item.id)} className={cx("rounded-lg border p-3 text-left", design.format === item.id ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-line hover:bg-panel-2")}><span className="block text-[13px] font-semibold">{item.name}</span><span className="mt-1 block text-[11px] text-fg-muted">{item.detail} · {item.width} × {item.height}</span></button>)}
       </div>
     </>
+  );
+}
+
+/** Svijetle boje traže tamnu kvačicu */
+function isLight(hex: string) {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 170;
+}
+
+/** Boja akcenta: polje s trenutnom bojom, izbor u plutajućem prozoru */
+function AccentPicker({ value, templateAccent, onChange }: { value: string; templateAccent: string; onChange: (accent: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  const current = SOCIAL_ACCENTS.find((accent) => accent.id === value) ?? SOCIAL_ACCENTS[0];
+  const close = (refocus = true) => {
+    setOpen(false);
+    if (refocus) trigger.current?.focus();
+  };
+  return (
+    <div className="flex flex-col gap-2.5">
+      <h3 className="text-[14px] font-semibold">Boja akcenta</h3>
+      <button ref={trigger} type="button" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => setOpen((o) => !o)} className={cx(inputClass, "flex items-center gap-2.5 text-left", open && "border-fg-muted ring-4 ring-fg/8")}>
+        <span aria-hidden="true" className="size-5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)]" style={{ backgroundColor: value || templateAccent }} />
+        <span className="min-w-0 flex-1 truncate">{current.name}</span>
+        <ChevronDown aria-hidden="true" className={cx("size-4 shrink-0 text-fg-muted transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <Popover id={id} anchor={trigger} label="Boja akcenta" width={264} onClose={close}>
+          <div className="grid grid-cols-4 gap-x-1 gap-y-3" role="group" aria-label="Boja akcenta">
+            {SOCIAL_ACCENTS.map((accent) => {
+              const active = value === accent.id;
+              const color = accent.id || templateAccent;
+              return (
+                <button key={accent.id || "template"} type="button" aria-pressed={active} onClick={() => { onChange(accent.id); close(); }} className="group flex min-w-0 flex-col items-center gap-1.5 rounded-md py-1 hover:bg-panel-2">
+                  <span aria-hidden="true" className={cx("flex size-9 items-center justify-center rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)] transition-transform group-hover:scale-105", active && "ring-2 ring-brand ring-offset-2 ring-offset-panel")} style={{ backgroundColor: color }}>
+                    {active && <Check className={cx("size-4", isLight(color) ? "text-black/70" : "text-white")} strokeWidth={3} />}
+                  </span>
+                  <span className={cx("w-full truncate text-center text-[11px]", active ? "font-semibold text-fg" : "text-fg-muted")}>{accent.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Popover>
+      )}
+    </div>
   );
 }
 
@@ -1097,7 +1138,7 @@ function scoreText(m: SocialMatch) {
 }
 
 function describe(content: SocialContent, options: SocialOptions) {
-  const title = options.title || "Slika za objavu";
+  const title = `${options.title || "Slika za objavu"}${options.statehoodDay ? " · 25. novembar, Dan državnosti BiH" : ""}`;
   if (content.kind === "schedule") return `${title}: ${content.matches.map((m) => `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
   if (content.kind === "results") return `${title}: ${content.matches.map((m) => `${m.home} ${scoreText(m)} ${m.away}, ${formatDate(m.date)}`).join("; ")}`;
   if (content.kind === "round") return `${title}: ${content.matches.map((m) => isPlayed(m) ? `${m.home} ${scoreText(m)} ${m.away}` : `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;

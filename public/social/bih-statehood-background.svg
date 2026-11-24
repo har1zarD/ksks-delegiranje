@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#003ab2"/>
+      <stop offset=".52" stop-color="#08276c"/>
+      <stop offset="1" stop-color="#030c2b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ffe26b"/>
+      <stop offset="1" stop-color="#ffc928"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".15" cy=".2" r=".85">
+      <stop stop-color="#2068e5" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#2068e5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#030c2b" stop-opacity=".2"/>
+      <stop offset=".45" stop-color="#030c2b" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#030c2b" stop-opacity=".55"/>
+    </linearGradient>
+    <path id="star" d="M0-26 5.84-8.03 24.73-8.03 9.45 3.07 15.28 21.03 0 9.94-15.28 21.03-9.45 3.07-24.73-8.03-5.84-8.03Z"/>
+  </defs>
+  <path fill="url(#blue)" d="M0 0h1080v1080H0z"/>
+  <path fill="url(#glow)" d="M0 0h1080v1080H0z"/>
+  <path fill="url(#gold)" d="M440-70h710v710Z"/>
+  <path fill="none" stroke="#ffe26b" stroke-opacity=".25" stroke-width="2" d="M345-70 1150 735"/>
+  <g fill="#fff" opacity=".94">
+    <use href="#star" transform="translate(364 -20)"/>
+    <use href="#star" transform="translate(449 65)"/>
+    <use href="#star" transform="translate(534 150)"/>
+    <use href="#star" transform="translate(619 235)"/>
+    <use href="#star" transform="translate(704 320)"/>
+    <use href="#star" transform="translate(789 405)"/>
+    <use href="#star" transform="translate(874 490)"/>
+    <use href="#star" transform="translate(959 575)"/>
+    <use href="#star" transform="translate(1044 660)"/>
+    <use href="#star" transform="translate(1129 745)"/>
+  </g>
+  <g fill="none" stroke="#b4d1ff" stroke-opacity=".12" stroke-width="2">
+    <circle cx="-45" cy="1120" r="370"/>
+    <circle cx="-45" cy="1120" r="510"/>
+    <path d="M0 915h245v165M-45 750v330M0 840c140 0 255 110 255 240"/>
+    <path d="M0 1060 1080 830" stroke-opacity=".08"/>
+  </g>
+  <path fill="url(#shade)" d="M0 0h1080v1080H0z"/>
+</svg>

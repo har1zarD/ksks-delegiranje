@@ -12,7 +12,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Offer future scheduled matches and all postponed matches in the current season. Compare scheduled start timestamps outside the cached reader; postponed matches remain selectable after their original start and display “ODGOĐENO” instead of the old schedule.
 - Use the official KSKS logo from `public/brand/` and keep club crests prominent in exported graphics.
+- Generate new announcement backgrounds with ImageGen and save the raster assets under `public/social/`; an SVG-only substitute did not meet the user's expectation. Keep match text and logos in the renderer so they remain editable.
 - Size club crests by their visible, non-transparent bounds, not the padded source canvas. Let users choose 1–12 matches per image (default 7), independently of the output format.
+- Keep team names inside schedule cards beside the crests, with a distinct central date/time area and a readable hall row. Do not put tiny, widely spaced fixture names above narrow cards or use low-contrast yellow time text on white.
 - Render “ODGOĐENO” in exported graphics as red text in a distinct bold monospace font with subtle letter spacing. No background or border; use a lighter red on dark templates.
 
 ## Club identity and logos

@@ -72,8 +72,13 @@ export const SOCIAL_TEMPLATES = [
   { id: "gold", name: "Zlatni termin", description: "Crni parket, bronza i zlato", bg: "#17130d", panel: "rgba(23,20,15,0.94)", ink: "#fffaf0", muted: "#d8c7a7", accent: "#e9c675", line: "#736144", background: PARQUET, overlay: "rgba(8,8,10,0.68)", headerInk: "#fff4dc", headerMuted: "#e5cfa7" },
   { id: "ice", name: "Plavi reflektori", description: "Hladna plava dvorana i svijetli grbovi", bg: "#082a43", panel: "rgba(6,36,59,0.93)", ink: "#ffffff", muted: "#b8d8ea", accent: "#7fe2ff", line: "#3a738f", background: ARENA, overlay: "rgba(0,39,66,0.60)", headerInk: "#ffffff", headerMuted: "#c3e7f6" },
   { id: "editorial", name: "Sportski magazin", description: "Krem papir, bordo i izražena tipografija", bg: "#f5eee3", panel: "#fffdf8", ink: "#47221c", muted: "#776254", accent: "#8e3025", line: "#d3bb9c", background: null, overlay: "transparent", headerInk: "#47221c", headerMuted: "#776254" },
-  { id: "derby", name: "Derbi večer", description: "Bordo dvorana za velike susrete", bg: "#3e1019", panel: "rgba(49,12,23,0.93)", ink: "#ffffff", muted: "#ebc9cf", accent: "#ffc18c", line: "#80505b", background: ARENA, overlay: "rgba(65,6,20,0.65)", headerInk: "#ffffff", headerMuted: "#f5d7dc" },
 ] as const satisfies readonly Template[];
+
+export const SOCIAL_STATEHOOD_TEMPLATE = {
+  id: "bih-statehood", name: "Dan državnosti BiH", description: "Plavo-žuta pozadina sa zvijezdama i oznakom 25. novembra",
+  bg: "#06184b", panel: "rgba(4,18,57,0.92)", ink: "#ffffff", muted: "#ccdafa", accent: "#ffda44", line: "#36589b",
+  background: "/social/bih-statehood-portrait-v1.png", overlay: "rgba(2,10,35,0.18)", headerInk: "#ffffff", headerMuted: "#e1eaff",
+} as const satisfies Template;
 
 /** Boja akcenta preko predloška (prazno = boja predloška), da slika prati boje tvoje pozadine */
 export const SOCIAL_ACCENTS = [
@@ -83,6 +88,7 @@ export const SOCIAL_ACCENTS = [
   { id: "#f2545b", name: "Crvena" },
   { id: "#4aa8ff", name: "Plava" },
   { id: "#34d399", name: "Zelena" },
+  { id: "#a78bfa", name: "Ljubičasta" },
   { id: "#ffffff", name: "Bijela" },
 ] as const;
 
@@ -96,7 +102,7 @@ export const SOCIAL_YEARS = [
 export const SOCIAL_LAYOUTS = {
   schedule: [
     { id: "rows", name: "Trake", description: "Grb, ime, termin, ime, grb" },
-    { id: "cards", name: "Kartice", description: "Svijetle kartice i veliko vrijeme" },
+    { id: "cards", name: "Kartice", description: "Imena, grbovi, termin i dvorana na kartici" },
     { id: "list", name: "Lista", description: "Po danima, sažeto" },
   ],
   results: [
@@ -129,6 +135,7 @@ export type SocialDesignOptions = {
   format: SocialFormat;
   template: SocialTemplate;
   accent: string;
+  statehoodDay: boolean;
   showBrand: boolean;
   showLogos: boolean;
   /** Grb na bijeloj pločici (za grbove s bijelom pozadinom) */
@@ -170,8 +177,8 @@ export function isPlayed(m: SocialMatch) {
   return m.status === "finished" && m.homeScore != null && m.awayScore != null;
 }
 
-export function templateOf(id: SocialTemplate): Template {
-  return SOCIAL_TEMPLATES.find((t) => t.id === id)!;
+export function templateOf(id: SocialTemplate, statehoodDay = false): Template {
+  return statehoodDay ? SOCIAL_STATEHOOD_TEMPLATE : SOCIAL_TEMPLATES.find((t) => t.id === id) ?? SOCIAL_TEMPLATES.find((t) => t.id === "arena")!;
 }
 
 export function contentSize(content: SocialContent) {
@@ -254,15 +261,6 @@ function inkOn(hex: string) {
   return luminance(hex) > 0.45 ? "#0b0d12" : "#ffffff";
 }
 
-/** Akcent dovoljno taman za tekst na bijeloj kartici */
-function deepen(hex: string) {
-  const l = luminance(hex);
-  if (l > 0.8) return "#111827";
-  const t = l > 0.45 ? 0.5 : l > 0.2 ? 0.25 : 0;
-  const [r, g, b] = rgbOf(hex).map((v) => Math.round(v * (1 - t)));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
 const shortDate = (date: string, year: SocialYear) => {
   const [y, m, d] = date.split("-");
   return `${d}.${m}.${year === "full" ? `${y}.` : year === "short" ? `${y.slice(2)}.` : ""}`;
@@ -278,8 +276,12 @@ const logoUrls = (content: SocialContent) =>
  */
 export async function renderSocialImage(content: SocialContent, options: SocialOptions, page: number, pages: number, posterFont: string) {
   const format = SOCIAL_FORMATS.find((f) => f.id === options.format)!;
-  const base = templateOf(options.template);
-  const theme = { ...base, accent: options.accent || base.accent };
+  const base = templateOf(options.template, options.statehoodDay);
+  const theme = {
+    ...base,
+    accent: options.accent || base.accent,
+    background: options.statehoodDay && options.format === "landscape" ? "/social/bih-statehood-landscape-v1.png" : base.background,
+  };
   const brand = SOCIAL_BRANDS[options.brand];
   const body = getComputedStyle(document.body).fontFamily;
   const poster = posterFont || body;
@@ -489,6 +491,16 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     cursor += 18;
   }
 
+  if (options.statehoodDay) {
+    const bandHeight = wide ? 28 : story ? 48 : 40;
+    box(margin, cursor + 4, w - margin * 2, bandHeight, "rgba(0,35,120,0.92)", 5);
+    box(margin, cursor + 4, 4, bandHeight, theme.accent, 1);
+    text("25. NOVEMBAR · DAN DRŽAVNOSTI BIH", w / 2, cursor + 4 + bandHeight / 2, {
+      size: wide ? 16 : story ? 24 : 20, color: "#ffda44", max: w - margin * 2 - 48, weight: 700, align: "center", spacing: 0.08,
+    });
+    cursor += bandHeight + (wide ? 14 : 24);
+  }
+
   const footerY = h - (story ? 150 : wide ? 26 : 42);
   const contentTop = cursor;
   const bottom = footerY - (wide ? 22 : 36);
@@ -538,49 +550,72 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const big = columns === 1 && rowHeight >= 300;
     const postponedOn = (light: boolean) => (light ? "#c81e1e" : "#ff6b6b");
 
-    /** Kartice: imena iznad, svijetla kartica s grbovima na krajevima, dan i datum, veliko vrijeme */
+    /** Kartice: grbovi i imena uz termin, dvorana i takmičenje u donjem redu */
     const cards = () => {
       const cols = wide && matches.length > 3 ? 2 : 1;
       const lines = Math.ceil(matches.length / cols);
-      const slot = available / lines;
-      const labelHeight = Math.min(38, slot * 0.24);
-      const gapY = Math.min(16, slot * 0.07);
-      const cardHeight = Math.min(slot - labelHeight - gapY, story ? 200 : 176);
-      const slotHeight = labelHeight + cardHeight;
-      const block = lines * slotHeight + (lines - 1) * gapY;
-      const y0 = contentTop + Math.max(0, (available - block) / 2) * 0.5;
+      const gapY = Math.min(16, available / (lines * 8));
+      const maxHeight = lines === 1 ? 360 : lines === 2 ? 280 : story ? 220 : 180;
+      const cardHeight = Math.min(maxHeight, (available - (lines - 1) * gapY) / lines);
+      const block = lines * cardHeight + (lines - 1) * gapY;
+      const y0 = contentTop + Math.max(0, available - block) * 0.35;
       const colWidth = (width - (cols - 1) * 24) / cols;
-      const inset = cols > 1 ? 0 : width * 0.06;
-      const timeColor = deepen(theme.accent);
       matches.forEach((m, i) => {
         const postponed = m.status === "postponed";
-        const x = margin + (i % cols) * (colWidth + 24) + inset;
-        const cardWidth = colWidth - inset * 2;
-        const y = y0 + Math.floor(i / cols) * (slotHeight + gapY);
+        const x = margin + (i % cols) * (colWidth + 24);
+        const cardWidth = colWidth;
+        const y = y0 + Math.floor(i / cols) * (cardHeight + gapY);
         const center = x + cardWidth / 2;
-        text(`${m.home}  –  ${m.away}`.toUpperCase(), center, y + labelHeight * 0.45, { size: Math.min(labelHeight * 0.5, 18), color: theme.headerMuted, max: cardWidth, weight: 600, align: "center", spacing: 0.2 });
-        const cy = y + labelHeight;
+        const competition = showCompetition ? [m.competition, m.round == null ? null : `${m.round}. kolo`].filter(Boolean).join(" · ") : null;
+        const detail = [competition, postponed ? "Novi termin naknadno" : options.showHall ? m.hall || "Dvorana nije određena" : null].filter(Boolean).join(" · ").toUpperCase();
+        const footerHeight = detail ? Math.min(34, cardHeight * 0.26) : 0;
+        const bodyHeight = cardHeight - footerHeight;
+        const pad = Math.min(22, cardHeight * 0.14);
+        const radius = Math.min(16, cardHeight * 0.12);
+        const middle = Math.min(248, cardWidth * 0.25);
+        const ink = "#10264e";
+
         ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.32)";
-        ctx.shadowBlur = cardHeight * 0.16;
-        ctx.shadowOffsetY = cardHeight * 0.04;
-        const fill = ctx.createLinearGradient(0, cy, 0, cy + cardHeight);
-        fill.addColorStop(0, "#ffffff");
-        fill.addColorStop(1, "#e2e6ee");
-        box(x, cy, cardWidth, cardHeight, fill, cardHeight * 0.24);
+        ctx.shadowColor = "rgba(0,0,0,0.18)";
+        ctx.shadowBlur = Math.min(18, cardHeight * 0.1);
+        ctx.shadowOffsetY = 4;
+        box(x, y, cardWidth, cardHeight, "#ffffff", radius);
         ctx.restore();
-        const size = options.showLogos ? cardHeight * 0.84 : 0;
-        crest(m.home, m.homeLogo, x + cardHeight * 0.1 + size / 2, cy + cardHeight / 2, size, "#1f2937", "rgba(15,23,42,0.2)");
-        crest(m.away, m.awayLogo, x + cardWidth - cardHeight * 0.1 - size / 2, cy + cardHeight / 2, size, "#1f2937", "rgba(15,23,42,0.2)");
-        const middle = cardWidth - (size + cardHeight * 0.2) * 2 - 20;
-        const hall = options.showHall && !postponed;
-        const dateY = cy + cardHeight * (hall ? 0.24 : 0.29);
-        const bigY = cy + cardHeight * (hall ? 0.55 : 0.63);
-        const dateLine = postponed ? "NOVI TERMIN NAKNADNO" : `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date, options.year)}`;
-        text(dateLine, center, dateY, { size: cardHeight * 0.15, color: "#1f2937", max: middle, weight: 600, align: "center", face: "poster", spacing: 0.06 });
-        if (postponed) text("ODGOĐENO", center, bigY, { size: cardHeight * 0.26, color: postponedOn(true), max: middle, weight: 700, align: "center", face: "mono", spacing: 0.08 });
-        else text(formatTime(m.startsAt), center, bigY, { size: cardHeight * 0.42, color: timeColor, max: middle, weight: 700, align: "center", face: "poster" });
-        if (hall) text((m.hall ?? "Dvorana nije određena").toUpperCase(), center, cy + cardHeight * 0.85, { size: cardHeight * 0.095, color: "#5b6474", max: middle, weight: 600, align: "center", spacing: 0.1 });
+        if (footerHeight) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(x, y, cardWidth, cardHeight, radius);
+          ctx.clip();
+          ctx.fillStyle = "#eff3f9";
+          ctx.fillRect(x, y + bodyHeight, cardWidth, footerHeight);
+          ctx.restore();
+          line(x + pad, y + bodyHeight, x + cardWidth - pad, y + bodyHeight, "#dce4ef");
+          text(detail, center, y + bodyHeight + footerHeight / 2, { size: Math.min(20, footerHeight * 0.74), color: "#475b78", max: cardWidth - pad * 2, weight: 600, align: "center" });
+        }
+        box(x, y + radius, 4, cardHeight - radius * 2, theme.accent, 2);
+        const middleInset = Math.min(8, bodyHeight * 0.09);
+        if (!postponed) box(center - middle / 2, y + middleInset, middle, bodyHeight - middleInset * 2, "#edf2f9", Math.min(10, radius));
+
+        const size = options.showLogos ? Math.min(144, bodyHeight * 0.82, cardWidth * 0.13) : 0;
+        const cy = y + bodyHeight / 2;
+        const nameGap = size ? Math.min(14, cardWidth * 0.015) : 0;
+        const homeLeft = x + pad + size + nameGap;
+        const homeRight = center - middle / 2 - 14;
+        const awayLeft = center + middle / 2 + 14;
+        const awayRight = x + cardWidth - pad - size - nameGap;
+        const nameSize = Math.min(38, Math.max(14, bodyHeight * 0.32));
+        crest(m.home, m.homeLogo, x + pad + size / 2, cy, size, ink, "#b5c4d9");
+        crest(m.away, m.awayLogo, x + cardWidth - pad - size / 2, cy, size, ink, "#b5c4d9");
+        teamName(m.home, (homeLeft + homeRight) / 2, cy, homeRight - homeLeft, nameSize, ink);
+        teamName(m.away, (awayLeft + awayRight) / 2, cy, awayRight - awayLeft, nameSize, ink);
+
+        if (postponed) {
+          text("ODGOĐENO", center, cy, { size: Math.min(30, bodyHeight * 0.3, middle * 0.12), color: postponedOn(true), max: middle - 20, weight: 700, align: "center", face: "mono", spacing: 0.08 });
+        } else {
+          const dateLine = `${formatWeekday(m.startsAt).toUpperCase()} ${shortDate(m.date, options.year)}`;
+          text(dateLine, center, y + bodyHeight * 0.26, { size: Math.min(25, bodyHeight * 0.205), color: "#475b78", max: middle - 20, weight: 600, align: "center", face: "poster", spacing: 0.01 });
+          text(formatTime(m.startsAt), center, y + bodyHeight * 0.64, { size: Math.min(76, bodyHeight * 0.49, middle * 0.34), color: ink, max: middle - 20, weight: 700, align: "center", face: "poster" });
+        }
       });
     };
 
