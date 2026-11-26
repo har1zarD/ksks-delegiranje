@@ -1240,6 +1240,8 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     const perGame = season ? " / UT" : "";
     const statOf = (key: SocialStatKey) => SOCIAL_STATS.find((s) => s.id === key)!;
     const lastName = (p: SocialStatPlayer) => (p.last || p.first).toUpperCase();
+    /** Broj dresa, a bez njega inicijali ("SH") — nikad prazna crtica */
+    const numberOf = (p: SocialStatPlayer) => p.number ?? [p.first, p.last].filter(Boolean).map((part) => part.charAt(0)).join("").toUpperCase();
     const fullName = (p: SocialStatPlayer) => [p.first, p.last].filter(Boolean).join(" ").toUpperCase();
 
     /** Tekst sa sjenom na tamnim predlošcima (preko pozadine) */
@@ -1333,7 +1335,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       ctx.strokeStyle = filled ? "rgba(255,255,255,0.85)" : theme.accent;
       ctx.stroke();
       ctx.restore();
-      text(p.number ?? "–", cx, cy + r * 0.04, { size: r * 1.05, color: filled ? inkOn(theme.accent) : theme.ink, max: r * 1.7, weight: 700, align: "center", face: "poster" });
+      text(numberOf(p), cx, cy + r * 0.04, { size: r * 1.05, color: filled ? inkOn(theme.accent) : theme.ink, max: r * 1.7, weight: 700, align: "center", face: "poster" });
     };
 
     /** Igrač ima fotografiju za crtanje (izabran prikaz s fotografijom i fotografija je učitana) */
@@ -1527,6 +1529,12 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       ctx.restore();
     };
 
+    /** Bez fotografije: broj dresa (ili inicijali) u obrisu i krupan grb preko njega, u okviru širine maxW */
+    const noPhoto = (p: SocialStatPlayer, cx: number, cy: number, size: number, maxW: number, withCrest = true) => {
+      bigNumber(numberOf(p), cx, cy, Math.min(size * 0.8, maxW * 1.1), maxW * 0.82);
+      if (withCrest) crest(p.team, p.teamLogo, cx, cy, Math.min(size * 0.5, maxW * 0.62));
+    };
+
     /** Ime: ime manje i prigušeno, prezime veliko; vraća visinu bloka */
     const nameBlock = (p: SocialStatPlayer, x: number, y: number, max: number, size: number, align: CanvasTextAlign = "left") => {
       const last = lastName(p);
@@ -1631,7 +1639,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const face = Math.min(r2 * 0.46, 70);
       const shift = avatar(p, bx + pad + 14 + face, r2y + r2 / 2, face) ? face * 2 + 18 : 0;
       box(bx + pad + 14 + shift, r2y + (r2 - tag) / 2, tag * 1.3, tag, theme.accent, 10);
-      text(p.number ?? "–", bx + pad + 14 + shift + tag * 0.65, r2y + r2 / 2, { size: tag * 0.72, color: inkOn(theme.accent), max: tag * 1.2, weight: 700, align: "center", face: "poster" });
+      text(numberOf(p), bx + pad + 14 + shift + tag * 0.65, r2y + r2 / 2, { size: tag * 0.72, color: inkOn(theme.accent), max: tag * 1.2, weight: 700, align: "center", face: "poster" });
       const nx = bx + pad + 14 + shift + tag * 1.3 + 22;
       const nmax = bw - pad * 2 - (nx - bx - pad) - 20;
       text(fullName(p), nx, r2y + r2 * 0.4, { size: Math.min(r2 * 0.34, 56), color: "#ffffff", max: nmax, weight: 700, face: "poster", spacing: 0.02 });
@@ -1685,8 +1693,9 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         ctx.fillRect(0, contentTop - 20, w, stageH + 40);
         if (p.number) bigNumber(p.number, w * 0.68, contentTop + stageH * 0.4, stageH * 0.78, w * 0.62);
         const crestSize = Math.min(stageH * 0.42, w * 0.36);
-        const fw = w * 0.6;
-        if (portrait(p, w - margin - fw + 30, contentTop, fw, stageH + 14)) {
+        const framed = content.photos === "frame";
+        const fw = framed ? w * 0.42 : w * 0.6;
+        if (portrait(p, w - margin - fw + (framed ? 0 : 30), contentTop + (framed ? stageH * 0.04 : 0), fw, framed ? stageH * 0.82 : stageH + 14)) {
           // Uz fotografiju grb ide manji, gore desno
           const small = Math.min(stageH * 0.17, 150);
           crest(p.team, p.teamLogo, w - margin - small / 2, contentTop + small / 2, small);
@@ -1698,7 +1707,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         box(margin, ty - 72, 170, 40, theme.accent, 6);
         text(season ? "SEZONA" : "MVP", margin + 85, ty - 52, { size: 24, color: inkOn(theme.accent), max: 150, weight: 700, align: "center", face: "poster", spacing: 0.12 });
         ty += 8;
-        ty += nameBlock(p, margin, ty, tw, nameSize);
+        ty += nameBlock(p, margin, ty, hasPhoto(p) && content.photos === "frame" ? w - margin * 2 - fw - 16 : tw, nameSize);
         teamRow(p, margin, ty + 18, w * 0.5, story ? 24 : 21);
         shadowed(() => text(gameLine(p), margin, ty + 60, { size: story ? 22 : 19, color: theme.accent, max: w * 0.52, weight: 700, spacing: 0.06 }));
         const shooting = shootingLine(p);
@@ -1721,7 +1730,10 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const stageSpace = Math.max(1, available - titleH - 20);
       // Fotografija je ograničena širinom stuba, pa stub nije viši od toga (inače prazno između imena i glave)
       const stageH = Math.min(stageSpace, step * (wide ? 1.65 : story ? 3.4 : options.format === "square" ? 2.3 : 2.75));
-      const stageY = contentTop + (stageSpace - stageH) * 0.45;
+      // Igrači i naslov kao jedan blok, okomito u sredini (bez rupe između brojki i naslova u story formatu)
+      const blockGap = wide ? 18 : 34;
+      const stageY = contentTop + Math.max(0, available - stageH - blockGap - titleH) * 0.5;
+      const titleBottom = stageY + stageH + blockGap + titleH;
       const nameSize = Math.min(step * 0.21, wide ? 38 : 44);
       const nameH = nameSize * 1.8 + 18;
       const statsH = wide ? 32 : 46;
@@ -1752,8 +1764,9 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         ctx.beginPath();
         ctx.rect(cx - step * 0.49, photoY, step * 0.98, photoH);
         ctx.clip();
-        if (!portrait(p, cx - step * 0.53, photoY, step * 1.06, photoH, { radius: 12 })) {
-          bigNumber(p.number ?? "–", cx, photoY + photoH * 0.48, Math.min(photoH * 0.72, step * 1.1), step * 0.86);
+        // Fotografija šira od stuba (ramena se odsijeku na rubu stuba), pa je igrač krupniji
+        if (!portrait(p, cx - step * 0.68, photoY, step * 1.36, photoH, { radius: 12 })) {
+          noPhoto(p, cx, photoY + photoH * 0.45, Math.min(photoH * 0.6, step * 0.95), step * 0.8, false);
         }
         ctx.restore();
         nameBlock(p, cx, stageY + 12, step - 16, nameSize, "center");
@@ -1779,10 +1792,10 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         }
         shadowed(() => text(`${statText(p, "pts", season)} PTS · ${statText(p, "eff", season)} IND${perGame}`, cx, stageY + stageH - statsH * 0.2, { size: wide ? 16 : 18, color: theme.ink, max: step - 12, weight: 700, align: "center", face: "poster" }));
       });
-      const titleTop = bottom - titleH;
+      const titleTop = titleBottom - titleH;
       if (subtitle) shadowed(() => text(subtitle, w / 2, titleTop + subtitleSize * 0.6, { size: subtitleSize, color: theme.headerMuted, max: width, weight: 600, align: "center", spacing: 0.12 }));
       if (title) {
-        const cy = bottom - titleSize * 0.55;
+        const cy = titleBottom - titleSize * 0.55;
         const gradient = ctx.createLinearGradient(0, cy - titleSize / 2, 0, cy + titleSize / 2);
         gradient.addColorStop(0, theme.headerInk);
         gradient.addColorStop(1, theme.accent);
@@ -1805,7 +1818,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const labelH = Math.min(wide ? 52 : 76, stageH * 0.13);
       const statsH = Math.min(wide ? 82 : 106, stageH * 0.2);
       const photoSpace = stageH - labelH - statsH;
-      const photoH = Math.min(photoSpace * 0.76, step * 2.2);
+      const photoH = Math.min(photoSpace * 0.78, step * 2.6);
       const rise = Math.min(photoSpace * 0.22, step * 0.7);
       const blockH = photoH + rise + labelH + statsH;
       const y0 = contentTop + (available - blockH) * 0.5;
@@ -1815,15 +1828,17 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         return { p, rank, cx: margin + step * (slot + 0.5), ph: photoH * (1 - distance * 0.22), labelY: y0 + photoH + rise * (1 - distance) };
       });
       [...lineup].sort((a, b) => b.rank - a.rank).forEach(({ p, rank, cx, ph, labelY }) => {
-        const pw = step * (rank === 0 ? 1.38 : 1.16);
+        // Fotografije prelaze preko susjeda (prvi je naprijed), kao na plakatima najbolje petorke
+        // Kartice "u okviru" se ne smiju preklapati, izrezane fotografije smiju
+        const framed = content.photos === "frame";
+        const pw = step * (wide || framed ? (rank === 0 ? (framed ? 1.02 : 1.38) : framed ? 0.92 : 1.16) : rank === 0 ? 1.9 : 1.55);
         ctx.save();
         ctx.beginPath();
         ctx.rect(margin, y0, width, blockH);
         ctx.clip();
-        if (!portrait(p, cx - pw / 2, labelY - ph, pw, ph, { radius: 12 })) {
-          bigNumber(p.number ?? "–", cx, labelY - ph * 0.52, ph * 0.8, step * 0.85);
-        }
-        crest(p.team, p.teamLogo, cx, labelY - Math.min(ph * 0.2, step * 0.23), Math.min(ph * 0.32, step * 0.4));
+        if (portrait(p, cx - pw / 2, labelY - ph, pw, ph, { radius: 12 })) {
+          crest(p.team, p.teamLogo, cx, labelY - Math.min(ph * 0.2, step * 0.23), Math.min(ph * 0.32, step * 0.4));
+        } else noPhoto(p, cx, labelY - ph * 0.45, ph * 0.75, step * 0.92);
         ctx.restore();
       });
       lineup.forEach(({ p, cx, labelY }) => {
@@ -1848,14 +1863,14 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const players = content.players.slice(0, 5);
       const n = Math.max(1, players.length);
       const gap = wide ? 16 : 20;
-      const baseH = Math.min(available / (1.12 + (n - 1) * 0.7), story ? 430 : 330);
+      const baseH = Math.min(available / (1.12 + (n - 1) * 0.56), story ? 460 : 360);
       const stepY = n > 1 ? (available - baseH) / (n - 1) : 0;
       const heroW = width * 0.32;
       const columns = Math.ceil(Math.max(0, n - 1) / 2);
       const smallW = (width - heroW - columns * gap) / Math.max(1, columns);
       players.forEach((p, i) => {
         const left = i % 2 === 0;
-        const bw = wide ? i === 0 ? heroW : smallW : width * (i === 0 ? 0.5 : 0.47);
+        const bw = wide ? i === 0 ? heroW : smallW : width * (i === 0 ? 0.52 : 0.49);
         const bh = wide ? i === 0 ? available : (available - gap) / 2 : baseH * (i === 0 ? 1.12 : 1);
         const x = wide ? i === 0 ? margin : margin + heroW + gap + Math.floor((i - 1) / 2) * (smallW + gap) : left ? margin : w - margin - bw;
         const y = wide ? contentTop + (i > 0 && !left ? (available + gap) / 2 : 0) : contentTop + i * stepY + (n === 1 ? (available - bh) / 2 : 0);
@@ -1870,7 +1885,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
         ctx.rect(px, y + 4, pw, ph);
         ctx.clip();
         if (!portrait(p, px, y + 4, pw, ph, { radius: 10 })) {
-          bigNumber(p.number ?? "–", px + pw / 2, y + ph * 0.5, Math.min(ph * 0.8, pw * 1.2), pw * 0.9);
+          noPhoto(p, px + pw / 2, y + ph * 0.5, ph * 0.9, pw * 0.8);
         }
         ctx.restore();
         const innerX = x + bw * (left ? 0.895 : 0.105);
@@ -1898,9 +1913,11 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       ctx.restore();
       const at = halfCourt(margin, contentTop, width, available, accentAlpha(0.6), wide ? 2 : 3);
       const spots: [number, number][] = [[7.5, 4.4], [2.6, 7.4], [12.4, 7.4], [3.4, 11.6], [11.6, 11.6]];
-      const r = wide ? 26 : story ? 52 : 44;
-      const tagW = wide ? 190 : story ? 330 : 280;
-      const tagH = wide ? 74 : story ? 132 : 112;
+      // Natpisi rastu i padaju s terenom (u kvadratu je teren niži, pa su i natpisi manji, bez preklapanja)
+      const meter = Math.min(width / 15, available / 14);
+      const r = wide ? 26 : meter * 0.69;
+      const tagW = wide ? 190 : meter * 4.4;
+      const tagH = wide ? 74 : meter * 1.75;
       players.slice(0, 5).forEach((p, i) => {
         const spot = at(...spots[i]);
         const cx = Math.min(Math.max(spot.x, margin + tagW / 2), w - margin - tagW / 2);
@@ -1925,7 +1942,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       const keys: SocialStatKey[] = ["pts", "reb", "ast", "eff"];
       const headerH = wide ? 34 : 46;
       const gap = 10;
-      const rowH = Math.min(story ? 210 : 170, (available - headerH - gap * players.length) / Math.max(1, players.length));
+      const rowH = Math.min(story ? 260 : 170, (available - headerH - gap * players.length) / Math.max(1, players.length));
       const y0 = contentTop + Math.max(0, available - headerH - players.length * (rowH + gap)) * 0.4;
       const statsW = width * (wide ? 0.42 : 0.44);
       const sx = margin + width - statsW;
@@ -2015,7 +2032,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       // Pločice: kategorija, ogroman broj, grb ekipe desno, ime, drugi i treći
       const categories = content.categories.filter((c) => c.players.length);
       const n = Math.max(1, categories.length);
-      const cols = wide ? Math.min(3, n) : n <= 2 ? 1 : 2;
+      const cols = wide ? Math.min(3, n) : n === 1 ? 1 : 2;
       const rows = Math.ceil(n / cols);
       const gap = wide ? 14 : 18;
       const tileW = (width - (cols - 1) * gap) / cols;
@@ -2082,72 +2099,95 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
     if (content.mode === "top") {
       const stat = statOf(content.key);
       const all = content.players;
-      /** Red liste: mjesto, broj dresa, grb, ime i ekipa, vrijednost */
-      const listRow = (p: SocialStatPlayer, rank: number, y: number, rowH: number, index: number, last: boolean) => {
+      /** Red liste u koloni (x, lw): mjesto, fotografija ili broj dresa, grb, ime i ekipa, vrijednost */
+      const listRow = (p: SocialStatPlayer, rank: number, x: number, lw: number, y: number, rowH: number, index: number, last: boolean) => {
         const cy = y + rowH / 2;
         const first = rank === 1;
-        rowSurface(margin, y, width, rowH, last, panelAlpha * (hasPanel && index % 2 ? 0.88 : 1), Math.min(12, rowH * 0.16));
-        if (first) box(margin, y, 6, rowH, theme.accent, 3);
+        rowSurface(x, y, lw, rowH, last, panelAlpha * (hasPanel && index % 2 ? 0.88 : 1), Math.min(12, rowH * 0.16));
+        if (first) box(x, y, 6, rowH, theme.accent, 3);
         const rankW = rowH * 0.8;
-        text(String(rank), margin + rankW / 2, cy, { size: rowH * 0.42, color: first ? theme.accent : theme.muted, max: rankW, weight: 700, align: "center", face: "poster" });
+        text(String(rank), x + rankW / 2, cy, { size: rowH * 0.42, color: first ? theme.accent : theme.muted, max: rankW, weight: 700, align: "center", face: "poster" });
         const r = rowH * (hasPhoto(p) ? 0.4 : 0.3);
-        marker(p, margin + rankW + r, cy, r, first);
+        marker(p, x + rankW + r, cy, r, first);
         const logo = options.showLogos ? rowH * 0.5 : 0;
-        const lx = margin + rankW + r * 2 + 16;
+        const lx = x + rankW + r * 2 + 16;
         if (logo) crest(p.team, p.teamLogo, lx + logo / 2, cy, logo);
         const nx = lx + logo + (logo ? 16 : 0);
-        const valueW = width * 0.18;
-        const nameMax = width - (nx - margin) - valueW - 10;
+        const valueW = Math.max(70, lw * 0.18);
+        const nameMax = lw - (nx - x) - valueW - 10;
         text(fullName(p), nx, cy - rowH * 0.13, { size: Math.min(rowH * 0.3, 40), color: theme.ink, max: nameMax, weight: 700, face: "poster", spacing: 0.01 });
         const detail = [p.team.toUpperCase(), season ? `${p.games} UT` : p.game ? `${p.game.teamScore}:${p.game.opponentScore} ${p.game.opponent.toUpperCase()}` : null].filter(Boolean).join("  ·  ");
         text(detail, nx, cy + rowH * 0.22, { size: Math.min(rowH * 0.15, 19), color: theme.muted, max: nameMax, weight: 600, spacing: 0.05 });
-        text(statText(p, content.key, season), margin + width - 24, cy - rowH * 0.06, { size: rowH * 0.46, color: first ? theme.accent : theme.ink, max: valueW, weight: 700, align: "right", face: "poster" });
-        text(`${stat.short}${perGame}`, margin + width - 24, cy + rowH * 0.3, { size: Math.min(rowH * 0.13, 16), color: theme.muted, max: valueW, weight: 600, align: "right", spacing: 0.1 });
+        text(statText(p, content.key, season), x + lw - 20, cy - rowH * 0.06, { size: rowH * 0.46, color: first ? theme.accent : theme.ink, max: valueW, weight: 700, align: "right", face: "poster" });
+        text(`${stat.short}${perGame}`, x + lw - 20, cy + rowH * 0.3, { size: Math.min(rowH * 0.13, 16), color: theme.muted, max: valueW, weight: 600, align: "right", spacing: 0.1 });
+      };
+      /** Lista redova u koloni, okomito raspoređena u (x, y, lw, lh) */
+      const list = (players: SocialStatPlayer[], firstRank: number, x: number, lw: number, y: number, lh: number, cap: number) => {
+        const n = Math.max(1, players.length);
+        const gap = hasPanel ? 8 : 0;
+        const rowH = Math.min(cap, (lh - (n - 1) * gap) / n);
+        const y0 = y + Math.max(0, lh - n * rowH - (n - 1) * gap) * 0.35;
+        players.forEach((p, i) => listRow(p, firstRank + i, x, lw, y0 + i * (rowH + gap), rowH, i, i === n - 1));
       };
 
       if (style === "podium" && all.length >= 3 && content.firstRank === 1) {
-        // Podij: drugi lijevo, prvi u sredini (najviši), treći desno; ostali u listi ispod
+        // Podij: drugi lijevo, prvi u sredini (najviši stepenik, veća fotografija), treći desno; ostali u listi
         const rest = all.slice(3);
-        const listH = rest.length ? Math.min(available * (story ? 0.5 : 0.56), rest.length * (story ? 124 : wide ? 54 : 84)) : 0;
-        const podiumH = available - listH - (rest.length ? 24 : 0);
-        const colW = (width - 2 * 18) / 3;
-        const order = [1, 0, 2];
-        const heights = [0.62, 0.8, 0.5];
-        order.forEach((idx, slot) => {
+        const podiumW = wide && rest.length ? width * 0.56 : width;
+        // Ispod podija: do 4 reda u jednoj koloni, više u dvije (inače su redovi presitni)
+        const twoCols = !wide && rest.length > 4;
+        const rows = twoCols ? Math.ceil(rest.length / 2) : rest.length;
+        const listH = wide || !rest.length ? 0 : Math.min(available * (story ? 0.4 : 0.42), rows * (story ? 130 : 96));
+        const podiumH = available - listH - (listH ? 22 : 0);
+        const gap = wide ? 12 : 18;
+        const colW = (podiumW - 2 * gap) / 3;
+        const stepMax = podiumH * (wide ? 0.34 : 0.3);
+        const steps = [1, 0.74, 0.58];
+        [1, 0, 2].forEach((idx, slot) => {
           const p = all[idx];
-          const x = margin + slot * (colW + 18);
-          const blockH = podiumH * heights[idx] * 0.55;
-          const by = contentTop + podiumH - blockH;
-          panel(x, by, colW, blockH, 16, idx === 0);
-          bigNumber(String(idx + 1), x + colW / 2, by + blockH * 0.5, blockH * 0.85, colW * 0.8);
-          const valueSize = Math.min(blockH * 0.34, colW * 0.34);
-          text(statText(p, content.key, season), x + colW / 2, by + blockH * 0.42, { size: valueSize, color: idx === 0 ? theme.accent : theme.ink, max: colW - 20, weight: 700, align: "center", face: "poster" });
-          text(`${stat.unit}${perGame}`, x + colW / 2, by + blockH * 0.42 + valueSize * 0.62, { size: Math.max(11, valueSize * 0.2), color: theme.muted, max: colW - 20, weight: 600, align: "center", spacing: 0.1 });
-          // Iznad bloka: grb, broj i ime
-          const crestSize = Math.min(colW * 0.48, podiumH * 0.22);
-          const above = by - 14;
-          const nameSize = Math.min(colW * 0.13, 40);
-          const nameTop = above - nameSize * 1.9;
-          nameBlock(p, x + colW / 2, nameTop, colW - 12, nameSize, "center");
-          const photoH = Math.min(crestSize * 2, nameTop - nameSize * 0.6 - contentTop - 6);
-          if (photoH > 60 && portrait(p, x + colW * 0.12, nameTop - nameSize * 0.6 - photoH, colW * 0.76, photoH, { radius: 14 })) {
-            const small = Math.min(crestSize * 0.5, 54);
-            crest(p.team, p.teamLogo, x + colW - small / 2 - 6, nameTop - nameSize * 0.6 - photoH + small / 2, small);
+          const x = margin + slot * (colW + gap);
+          const cx = x + colW / 2;
+          const stepH = stepMax * steps[idx];
+          const by = contentTop + podiumH - stepH;
+          // Stepenik: mjesto (veliki obris), vrijednost i jedinica
+          panel(x, by, colW, stepH, 14, idx === 0);
+          bigNumber(String(idx + 1), cx, by + stepH * 0.52, stepH * 0.95, colW * 0.8);
+          const valueSize = Math.min(stepH * 0.42, colW * 0.3);
+          shadowed(() => text(statText(p, content.key, season), cx, by + stepH * 0.42, { size: valueSize, color: idx === 0 ? theme.accent : theme.ink, max: colW - 20, weight: 700, align: "center", face: "poster" }));
+          text(`${stat.unit}${perGame}`, cx, by + stepH * 0.42 + valueSize * 0.62, { size: Math.max(11, valueSize * 0.22), color: theme.muted, max: colW - 16, weight: 600, align: "center", spacing: 0.1 });
+          // Ime odmah iznad stepenika
+          const nameSize = Math.min(colW * 0.14, wide ? 30 : 42);
+          const nameH = nameSize * 0.4 * 0.62 + nameSize * 1.12;
+          const nameTop = by - 10 - nameH;
+          nameBlock(p, cx, nameTop + nameSize * 0.2, colW - 10, nameSize, "center");
+          // Iznad imena fotografija (prvi počinje najviše), grb u uglu; bez fotografije grb i broj dresa
+          const photoTop = contentTop + (idx === 0 ? 0 : podiumH * 0.06);
+          const photoH = nameTop - 6 - photoTop;
+          const small = Math.min(colW * 0.22, 58);
+          if (photoH > 60 && portrait(p, x + colW * 0.04, photoTop, colW * 0.92, photoH, { radius: 14 })) {
+            crest(p.team, p.teamLogo, x + colW - small / 2 - 4, photoTop + small / 2 + 4, small);
           } else {
-            crest(p.team, p.teamLogo, x + colW / 2, nameTop - nameSize * 0.6 - crestSize / 2, crestSize);
-            jersey(p, x + colW / 2 + crestSize * 0.46, nameTop - nameSize * 0.6 - crestSize * 0.12, Math.max(16, crestSize * 0.2), idx === 0);
+            const crestSize = Math.min(colW * 0.5, photoH * 0.7);
+            if (p.number) bigNumber(p.number, cx, photoTop + photoH * 0.5, photoH * 0.9, colW * 0.9);
+            crest(p.team, p.teamLogo, cx, photoTop + photoH * 0.5, crestSize);
           }
         });
         if (rest.length) {
-          const rowH = (listH - (rest.length - 1) * 6) / rest.length;
-          rest.forEach((p, i) => listRow(p, 4 + i, contentTop + podiumH + 24 + i * (rowH + 6), rowH, i, i === rest.length - 1));
+          if (wide) list(rest, 4, margin + podiumW + 24, width - podiumW - 24, contentTop, available, 70);
+          else if (twoCols) {
+            const colW2 = (width - 20) / 2;
+            list(rest.slice(0, rows), 4, margin, colW2, contentTop + podiumH + 22, listH, story ? 130 : 96);
+            list(rest.slice(rows), 4 + rows, margin + colW2 + 20, colW2, contentTop + podiumH + 22, listH, story ? 130 : 96);
+          } else list(rest, 4, margin, width, contentTop + podiumH + 22, listH, story ? 130 : 96);
         }
+      } else if (wide && all.length > 5) {
+        // Široka: dvije kolone (1–5 lijevo, ostali desno)
+        const half = Math.ceil(all.length / 2);
+        const colW = (width - 24) / 2;
+        list(all.slice(0, half), content.firstRank, margin, colW, contentTop, available, 92);
+        list(all.slice(half), content.firstRank + half, margin + colW + 24, colW, contentTop, available, 92);
       } else {
-        const n = Math.max(1, all.length);
-        const gap = hasPanel ? 8 : 0;
-        const rowH = Math.min(story ? 150 : wide ? 70 : 118, (available - (n - 1) * gap) / n);
-        const y0 = contentTop + Math.max(0, available - n * rowH - (n - 1) * gap) * 0.35;
-        all.forEach((p, i) => listRow(p, content.firstRank + i, y0 + i * (rowH + gap), rowH, i, i === n - 1));
+        list(all, content.firstRank, margin, width, contentTop, available, story ? 150 : wide ? 92 : 118);
       }
     }
   }
