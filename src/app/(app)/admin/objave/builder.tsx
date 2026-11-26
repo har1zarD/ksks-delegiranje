@@ -2,12 +2,12 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, LoaderCircle, Pencil, Plus, Save, Search, Shield, Trophy, X } from "lucide-react";
+import { ArrowLeft, Award, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, LoaderCircle, Pencil, Plus, Save, Search, Shield, Trophy, UserRound, X } from "lucide-react";
 import { Button, ButtonLink, CARD, cx, Empty, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import { Popover } from "@/components/popover";
 import { DateField, TimeField } from "@/components/date-picker";
-import type { SocialMatch } from "@/lib/data/social";
+import type { SocialMatch, SocialStatsData } from "@/lib/data/social";
 import type { SocialTable } from "@/lib/data/results";
 import type { SavedSocialSchedule } from "@/lib/data/admin";
 import type { Fixture } from "@/lib/a2-jug-raspored";
@@ -15,8 +15,10 @@ import { FIBA_RESULT_PREFIX } from "@/lib/league-fiba";
 import { addDays, formatDate, formatTime, isoToSarajevo, sarajevoToISO, slug } from "@/lib/format";
 import { formatScore } from "@/lib/quarter-points";
 import {
-  brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_TEMPLATES, SOCIAL_YEARS, templateOf,
-  type ScheduleDraft, type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialTextOptions, type SocialYear,
+  brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_STATS, SOCIAL_TEMPLATES, SOCIAL_YEARS,
+  statName, statText, statValue, templateOf,
+  type ScheduleDraft, type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialStatKey, type SocialStatPlayer,
+  type SocialTextOptions, type SocialYear,
 } from "@/lib/social-image";
 import { SocialPreviewSkeleton } from "./skeleton";
 import { SOCIAL_KINDS } from "./kinds";
@@ -28,7 +30,7 @@ const DEFAULT_DESIGN: SocialDesignOptions = {
   showBrand: true, showLogos: true, crestTiles: false, showHall: true, showCompetition: true, year: "full",
 };
 
-const KIND_ICONS = { schedule: CalendarDays, results: ClipboardCheck, round: ListChecks, standings: Trophy, clubs: Shield };
+const KIND_ICONS = { schedule: CalendarDays, results: ClipboardCheck, round: ListChecks, standings: Trophy, clubs: Shield, stats: Award };
 
 type DesignChange = <K extends keyof SocialDesignOptions>(key: K, value: SocialDesignOptions[K]) => void;
 type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: string };
@@ -37,7 +39,7 @@ type Shared = { design: SocialDesignOptions; onDesign: DesignChange; font: strin
  * Slike za objavu: raspored, rezultati, tabela i klubovi. Izgled (predložak, format, akcent) je zajednički,
  * tekst i izbor ima svaka vrsta svoj; sve ostaju otvorene, pa prelazak između njih ništa ne briše.
  */
-export function SocialStudio({ matches, results, round, today, now, competition, kind: initialKind, tables, font, fixturesByCompetition, knownPairings, schedule }: {
+export function SocialStudio({ matches, results, round, today, now, competition, kind: initialKind, tables, font, fixturesByCompetition, knownPairings, schedule, stats }: {
   matches: SocialMatch[];
   results: SocialMatch[];
   round: SocialMatch[];
@@ -52,6 +54,8 @@ export function SocialStudio({ matches, results, round, today, now, competition,
   /** Parovi koji već postoje kao prava utakmica (bilo kog statusa osim otkazane) */
   knownPairings: string[];
   schedule: { view: "list" | "builder" | "missing"; saved: SavedSocialSchedule[]; initial: { id: string; draft: ScheduleDraft; updatedAt: string } | null };
+  /** Statistika liga saveza s FIBA LiveStats (MVP, petorka, lideri) */
+  stats: SocialStatsData;
 }) {
   const [kind, setKind] = useState<SocialKind>(initialKind);
   const [design, setDesign] = useState<SocialDesignOptions>(() => {
@@ -71,7 +75,7 @@ export function SocialStudio({ matches, results, round, today, now, competition,
 
   return (
     <div className="flex flex-col gap-6">
-      <div role="tablist" aria-label="Vrsta slike" className="grid w-full grid-cols-5 gap-0.5 rounded-lg bg-track p-[3px] sm:flex sm:w-auto sm:self-start">
+      <div role="tablist" aria-label="Vrsta slike" className="grid w-full grid-cols-3 gap-0.5 rounded-lg bg-track p-[3px] sm:flex sm:w-auto sm:self-start">
         {SOCIAL_KINDS.map(({ id, label }) => { const Icon = KIND_ICONS[id]; return (
           <button key={id} type="button" role="tab" aria-selected={kind === id} onClick={() => pick(id)} className={cx("flex min-w-0 flex-col items-center justify-center gap-1 whitespace-nowrap rounded-md px-0.5 py-2 text-[12px] font-semibold transition-colors sm:flex-row sm:gap-2 sm:px-4 sm:py-1.5 sm:text-[14px]", kind === id ? "bg-panel-3 text-fg shadow-segment" : "text-fg-muted hover:bg-panel-3/60 hover:text-fg")}>
             <Icon className="size-4 shrink-0" aria-hidden="true" />{label}
@@ -92,6 +96,7 @@ export function SocialStudio({ matches, results, round, today, now, competition,
       <div role="tabpanel" hidden={kind !== "round"}><RoundBuilder {...shared} matches={round} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "clubs"}><ClubsBuilder {...shared} tables={tables} competition={competition} /></div>
+      <div role="tabpanel" hidden={kind !== "stats"}><StatsBuilder {...shared} stats={stats} competition={competition} /></div>
     </div>
   );
 }
@@ -890,6 +895,256 @@ function ClubsBuilder({ tables, competition: initialCompetition, design, onDesig
   );
 }
 
+// ───────────────────────── Statistika: MVP, petorka, lideri, top lista ─────────────────────────
+
+type StatsMode = "mvp" | "five" | "leaders" | "top";
+/** Kolo ("5") ili cijela sezona */
+const SEASON = "sezona";
+const DEFAULT_LEADERS: SocialStatKey[] = ["pts", "reb", "ast", "eff", "stl", "blk"];
+
+/** Igrači takmičenja u kolu (jedna utakmica) ili sezoni (zbir), najkorisniji prvi */
+function statPlayersOf(stats: SocialStatsData, competitionId: string, round: string): SocialStatPlayer[] {
+  const season = round === SEASON;
+  const lines = stats.lines.filter((l) => l.competitionId === competitionId && (season || String(l.round) === round));
+  const byPlayer = new Map<string, SocialStatPlayer>();
+  // Po terminu: ime, broj i ekipa ostaju sa zadnje utakmice
+  for (const l of [...lines].sort((a, b) => a.date.localeCompare(b.date))) {
+    const photo = l.licenseId ? stats.photos[l.licenseId] : undefined;
+    const old = byPlayer.get(l.playerId);
+    const sum = (key: "seconds" | "pts" | "reb" | "ast" | "stl" | "blk" | "tov" | "fgm" | "fga" | "tpm" | "tpa" | "ftm" | "fta" | "eff") => (old?.[key] ?? 0) + l[key];
+    byPlayer.set(l.playerId, {
+      id: l.playerId, first: l.first, last: l.last, number: l.number ?? old?.number ?? null, team: l.team, teamLogo: l.teamLogo,
+      photo: photo?.photo ?? old?.photo ?? null, cutout: photo?.cutout ?? old?.cutout ?? null,
+      games: (old?.games ?? 0) + 1,
+      seconds: sum("seconds"), pts: sum("pts"), reb: sum("reb"), ast: sum("ast"), stl: sum("stl"), blk: sum("blk"), tov: sum("tov"),
+      fgm: sum("fgm"), fga: sum("fga"), tpm: sum("tpm"), tpa: sum("tpa"), ftm: sum("ftm"), fta: sum("fta"), eff: sum("eff"),
+      game: season ? null : { opponent: l.opponent, opponentLogo: l.opponentLogo, teamScore: l.teamScore, opponentScore: l.opponentScore, won: l.won },
+    });
+  }
+  const players = [...byPlayer.values()];
+  // Sezona: samo igrači s bar pola utakmica najaktivnijeg igrača (kao lideri na FIBA stranici)
+  const most = Math.max(0, ...players.map((p) => p.games));
+  const pool = season ? players.filter((p) => p.games >= Math.max(1, Math.ceil(most / 2))) : players;
+  return pool.sort((a, b) => statValue(b, "eff", season) - statValue(a, "eff", season) || Number(Boolean(b.game?.won)) - Number(Boolean(a.game?.won)) || statValue(b, "pts", season) - statValue(a, "pts", season));
+}
+
+/** Najbolji po jednoj statistici (izjednačeni: korisniji prvi) */
+function rankBy(players: SocialStatPlayer[], key: SocialStatKey, season: boolean) {
+  return [...players].sort((a, b) => statValue(b, key, season) - statValue(a, key, season) || statValue(b, "eff", season) - statValue(a, "eff", season));
+}
+
+function statsTitle(mode: StatsMode, season: boolean, key: SocialStatKey) {
+  if (mode === "top") return SOCIAL_STATS.find((s) => s.id === key)!.top;
+  const what = { mvp: "MVP", five: "Petorka", leaders: "Lideri" }[mode];
+  return `${what} ${season ? "sezone" : "kola"}`;
+}
+
+function statsHeadline(league: SocialStatsData["leagues"][number] | undefined, round: string) {
+  if (!league) return "";
+  if (round === SEASON) return league.rounds.length ? `${league.name} · nakon ${Math.max(...league.rounds)}. kola` : league.name;
+  return round ? `${league.name} · ${round}. kolo` : league.name;
+}
+
+/** Kratka linija brojki igrača u listi izbora */
+const statLine = (p: SocialStatPlayer, season: boolean) =>
+  (["pts", "reb", "ast", "eff"] as const).map((key) => `${statText(p, key, season)} ${SOCIAL_STATS.find((s) => s.id === key)!.short}`).join(" · ");
+
+/**
+ * Slike statistike liga saveza s FIBA LiveStats (A2 jug, A1 žene): MVP kola, petorka kola, lideri i top lista, za kolo
+ * ili cijelu sezonu. Igrači imaju ime i fotografiju s licence (bez pozadine kad je izrezana).
+ */
+function StatsBuilder({ stats, competition: initialCompetition, design, onDesign, font }: Shared & { stats: SocialStatsData; competition?: string }) {
+  const { leagues } = stats;
+  const [league, setLeague] = useState(() => (leagues.find((l) => l.id === initialCompetition) ?? leagues[0])?.id ?? "");
+  const current = leagues.find((l) => l.id === league);
+  const [round, setRound] = useState(() => (current?.rounds.length ? String(Math.max(...current.rounds)) : SEASON));
+  const season = round === SEASON;
+  const [statKey, setStatKey] = useState<SocialStatKey>("pts");
+  const [count, setCount] = useState(10);
+  const [categories, setCategories] = useState<SocialStatKey[]>(DEFAULT_LEADERS);
+  // Ručni izbor MVP-a i petorke (null = najkorisniji); briše se s promjenom takmičenja ili kola
+  const [mvp, setMvp] = useState<string | null>(null);
+  const [five, setFive] = useState<string[] | null>(null);
+  const [texts, setTexts] = useState<SocialTextOptions>(() => follow({ ...defaultTexts(statsTitle("mvp", season, "pts"), "mvp") }, "", league, statsHeadline(current, round)));
+  const mode = texts.layout as StatsMode;
+  const [page, setPage] = useState(0);
+
+  const players = useMemo(() => (league ? statPlayersOf(stats, league, round) : []), [stats, league, round]);
+  const mvpPlayer = players.find((p) => p.id === mvp) ?? players[0];
+  const fivePlayers = useMemo(() => {
+    const picked = five ? players.filter((p) => five.includes(p.id)) : players.slice(0, 5);
+    return picked.slice(0, 5);
+  }, [players, five]);
+
+  const pages = useMemo<SocialContent[]>(() => {
+    if (!players.length) return [];
+    if (mode === "mvp") return mvpPlayer ? [{ kind: "stats", mode: "mvp", player: mvpPlayer, season }] : [];
+    if (mode === "five") return fivePlayers.length ? [{ kind: "stats", mode: "five", players: fivePlayers, season }] : [];
+    if (mode === "leaders") {
+      const list = SOCIAL_STATS.filter((s) => categories.includes(s.id)).map((s) => ({ key: s.id, players: rankBy(players, s.id, season).filter((p) => statValue(p, s.id, season) > 0).slice(0, 3) }));
+      return list.some((c) => c.players.length) ? [{ kind: "stats", mode: "leaders", categories: list, season }] : [];
+    }
+    const top = rankBy(players, statKey, season).filter((p) => statValue(p, statKey, season) > 0).slice(0, count);
+    return top.length ? [{ kind: "stats", mode: "top", key: statKey, players: top, firstRank: 1, season }] : [];
+  }, [players, mode, mvpPlayer, fivePlayers, categories, statKey, count, season]);
+
+  /** Naslov i podnaslov prate izbor dok ih korisnik ne promijeni */
+  function retitle(next: { league?: string; round?: string; mode?: StatsMode; statKey?: SocialStatKey }) {
+    const before = { league, round, mode, statKey };
+    const after = { ...before, ...next };
+    const beforeLeague = leagues.find((l) => l.id === before.league);
+    const afterLeague = leagues.find((l) => l.id === after.league);
+    setTexts((old) => {
+      const followed = follow(old, statsHeadline(beforeLeague, before.round), after.league, statsHeadline(afterLeague, after.round));
+      const title = old.title === statsTitle(before.mode, before.round === SEASON, before.statKey) ? statsTitle(after.mode, after.round === SEASON, after.statKey) : old.title;
+      return { ...followed, title, layout: after.mode };
+    });
+    setPage(0);
+  }
+
+  function pickLeague(id: string) {
+    const next = leagues.find((l) => l.id === id);
+    const nextRound = next?.rounds.length ? String(Math.max(...next.rounds)) : SEASON;
+    retitle({ league: id, round: nextRound });
+    setLeague(id);
+    setRound(nextRound);
+    setMvp(null);
+    setFive(null);
+  }
+
+  function pickRound(value: string) {
+    retitle({ round: value });
+    setRound(value);
+    setMvp(null);
+    setFive(null);
+  }
+
+  function toggleFive(id: string) {
+    const base = five ?? fivePlayers.map((p) => p.id);
+    setFive(base.includes(id) ? base.filter((x) => x !== id) : base.length >= 5 ? base : [...base, id]);
+  }
+
+  if (!leagues.length) {
+    return <Empty icon={<Award />} title="Nema statistike">Statistika igrača dolazi s FIBA LiveStats za A2 ligu jug i A1 ligu žena, čim se odigra prva utakmica sezone.</Empty>;
+  }
+
+  const fiveIds = new Set(fivePlayers.map((p) => p.id));
+  const preview = <SocialPreview kind="stats" pages={pages} options={{ ...design, ...texts }} font={font} page={page} onPage={setPage} empty="Nema igrača s odigranim minutama za ovaj izbor." />;
+
+  return (
+    <Layout preview={preview}>
+      <Step number={1} title="Izaberi statistiku" aside={`${players.length} igrača`}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select label="Takmičenje" value={league} onChange={(event) => pickLeague(event.target.value)}>
+            {leagues.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </Select>
+          <Select label="Kolo" value={round} onChange={(event) => pickRound(event.target.value)}>
+            {[...(current?.rounds ?? [])].reverse().map((n) => <option key={n} value={String(n)}>{n}. kolo</option>)}
+            <option value={SEASON}>Cijela sezona (prosjek po utakmici)</option>
+          </Select>
+        </div>
+        <LayoutPicker kind="stats" value={mode} onChange={(layout) => retitle({ mode: layout as StatsMode })} />
+
+        {mode === "mvp" && (
+          <PlayerChoice
+            label={season ? "Igrač sezone" : "MVP kola"} hint="Podrazumijevano najkorisniji igrač (indeks korisnosti); izaberi drugog po želji."
+            players={players} season={season} type="radio" checked={(p) => p.id === mvpPlayer?.id} onToggle={(id) => setMvp(id)}
+          />
+        )}
+        {mode === "five" && (
+          <PlayerChoice
+            label={`Petorka (${fivePlayers.length}/5)`} hint="Podrazumijevano pet najkorisnijih igrača; označi tačno koje želiš (najviše pet)."
+            players={players} season={season} type="checkbox" checked={(p) => fiveIds.has(p.id)} disabled={(p) => !fiveIds.has(p.id) && fivePlayers.length >= 5}
+            onToggle={toggleFive} onReset={five ? () => setFive(null) : undefined}
+          />
+        )}
+        {mode === "leaders" && (
+          <div className="flex flex-col gap-2.5">
+            <h3 className="text-[14px] font-semibold">Kategorije</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+              {SOCIAL_STATS.map((stat) => (
+                <label key={stat.id} className="flex items-center gap-2 text-[13px]">
+                  <input
+                    type="checkbox" className="size-4 accent-brand" checked={categories.includes(stat.id)}
+                    onChange={() => setCategories((old) => (old.includes(stat.id) ? old.filter((k) => k !== stat.id) : [...old, stat.id]))}
+                  />
+                  {stat.label}
+                </label>
+              ))}
+            </div>
+            <p className="text-[12px] text-fg-faint">Na slici je najbolji igrač svake kategorije s fotografijom, pa drugi i treći. Šest kategorija najljepše stoji na objavi 4:5.</p>
+          </div>
+        )}
+        {mode === "top" && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Select label="Statistika" value={statKey} onChange={(event) => { retitle({ statKey: event.target.value as SocialStatKey }); setStatKey(event.target.value as SocialStatKey); }}>
+              {SOCIAL_STATS.map((stat) => <option key={stat.id} value={stat.id}>{stat.label}</option>)}
+            </Select>
+            <Select label="Broj igrača" value={count} onChange={(event) => setCount(Number(event.target.value))}>
+              {[3, 5, 8, 10].map((n) => <option key={n} value={n}>{n} igrača</option>)}
+            </Select>
+          </div>
+        )}
+        <p className="text-[12px] text-fg-faint">
+          Box score s FIBA LiveStats; imena i fotografije s licence (fotografija bez pozadine kad je izrezana). {season ? "Sezona: prosjek po utakmici, igrači s bar pola odigranih utakmica." : "Kolo: brojke s utakmice tog kola."}
+        </p>
+      </Step>
+      <Step number={2} title="Izgled">
+        <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
+      </Step>
+      <Step number={3} title="Tekst i detalji">
+        <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} placeholder={statsTitle(mode, season, statKey)} />
+      </Step>
+    </Layout>
+  );
+}
+
+/** Lista igrača s fotografijom i brojkama, za izbor MVP-a (radio) ili petorke (checkbox) */
+function PlayerChoice({ label, hint, players, season, type, checked, disabled, onToggle, onReset }: {
+  label: string;
+  hint: string;
+  players: SocialStatPlayer[];
+  season: boolean;
+  type: "radio" | "checkbox";
+  checked: (p: SocialStatPlayer) => boolean;
+  disabled?: (p: SocialStatPlayer) => boolean;
+  onToggle: (id: string) => void;
+  onReset?: () => void;
+}) {
+  const name = useId();
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[14px] font-semibold">{label}</h3>
+        {onReset && <button type="button" className="text-[13px] font-semibold text-fg-muted hover:underline" onClick={onReset}>Najkorisniji</button>}
+      </div>
+      <div className="max-h-[420px] overflow-y-auto rounded-lg border border-line">
+        {players.map((p, i) => (
+          <label key={p.id} className={cx("flex cursor-pointer items-center gap-3 border-b border-line p-2.5 last:border-b-0 hover:bg-panel-2", checked(p) && "bg-panel-2", disabled?.(p) && "cursor-not-allowed opacity-50")}>
+            <input type={type} name={name} checked={checked(p)} disabled={disabled?.(p)} onChange={() => onToggle(p.id)} className="size-4 shrink-0 accent-brand" />
+            <span className="scoreboard w-5 shrink-0 text-right text-[12px] font-semibold text-fg-faint">{i + 1}</span>
+            {p.photo || p.cutout ? (
+              // eslint-disable-next-line @next/next/no-img-element -- privremeni link fotografije s licence, ista ide na sliku
+              <img src={p.photo ?? p.cutout!} alt="" loading="lazy" className="size-9 shrink-0 rounded-full bg-panel-2 object-cover object-[50%_20%]" />
+            ) : (
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-panel-2 text-fg-faint"><UserRound className="size-4" aria-hidden="true" /></span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14px] font-semibold">{statName(p)}</span>
+              <span className="block truncate text-[12px] text-fg-muted">
+                {p.team}
+                {p.game ? ` · ${p.game.won ? "P" : "I"} ${p.game.teamScore}:${p.game.opponentScore}` : ` · ${p.games} ut.`}
+              </span>
+            </span>
+            <span className="scoreboard shrink-0 text-right text-[12px] text-fg-muted">{statLine(p, season)}</span>
+          </label>
+        ))}
+      </div>
+      <p className="text-[12px] text-fg-faint">{hint}</p>
+    </div>
+  );
+}
+
 // ───────────────────────── Zajedničko ─────────────────────────
 
 /** Raspored elemenata na slici (npr. trake, kartice, lista) */
@@ -897,7 +1152,7 @@ function LayoutPicker({ kind, value, onChange }: { kind: SocialKind; value: stri
   return (
     <div className="flex flex-col gap-2.5">
       <h3 className="text-[14px] font-semibold">Raspored</h3>
-      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Raspored elemenata">
+      <div className={cx("grid gap-2", SOCIAL_LAYOUTS[kind].length > 3 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")} role="group" aria-label="Raspored elemenata">
         {SOCIAL_LAYOUTS[kind].map((layout) => (
           <button key={layout.id} type="button" aria-pressed={value === layout.id} title={layout.description} onClick={() => onChange(layout.id)} className={cx("min-w-0 rounded-lg border p-2 text-left transition-colors sm:p-3", value === layout.id ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-line hover:bg-panel-2")}>
             <LayoutGlyph kind={kind} id={layout.id} />
@@ -919,6 +1174,10 @@ function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
   if (kind === "standings" && id === "board") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-0 rounded-[4px] bg-fg-faint/15 p-1">{[0, 1, 2, 3].map((n) => <span key={n} className="flex items-center gap-1 border-b border-fg-faint/30 py-0.5 last:border-0"><span className={cx(bar, "h-1 w-1/2")} /><span className="ml-auto h-1 w-3 rounded-[2px] bg-fg-faint/60" /></span>)}</span>;
   if (kind === "clubs" && id === "grid") return <span aria-hidden="true" className="grid h-12 grid-cols-4 content-center gap-1">{Array.from({ length: 8 }, (_, n) => <span key={n} className="aspect-square rounded-[3px] bg-fg-faint/30" />)}</span>;
   if (kind === "clubs" && id === "list") return <span aria-hidden="true" className="grid h-12 grid-cols-2 content-center gap-x-2 gap-y-1">{Array.from({ length: 6 }, (_, n) => <span key={n} className="flex items-center gap-1"><span className={dot} /><span className={cx(bar, "h-1 flex-1")} /></span>)}</span>;
+  if (kind === "stats" && id === "mvp") return <span aria-hidden="true" className="relative flex h-12 items-end justify-between gap-1 overflow-hidden rounded-[4px] bg-fg-faint/15 p-1"><span className="flex flex-1 flex-col gap-0.5"><span className="h-0.5 w-1/2 rounded-[2px] bg-fg-faint/50" /><span className="h-1.5 w-full rounded-[2px] bg-fg-faint/70" /><span className="mt-0.5 flex gap-0.5">{[0, 1, 2].map((n) => <span key={n} className="h-2 flex-1 rounded-[2px] bg-fg-faint/40" />)}</span></span><span className="h-10 w-5 rounded-t-full bg-fg-faint/60" /></span>;
+  if (kind === "stats" && id === "five") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-0.5">{[3, 2].map((count) => <span key={count} className="flex justify-center gap-0.5">{Array.from({ length: count }, (_, n) => <span key={n} className="flex h-[22px] w-4 flex-col items-center justify-end rounded-[2px] bg-fg-faint/20"><span className="h-3 w-2.5 rounded-t-full bg-fg-faint/60" /></span>)}</span>)}</span>;
+  if (kind === "stats" && id === "leaders") return <span aria-hidden="true" className="grid h-12 grid-cols-2 content-center gap-0.5">{Array.from({ length: 6 }, (_, n) => <span key={n} className="flex h-3.5 items-end justify-between rounded-[2px] bg-fg-faint/20 px-0.5"><span className="mb-0.5 h-1 w-2 rounded-[1px] bg-fg-faint/70" /><span className="h-2.5 w-1.5 rounded-t-full bg-fg-faint/60" /></span>)}</span>;
+  if (kind === "stats" && id === "top") return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-0.5">{[0, 1, 2, 3].map((n) => <span key={n} className="flex items-center gap-1"><span className="size-2 rounded-full bg-fg-faint/60" /><span className={cx(bar, "h-1 flex-1")} /><span className="h-1.5 w-2.5 rounded-[1px] bg-fg-faint/70" /></span>)}</span>;
   // Trake (raspored i tabela)
   return <span aria-hidden="true" className="flex h-12 flex-col justify-center gap-1">{[0, 1, 2].map((n) => <span key={n} className="flex h-3 items-center justify-between rounded-[3px] bg-fg-faint/20 px-1"><span className={dot} /><span className={cx(bar, "h-1 w-1/3")} /><span className={dot} /></span>)}</span>;
 }
@@ -1143,6 +1402,13 @@ function describe(content: SocialContent, options: SocialOptions) {
   if (content.kind === "results") return `${title}: ${content.matches.map((m) => `${m.home} ${scoreText(m)} ${m.away}, ${formatDate(m.date)}`).join("; ")}`;
   if (content.kind === "round") return `${title}: ${content.matches.map((m) => isPlayed(m) ? `${m.home} ${scoreText(m)} ${m.away}` : `${m.home} – ${m.away}, ${m.status === "postponed" ? "odgođeno" : `${formatDate(m.date)} u ${formatTime(m.startsAt)}`}`).join("; ")}`;
   if (content.kind === "standings") return `${title}: ${content.rows.map((r, i) => `${content.firstRank + i}. ${r.name} ${formatScore(r.points)} bodova`).join("; ")}`;
+  if (content.kind === "stats") {
+    const line = (p: SocialStatPlayer) => `${statName(p)} (${p.team}): ${(["pts", "reb", "ast", "eff"] as const).map((key) => `${statText(p, key, content.season)} ${SOCIAL_STATS.find((s) => s.id === key)!.short}`).join(", ")}`;
+    if (content.mode === "mvp") return `${title}: ${line(content.player)}`;
+    if (content.mode === "leaders") return `${title}: ${content.categories.map((c) => `${SOCIAL_STATS.find((s) => s.id === c.key)!.label}: ${c.players.map((p) => `${statName(p)} ${statText(p, c.key, content.season)}`).join(", ")}`).join("; ")}`;
+    if (content.mode === "top") return `${title}: ${content.players.map((p, i) => `${content.firstRank + i}. ${statName(p)} ${statText(p, content.key, content.season)}`).join("; ")}`;
+    return `${title}: ${content.players.map(line).join("; ")}`;
+  }
   return `${title}: ${content.clubs.map((c) => c.name).join(", ")}`;
 }
 

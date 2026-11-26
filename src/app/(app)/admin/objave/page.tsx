@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Oswald } from "next/font/google";
 import { Images } from "lucide-react";
-import { getSocialFibaResults, getSocialResults, getSocialRound, getSocialSchedules, type SocialMatch } from "@/lib/data/social";
+import { getSocialFibaResults, getSocialResults, getSocialRound, getSocialSchedules, getSocialStats, type SocialMatch } from "@/lib/data/social";
 import { getSocialTables } from "@/lib/data/results";
 import { getSavedSocialSchedule, getSavedSocialSchedules } from "@/lib/data/admin";
 import { PageHeader } from "@/components/ui";
@@ -25,7 +25,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default function SocialPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, rezultati, kolo, tabela i klubovi za Facebook i Instagram." />
+      <PageHeader icon={<Images />} title="Slike za objavu" subtitle="Raspored, rezultati, kolo, tabela, klubovi i statistika igrača za Facebook i Instagram." />
       <Suspense fallback={<SocialBuilderSkeleton />}>
         <Studio searchParams={searchParams} />
       </Suspense>
@@ -54,8 +54,8 @@ const FIXTURES_BY_COMPETITION: Record<string, Fixture[]> = {
 };
 
 async function Studio({ searchParams }: { searchParams: SearchParams }) {
-  const [data, results, round, fiba, tables, saved, { takmicenje, vrsta, r }] = await Promise.all([
-    getSocialSchedules(), getSocialResults(), getSocialRound(), getSocialFibaResults(), getSocialTables(), getSavedSocialSchedules(), searchParams,
+  const [data, results, round, fiba, tables, saved, stats, { takmicenje, vrsta, r }] = await Promise.all([
+    getSocialSchedules(), getSocialResults(), getSocialRound(), getSocialFibaResults(), getSocialTables(), getSavedSocialSchedules(), getSocialStats(), searchParams,
   ]);
   // Lige saveza: rezultati s FIBA statistike za parove iz rasporeda koji nemaju utakmicu u aplikaciji idu uz naše, po terminu
   const withFiba = (list: SocialMatch[]) => [...list, ...fiba].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
@@ -72,7 +72,7 @@ async function Studio({ searchParams }: { searchParams: SearchParams }) {
       key={typeof r === "string" ? r : "builder"}
       {...data} matches={withRound(data.matches)} results={withFiba(withRound(results))} round={withFiba(withRound(round))} tables={tables}
       kind={kind} competition={typeof takmicenje === "string" ? takmicenje : undefined} font={poster.style.fontFamily}
-      fixturesByCompetition={FIXTURES_BY_COMPETITION} knownPairings={knownPairings} schedule={schedule}
+      fixturesByCompetition={FIXTURES_BY_COMPETITION} knownPairings={knownPairings} schedule={schedule} stats={stats}
     />
   );
 }

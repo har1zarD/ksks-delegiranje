@@ -1,8 +1,9 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { getCurrentUser, requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
-import { fetchCompetitionFeed, fetchFibaGame, type FibaFeedGame } from "@/lib/fiba";
+import { fetchCompetitionFeed, fetchFibaGame, type FibaFeedGame, type FibaGame } from "@/lib/fiba";
 import { FIBA_CLUBS, fibaClubBase, fibaClubName } from "@/lib/fiba-clubs";
+import { LEAGUE_FIBA_CATEGORIES } from "@/lib/league-fiba";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { row, rows } from "./db";
 
@@ -178,18 +179,41 @@ async function storedGame(matchId: number) {
   return row(await createAdminClient().from("fiba_games").select(GAME_COLUMNS).eq("id", matchId).maybeSingle());
 }
 
+/** Igrači završene utakmice iz baze: ID igrača, ime (s licence) i licenca, po strani i broju dresa */
+async function storedPlayers(matchId: number) {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba);
+  return rows(
+    await createAdminClient().from("fiba_player_games").select("side, number, player_id, first_name, family_name, license_id").eq("game_id", matchId),
+  );
+}
+
 /** Cijela utakmica s FIBA LiveStats + zapis iz baze (termin, kategorija) + naša povezana utakmica */
 export async function getFibaGame(matchId: number) {
   await getCurrentUser();
-  const [stored, linked, logos] = await Promise.all([storedGame(matchId), linkedMatches(), clubLogos()]);
+  const [stored, linked, logos, players, photos] = await Promise.all([storedGame(matchId), linkedMatches(), clubLogos(), storedPlayers(matchId), licensePhotos()]);
   const game = await liveGame(matchId, stored?.starts_at ?? null);
   const logoFor = (name: string, storedName: string | undefined, fallback: string | null) =>
     logoOf(logos, name) ?? (storedName ? logoOf(logos, storedName) : undefined) ?? fallback;
+  // Liga saveza: naziv ekipe kao u takmičenju; igrač s licencom: ime s licence, ID i fotografija (box score iz baze)
+  const league = Boolean(stored?.category && LEAGUE_FIBA_CATEGORIES[stored.category]);
+  const withStored = (team: FibaGame["home"], side: 1 | 2, storedName: string | undefined): FibaGame["home"] => ({
+    ...team,
+    name: league && storedName ? storedName : team.name,
+    logo: logoFor(team.name, storedName, team.logo),
+    players: team.players.map((p) => {
+      const own = players.find((x) => x.side === side && x.number === p.number);
+      if (!own) return p;
+      const name = own.license_id ? [own.first_name, own.family_name].filter(Boolean).join(" ") : p.name;
+      return { ...p, name, id: own.player_id, photo: own.license_id ? photos[own.license_id]?.photo ?? null : null };
+    }),
+  });
   return {
     game: game ? {
       ...game,
-      home: { ...game.home, logo: logoFor(game.home.name, stored?.home_name, game.home.logo) },
-      away: { ...game.away, logo: logoFor(game.away.name, stored?.away_name, game.away.logo) },
+      home: withStored(game.home, 1, stored?.home_name),
+      away: withStored(game.away, 2, stored?.away_name),
     } : null,
     stored: stored ? withClubLogos(stored, logos) : null,
     match: linked.find((m) => m.fiba_game_id === matchId) ?? null,
@@ -237,11 +261,43 @@ export async function getLinkCandidates(startsAt: string | null, category: strin
   return allowed ? all.filter((m) => m.competition && allowed.includes(m.competition.category)) : all;
 }
 
+// ───────── Fotografije igrača liga saveza (licence) ─────────
+
+/** Link fotografije s licence važi 2 sata (keš se osvježava svake minute) */
+const PHOTO_SECONDS = 2 * 60 * 60;
+
+export type LicensePhoto = { photo: string | null; cutout: string | null };
+
+/**
+ * Fotografije igrača s licencom u ligama saveza (A2 jug, A1 žene): obična i izrezana (PNG bez pozadine, za slike za
+ * objavu), privremeni linkovi jer je bucket licenci privatan. { [licenseId]: { photo, cutout } }
+ */
+async function licensePhotoRows(): Promise<Record<string, LicensePhoto>> {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.licenses);
+  const db = createAdminClient();
+  const list = rows(
+    await db.from("licenses").select("id, photo_path, cutout_path").in("competition_id", Object.values(LEAGUE_FIBA_CATEGORIES)).eq("kind", "player"),
+  );
+  const paths = [...new Set(list.flatMap((l) => [l.photo_path, l.cutout_path].filter((p): p is string => Boolean(p))))];
+  const { data: signed } = paths.length ? await db.storage.from("licenses").createSignedUrls(paths, PHOTO_SECONDS) : { data: [] };
+  const urls = new Map((signed ?? []).flatMap((s) => (s.path && s.signedUrl ? [[s.path, s.signedUrl] as const] : [])));
+  return Object.fromEntries(
+    list.map((l) => [l.id, { photo: l.photo_path ? urls.get(l.photo_path) ?? null : null, cutout: l.cutout_path ? urls.get(l.cutout_path) ?? null : null }]),
+  );
+}
+
+/** Fotografije igrača liga saveza; zove je samo kod koji je prijavu već provjerio */
+export async function licensePhotos() {
+  return licensePhotoRows();
+}
+
 // ───────── Statistika (box score završenih utakmica u bazi: fiba_player_games, fiba_team_games) ─────────
 
 const LINE = "pts, fgm, fga, tpm, tpa, ftm, fta, oreb, dreb, reb, ast, stl, blk, tov, pf, eff" as const;
 const TEAM_GAME = `game_id, side, team_name, club_key, coach, score, periods, ${LINE}, paint, fast_break, second_chance, from_turnovers, bench, biggest_lead, biggest_run, lead_changes, times_tied` as const;
-const PLAYER_GAME = `game_id, side, player_id, team_name, first_name, family_name, number, position, starter, captain, seconds, ${LINE}, fd, plus_minus` as const;
+const PLAYER_GAME = `game_id, side, player_id, team_name, first_name, family_name, number, position, starter, captain, seconds, ${LINE}, fd, plus_minus, license_id` as const;
 
 /** Klubovi FIBA ekipa (ID igrača = klub + ime) */
 async function teamAliases() {
@@ -307,11 +363,11 @@ export async function getFibaTeamGames() {
   return byGame;
 }
 
-/** Igrači kategorije u sezoni (prosjeci) s logom ekipe */
+/** Igrači kategorije u sezoni (prosjeci) s logom ekipe i fotografijom s licence */
 export async function getFibaSeason(category: string, seasonKey: string) {
   await getCurrentUser();
-  const [season, logos] = await Promise.all([seasonRows(category, seasonKey), clubLogos()]);
-  return season.map((p) => ({ ...p, logo: logoOf(logos, p.team_name ?? "") ?? null }));
+  const [season, logos, photos] = await Promise.all([seasonRows(category, seasonKey), clubLogos(), licensePhotos()]);
+  return season.map((p) => ({ ...p, logo: logoOf(logos, p.team_name ?? "") ?? null, photo: p.license_id ? photos[p.license_id]?.photo ?? null : null }));
 }
 
 export async function getFibaAliases() {
@@ -319,17 +375,19 @@ export async function getFibaAliases() {
   return teamAliases();
 }
 
-/** Igrač: sve njegove utakmice (s rezultatom i protivnikom) */
+/** Igrač: sve njegove utakmice (s rezultatom i protivnikom) i fotografija s licence */
 export async function getFibaPlayer(playerId: string) {
   await getCurrentUser();
-  const [lines, logos] = await Promise.all([playerLines(playerId), clubLogos()]);
-  return lines.map((l) => ({ ...l, game: withClubLogos(l.game, logos) }));
+  const [lines, logos, photos] = await Promise.all([playerLines(playerId), clubLogos(), licensePhotos()]);
+  const license = lines.find((l) => l.license_id)?.license_id;
+  return { lines: lines.map((l) => ({ ...l, game: withClubLogos(l.game, logos) })), photo: license ? photos[license]?.photo ?? null : null };
 }
 
-/** Igrači ekipe u kategoriji (po utakmici) */
+/** Igrači ekipe u kategoriji (po utakmici), s fotografijom s licence */
 export async function getFibaTeamPlayers(category: string, teamName: string) {
   await getCurrentUser();
-  return teamPlayerLines(category, teamName);
+  const [lines, photos] = await Promise.all([teamPlayerLines(category, teamName), licensePhotos()]);
+  return lines.map((l) => ({ ...l, photo: l.license_id ? photos[l.license_id]?.photo ?? null : null }));
 }
 
 /** Logo FIBA ekipe po nazivu */

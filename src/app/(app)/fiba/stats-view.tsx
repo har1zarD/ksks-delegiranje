@@ -6,7 +6,7 @@ import { properName } from "@/lib/fiba";
 import { FilterForm, FilterLink, FilterSegment } from "@/components/filter-nav";
 import { ClubLogo } from "@/components/team-name";
 import { buttonClass, cx, Empty, inputClass, SectionTitle, Segments } from "@/components/ui";
-import { Pager, PlayerLink, STICKY, TABLE_WRAP, TD, TH, TeamLink, teamHref } from "./ui";
+import { Pager, PlayerLink, PlayerPhoto, STICKY, TABLE_WRAP, TD, TH, TeamLink, teamHref } from "./ui";
 
 // Statistika kategorije: lideri, ekipe i svi igrači (prosjeci iz box scorea završenih utakmica)
 
@@ -16,6 +16,8 @@ export type SeasonPlayer = {
   number: string | null;
   team: string;
   logo: string | null;
+  /** Fotografija s licence (lige saveza) */
+  photo: string | null;
   games: number;
   starts: number;
   seconds: number;
@@ -40,13 +42,14 @@ export type SeasonPlayer = {
   best: number;
 };
 
-export function seasonPlayer(r: FibaSeasonRow & { logo: string | null }): SeasonPlayer {
+export function seasonPlayer(r: FibaSeasonRow & { logo: string | null; photo: string | null }): SeasonPlayer {
   return {
     id: r.player_id!,
     name: properName([r.first_name, r.family_name].filter(Boolean).join(" ")),
     number: r.number,
     team: r.team_name ?? "",
     logo: r.logo,
+    photo: r.photo,
     games: r.games ?? 0,
     starts: r.starts ?? 0,
     seconds: r.seconds ?? 0,
@@ -126,6 +129,8 @@ export function qualified(players: SeasonPlayer[]) {
 
 export function Leaders({ players, category, allHref }: { players: SeasonPlayer[]; category: string; allHref: string }) {
   const pool = qualified(players);
+  // Fotografije s licence imaju samo lige saveza; bez njih ostaje grb ekipe
+  const photos = players.some((p) => p.photo);
   return (
     <section>
       <SectionTitle action={<Link href={allHref} className="inline-flex items-center gap-1 text-[14px] font-semibold text-fg-muted hover:text-fg">Svi igrači <ChevronRight className="size-4" aria-hidden /></Link>}>
@@ -143,10 +148,13 @@ export function Leaders({ players, category, allHref }: { players: SeasonPlayer[
             <article key={l.key} className="overflow-hidden rounded-lg border border-line bg-panel shadow-panel">
               <h3 className="border-b border-line px-4 py-2.5 text-[13px] font-semibold text-fg-muted">{l.label} <span className="font-normal text-fg-faint">{l.qualifies || l.key === "tpm" ? "" : "po utakmici"}</span></h3>
               <div className="flex items-center gap-3 px-4 py-3.5">
-                <ClubLogo src={first.logo} />
+                {photos ? <PlayerPhoto src={first.photo} name={first.name} size="lg" /> : <ClubLogo src={first.logo} />}
                 <div className="min-w-0 flex-1">
                   <PlayerLink id={first.id} name={first.name} className="block truncate text-[16px] font-semibold" />
-                  <Link href={teamHref(category, first.team)} className="block truncate text-[13px] text-fg-muted hover:underline">{first.team}</Link>
+                  <Link href={teamHref(category, first.team)} className="flex min-w-0 items-center gap-1.5 text-[13px] text-fg-muted hover:underline">
+                    {photos && <ClubLogo src={first.logo} />}
+                    <span className="truncate">{first.team}</span>
+                  </Link>
                 </div>
                 <div className="text-right">
                   <div className="scoreboard text-[30px] font-semibold leading-none tracking-[-0.03em]">{l.text(first)}</div>
@@ -157,6 +165,7 @@ export function Leaders({ players, category, allHref }: { players: SeasonPlayer[
                 {rest.map((p, i) => (
                   <li key={p.id} className="flex items-center gap-2.5 px-4 py-2 text-[14px]">
                     <span className="scoreboard w-4 shrink-0 text-right text-[12px] font-semibold text-fg-faint">{i + 2}</span>
+                    {photos && <PlayerPhoto src={p.photo} name={p.name} size="xs" />}
                     <span className="min-w-0 flex-1 truncate">
                       <PlayerLink id={p.id} name={p.name} className="font-medium" />
                       <span className="text-fg-faint">, {p.team}</span>
@@ -312,6 +321,7 @@ export function PlayersTable({ players, category, sp, href }: {
   const requested = Number(sp.strana);
   const page = Number.isInteger(requested) && requested >= 1 && requested <= pages ? requested : 1;
   const shown = sorted.slice((page - 1) * PAGE_PLAYERS, page * PAGE_PLAYERS);
+  const photos = players.some((p) => p.photo);
   const base = { sort: sp.sort as string | undefined, zbir: totals ? 1 : undefined, q: q || undefined };
 
   return (
@@ -360,11 +370,16 @@ export function PlayersTable({ players, category, sp, href }: {
               {shown.map((p, i) => (
                 <tr key={p.id} className="group hover:bg-panel-2">
                   <td className={cx(TD, "pl-4 text-left text-fg-faint sm:pl-5")}>{(page - 1) * PAGE_PLAYERS + i + 1}</td>
-                  <td className={cx(STICKY, "max-w-[48vw] py-2 pr-3 group-hover:bg-panel-2 sm:max-w-[280px]")}>
-                    <PlayerLink id={p.id} name={p.name} className="block truncate text-[14px] font-semibold" />
-                    <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-fg-muted">
-                      <span className="truncate">{p.team}</span>
-                      {p.number && <span className="shrink-0 text-fg-faint">#{p.number}</span>}
+                  <td className={cx(STICKY, "max-w-[48vw] py-2 pr-3 group-hover:bg-panel-2 sm:max-w-[320px]")}>
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      {photos && <PlayerPhoto src={p.photo} name={p.name} />}
+                      <span className="min-w-0">
+                        <PlayerLink id={p.id} name={p.name} className="block truncate text-[14px] font-semibold" />
+                        <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-fg-muted">
+                          <span className="truncate">{p.team}</span>
+                          {p.number && <span className="shrink-0 text-fg-faint">#{p.number}</span>}
+                        </span>
+                      </span>
                     </span>
                   </td>
                   {PLAYER_COLS.map((c, j) => (

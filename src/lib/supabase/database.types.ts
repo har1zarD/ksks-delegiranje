@@ -147,6 +147,7 @@ isOneToOne: false
           fta: number
           ftm: number
           game_id: number
+          license_id: string | null
           number: string | null
           oreb: number
           pf: number
@@ -178,6 +179,7 @@ isOneToOne: false
           fta?: number
           ftm?: number
           game_id: number
+          license_id?: string | null
           number?: string | null
           oreb?: number
           pf?: number
@@ -209,6 +211,7 @@ isOneToOne: false
           fta?: number
           ftm?: number
           game_id?: number
+          license_id?: string | null
           number?: string | null
           oreb?: number
           pf?: number
@@ -232,6 +235,13 @@ isOneToOne: false
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "fiba_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiba_player_games_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
             referencedColumns: ["id"]
           },
         ]
@@ -614,14 +624,14 @@ isOneToOne: false
                   ]
                 },"licenses": {
                   Row: {
-                    "birth_date": string | null,"birth_place": string | null,"club_id": string,"competition_id": string,"created_at": string,"first_name": string,"height_cm": number | null,"id": string,"kind": string,"last_name": string,"license_no": string | null,"photo_path": string | null,"position": string | null,"role": string | null,"sort": number,"team_id": string | null
+                    "birth_date": string | null,"birth_place": string | null,"club_id": string,"competition_id": string,"created_at": string,"cutout_path": string | null,"first_name": string,"height_cm": number | null,"id": string,"kind": string,"last_name": string,"license_no": string | null,"photo_path": string | null,"position": string | null,"role": string | null,"sort": number,"team_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id": string,"competition_id": string,"created_at"?: string,"first_name": string,"height_cm"?: number | null,"id"?: string,"kind": string,"last_name": string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
+                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id": string,"competition_id": string,"created_at"?: string,"cutout_path"?: string | null,"first_name": string,"height_cm"?: number | null,"id"?: string,"kind": string,"last_name": string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
                   }
                   Update: {
-                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id"?: string,"competition_id"?: string,"created_at"?: string,"first_name"?: string,"height_cm"?: number | null,"id"?: string,"kind"?: string,"last_name"?: string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
+                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id"?: string,"competition_id"?: string,"created_at"?: string,"cutout_path"?: string | null,"first_name"?: string,"height_cm"?: number | null,"id"?: string,"kind"?: string,"last_name"?: string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -909,6 +919,7 @@ isOneToOne: false
           fta: number | null
           ftm: number | null
           games: number | null
+          license_id: string | null
           number: string | null
           oreb: number | null
           pf: number | null

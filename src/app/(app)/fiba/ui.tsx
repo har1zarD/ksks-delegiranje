@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import { PageLink, PageStep } from "@/components/filter-nav";
 import { ClubLogo } from "@/components/team-name";
 import { cx } from "@/components/ui";
@@ -27,6 +27,22 @@ export function PlayerLink({ id, name, className }: { id: string | null; name: s
       {name}
     </Link>
   );
+}
+
+const PHOTO_SIZE = { xs: "size-7", sm: "size-9", md: "size-12", lg: "size-16", xl: "size-20 sm:size-24" } as const;
+
+/** Fotografija igrača s licence (lige saveza) u krugu; bez fotografije prazan krug */
+export function PlayerPhoto({ src, name, size = "sm", className }: { src?: string | null; name: string; size?: keyof typeof PHOTO_SIZE; className?: string }) {
+  const box = cx(PHOTO_SIZE[size], "shrink-0 rounded-full bg-panel-2 ring-1 ring-inset ring-line", className);
+  if (!src) {
+    return (
+      <span aria-hidden="true" className={cx(box, "grid place-items-center text-fg-faint")}>
+        <UserRound className="size-1/2" strokeWidth={1.5} />
+      </span>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element -- privremeni link fotografije s licence (privatni bucket)
+  return <img src={src} alt={name} loading="lazy" decoding="async" className={cx(box, "object-cover object-[50%_20%]")} />;
 }
 
 /** Ekipa s logom kao link na stranicu ekipe */

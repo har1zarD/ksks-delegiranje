@@ -204,6 +204,10 @@ export type FibaPlayer = FibaLine & {
   onCourt: boolean;
   minutes: string;
   plusMinus: number;
+  /** ID igrača iz box scorea u bazi (igrač s licencom ima ID licence); bez njega se računa iz imena */
+  id?: string;
+  /** Fotografija s licence (lige saveza) */
+  photo?: string | null;
 };
 
 export type FibaTeam = {

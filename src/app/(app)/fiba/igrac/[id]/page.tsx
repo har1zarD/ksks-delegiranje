@@ -11,7 +11,7 @@ import { Bone, Skeleton, Text, times } from "@/components/skeleton";
 import { ClubLogo } from "@/components/team-name";
 import { FilterNavProvider } from "@/components/filter-nav";
 import { CARD, cx, SectionTitle } from "@/components/ui";
-import { BigStat, Pager, ResultMark, STICKY, TABLE_WRAP, TD, TH, teamHref } from "../../ui";
+import { BigStat, Pager, PlayerPhoto, ResultMark, STICKY, TABLE_WRAP, TD, TH, teamHref } from "../../ui";
 
 export const metadata = { title: "Igrač — FIBA — KSKS" };
 
@@ -31,7 +31,7 @@ export default function FibaPlayerPage({ params, searchParams }: { params: Param
   );
 }
 
-type Line = Awaited<ReturnType<typeof getFibaPlayer>>[number];
+type Line = Awaited<ReturnType<typeof getFibaPlayer>>["lines"][number];
 
 const KEYS = ["pts", "fgm", "fga", "tpm", "tpa", "ftm", "fta", "oreb", "dreb", "reb", "ast", "stl", "blk", "tov", "pf", "fd", "eff", "plus_minus", "seconds"] as const;
 type Totals = Record<(typeof KEYS)[number], number> & { games: number; starts: number; won: number };
@@ -56,7 +56,7 @@ const PAGE_GAMES = 15;
 async function Player({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f]{12}$/.test(id)) notFound();
-  const lines = await getFibaPlayer(id);
+  const { lines, photo } = await getFibaPlayer(id);
   if (lines.length === 0) notFound();
 
   const latest = lines[0];
@@ -103,6 +103,7 @@ async function Player({ params, searchParams }: { params: Params; searchParams: 
     <FilterNavProvider>
       <div className="flex flex-col gap-10">
         <header className="flex flex-wrap items-center gap-4 border-b border-line pb-6 sm:gap-5">
+          {photo && <PlayerPhoto src={photo} name={name} size="xl" className="shadow-panel" />}
           <span className="grid size-16 shrink-0 place-items-center rounded-lg border border-line bg-panel shadow-panel sm:size-20 [&>span]:h-12 [&>span]:w-16">
             <ClubLogo src={latest.side === 1 ? latest.game.home_logo : latest.game.away_logo} eager />
           </span>

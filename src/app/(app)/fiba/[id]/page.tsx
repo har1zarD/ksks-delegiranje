@@ -12,7 +12,7 @@ import { Bone, SectionTitleSkeleton, Skeleton, Text } from "@/components/skeleto
 import { cx, Empty, SectionTitle, Status } from "@/components/ui";
 import { LinkMatch } from "../link-match";
 import { Tabs } from "../tabs";
-import { PlayerLink, ResultMark, STICKY, TABLE_WRAP, TD, TH, TeamLink } from "../ui";
+import { PlayerLink, PlayerPhoto, ResultMark, STICKY, TABLE_WRAP, TD, TH, TeamLink } from "../ui";
 import { GameFlow } from "./game-flow";
 import { PlayByPlay } from "./play-by-play";
 
@@ -109,12 +109,12 @@ async function Game({ params }: { params: Promise<{ id: string }> }) {
               content: (
                 <div className="flex flex-col gap-10">
                   {[game.home, game.away].map((t) => (
-                    <TeamStats key={t.name} team={t} category={category} playerId={(p) => fibaPlayerId(t.name, p.firstName, p.familyName, aliases)} />
+                    <TeamStats key={t.name} team={t} category={category} playerId={(p) => p.id ?? fibaPlayerId(t.name, p.firstName, p.familyName, aliases)} />
                   ))}
                 </div>
               ),
             },
-            { key: "ekipe", label: "Ekipe", content: <Compare game={game} playerId={(t, p) => fibaPlayerId(t.name, p.firstName, p.familyName, aliases)} /> },
+            { key: "ekipe", label: "Ekipe", content: <Compare game={game} playerId={(t, p) => p.id ?? fibaPlayerId(t.name, p.firstName, p.familyName, aliases)} /> },
             ...(game.actions.length > 0
               ? [{
                   key: "tok",
@@ -160,6 +160,8 @@ const COLUMNS: Column[] = [
 /** Statistika igrača jedne ekipe (box score); ime igrača vodi na njegovu stranicu */
 function TeamStats({ team, category, playerId }: { team: FibaTeam; category: string | null; playerId: (p: FibaPlayer) => string }) {
   const best = Math.max(...team.players.map((p) => p.pts));
+  // Fotografije s licence imaju samo lige saveza
+  const photos = team.players.some((p) => p.photo);
   return (
     <section>
       <SectionTitle>
@@ -189,6 +191,7 @@ function TeamStats({ team, category, playerId }: { team: FibaTeam; category: str
                   <td className={cx(TD, "pl-4 text-left text-fg-muted sm:pl-5")}>{p.number}</td>
                   <td className={cx(STICKY, "max-w-[46vw] py-2 pr-3 group-hover:bg-panel-2 sm:max-w-none")}>
                     <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[14px] font-medium">
+                      {photos && <PlayerPhoto src={p.photo} name={p.name} size="xs" className="mr-1" />}
                       <PlayerLink id={playerId(p)} name={p.name} className="truncate" />
                       {p.captain && <span className="text-[11px] font-semibold text-fg-faint" title="Kapiten">K</span>}
                       {p.onCourt && <span className="size-1.5 shrink-0 rounded-full bg-crest" title="Na terenu" />}
@@ -327,6 +330,7 @@ function Compare({ game, playerId }: { game: FibaGame; playerId: (t: FibaTeam, p
                 if (!top) return null;
                 return (
                   <div key={t.name} className="flex items-center gap-3 px-4 py-2 sm:px-5">
+                    {top.photo !== undefined && <PlayerPhoto src={top.photo} name={top.name} />}
                     <span className="min-w-0 flex-1">
                       <PlayerLink id={playerId(t, top)} name={top.name} className="block truncate text-[14px] font-semibold" />
                       <span className="block truncate text-[12px] text-fg-muted">{t.name}</span>

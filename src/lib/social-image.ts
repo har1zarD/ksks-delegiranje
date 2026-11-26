@@ -122,13 +122,19 @@ export const SOCIAL_LAYOUTS = {
     { id: "grid", name: "Mreža", description: "Veliki grbovi s imenima" },
     { id: "list", name: "Lista", description: "Grb i ime u redovima" },
   ],
+  stats: [
+    { id: "mvp", name: "MVP", description: "Najbolji igrač: velika fotografija, ime i brojke" },
+    { id: "five", name: "Petorka", description: "Pet najboljih igrača na karticama" },
+    { id: "leaders", name: "Lideri", description: "Najbolji po poenima, skokovima, asistencijama…" },
+    { id: "top", name: "Top lista", description: "Redoslijed igrača po jednoj statistici" },
+  ],
 } as const;
 
 export type SocialFormat = (typeof SOCIAL_FORMATS)[number]["id"];
 export type SocialTemplate = (typeof SOCIAL_TEMPLATES)[number]["id"];
 export type SocialBrand = keyof typeof SOCIAL_BRANDS;
 export type SocialYear = (typeof SOCIAL_YEARS)[number]["id"];
-export type SocialKind = "schedule" | "results" | "round" | "standings" | "clubs";
+export type SocialKind = "schedule" | "results" | "round" | "standings" | "clubs" | "stats";
 
 /** Izgled: zajednički za sve vrste slika */
 export type SocialDesignOptions = {
@@ -162,6 +168,63 @@ export type ScheduleDraft = {
 };
 
 export type SocialStanding = { teamId: string; name: string; logoUrl: string | null; played: number; won: number; lost: number; diff: number; points: number };
+
+/** Statistika igrača na slici: kolo = jedna utakmica (games 1), sezona = zbir i broj utakmica (prikaz po utakmici) */
+export type SocialStatPlayer = {
+  id: string;
+  first: string;
+  last: string;
+  number: string | null;
+  team: string;
+  teamLogo: string | null;
+  /** Fotografija s licence i ista bez pozadine (PNG) */
+  photo: string | null;
+  cutout: string | null;
+  games: number;
+  seconds: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  tov: number;
+  fgm: number;
+  fga: number;
+  tpm: number;
+  tpa: number;
+  ftm: number;
+  fta: number;
+  eff: number;
+  /** Utakmica kola (samo za kolo) */
+  game: { opponent: string; opponentLogo: string | null; teamScore: number; opponentScore: number; won: boolean } | null;
+};
+
+export type SocialStatKey = "pts" | "reb" | "ast" | "eff" | "stl" | "blk" | "tpm";
+
+/** Statistike za lidere i top listu; `unit` ide ispod broja na slici */
+export const SOCIAL_STATS: { id: SocialStatKey; label: string; short: string; unit: string; top: string }[] = [
+  { id: "pts", label: "Poeni", short: "PTS", unit: "POENA", top: "Najbolji strijelci" },
+  { id: "reb", label: "Skokovi", short: "SKO", unit: "SKOKOVA", top: "Najbolji skakači" },
+  { id: "ast", label: "Asistencije", short: "AST", unit: "ASISTENCIJA", top: "Najbolji asistenti" },
+  { id: "eff", label: "Indeks korisnosti", short: "IND", unit: "INDEKS", top: "Najkorisniji igrači" },
+  { id: "stl", label: "Ukradene lopte", short: "UKR", unit: "UKRADENIH", top: "Najviše ukradenih lopti" },
+  { id: "blk", label: "Blokade", short: "BLK", unit: "BLOKADA", top: "Najviše blokada" },
+  { id: "tpm", label: "Pogođene trice", short: "3P", unit: "TRICA", top: "Najviše pogođenih trica" },
+];
+
+/** Vrijednost statistike: kolo = broj s utakmice, sezona = prosjek po utakmici */
+export function statValue(p: SocialStatPlayer, key: SocialStatKey, season: boolean) {
+  return season ? p[key] / Math.max(1, p.games) : p[key];
+}
+
+/** "24" za kolo, "18,4" za prosjek sezone */
+export function statText(p: SocialStatPlayer, key: SocialStatKey, season: boolean) {
+  const value = statValue(p, key, season);
+  return season ? value.toFixed(1).replace(".", ",") : String(value);
+}
+
+/** Ime igrača za pregled i opis slike */
+export const statName = (p: SocialStatPlayer) => [p.first, p.last].filter(Boolean).join(" ");
 export type SocialClub = { id: string; name: string; logoUrl: string | null };
 
 export type SocialContent =
@@ -170,7 +233,20 @@ export type SocialContent =
   /** Kolo: odigrane utakmice s rezultatom i one koje tek slijede, na istoj slici */
   | { kind: "round"; matches: SocialMatch[] }
   | { kind: "standings"; rows: SocialStanding[]; firstRank: number }
-  | { kind: "clubs"; clubs: SocialClub[] };
+  | { kind: "clubs"; clubs: SocialClub[] }
+  /** Statistika: `season` = prosjeci sezone, inače jedno kolo */
+  | { kind: "stats"; mode: "mvp"; player: SocialStatPlayer; season: boolean }
+  | { kind: "stats"; mode: "five"; players: SocialStatPlayer[]; season: boolean }
+  | { kind: "stats"; mode: "leaders"; categories: { key: SocialStatKey; players: SocialStatPlayer[] }[]; season: boolean }
+  | { kind: "stats"; mode: "top"; key: SocialStatKey; players: SocialStatPlayer[]; firstRank: number; season: boolean };
+
+/** Igrači na slici statistike */
+export function statPlayers(content: SocialContent): SocialStatPlayer[] {
+  if (content.kind !== "stats") return [];
+  if (content.mode === "mvp") return [content.player];
+  if (content.mode === "leaders") return content.categories.flatMap((c) => c.players);
+  return content.players;
+}
 
 /** Utakmica s upisanim konačnim rezultatom */
 export function isPlayed(m: SocialMatch) {
@@ -182,6 +258,7 @@ export function templateOf(id: SocialTemplate, statehoodDay = false): Template {
 }
 
 export function contentSize(content: SocialContent) {
+  if (content.kind === "stats") return content.mode === "mvp" ? 4 : content.mode === "leaders" ? content.categories.length * 2 : content.players.length;
   return "matches" in content ? content.matches.length : content.kind === "standings" ? content.rows.length : content.clubs.length;
 }
 
@@ -269,6 +346,7 @@ const shortDate = (date: string, year: SocialYear) => {
 const logoUrls = (content: SocialContent) =>
   "matches" in content ? content.matches.flatMap((m) => [m.homeLogo, m.awayLogo])
     : content.kind === "standings" ? content.rows.map((r) => r.logoUrl)
+    : content.kind === "stats" ? statPlayers(content).flatMap((p) => [p.teamLogo, p.game?.opponentLogo ?? null])
     : content.clubs.map((c) => c.logoUrl);
 
 /**
@@ -287,8 +365,15 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   const poster = posterFont || body;
   const mono = getComputedStyle(document.body).getPropertyValue("--font-geist-mono").trim() || "monospace";
   const urls = options.showLogos ? [...new Set(logoUrls(content).filter((url): url is string => Boolean(url)))] : [];
-  const [loaded, brandLogo, background, watermark] = await Promise.all([
+  // Fotografija igrača: bez pozadine (PNG) kad postoji, inače obična s licence
+  const people = statPlayers(content);
+  const [loaded, photoList, brandLogo, background, watermark] = await Promise.all([
     Promise.all(urls.map(async (url) => [url, await loadImage(url)] as const)),
+    Promise.all(people.map(async (p) => {
+      const cutout = p.cutout ? await loadImage(p.cutout) : null;
+      const photo = cutout ? null : p.photo ? await loadImage(p.photo) : null;
+      return [p.id, { cutout, photo }] as const;
+    })),
     loadImage(luminance(base.headerInk) > 0.5 ? brand.light : brand.logo),
     theme.background ? loadImage(theme.background) : Promise.resolve(null),
     brand.watermark ? loadImage(brand.watermark) : Promise.resolve(null),
@@ -300,6 +385,7 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   if (!brandLogo) throw new Error(`${brand.name} logo nije učitan. Osvježi stranicu i pokušaj ponovo.`);
   if (theme.background && !background) throw new Error("Pozadina predloška nije učitana. Osvježi stranicu i pokušaj ponovo.");
   const logos = new Map(loaded);
+  const photos = new Map(photoList);
   const canvas = document.createElement("canvas");
   canvas.width = format.width;
   canvas.height = format.height;
@@ -507,8 +593,8 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
   const available = bottom - contentTop;
   const width = w - margin * 2;
 
-  // Vodeni žig saveza (KSBIH) samo na predlošcima s pozadinom
-  if (watermark) {
+  // Vodeni žig saveza (KSBIH) samo na predlošcima s pozadinom; MVP ima igrača preko cijele slike
+  if (watermark && !(content.kind === "stats" && content.mode === "mvp")) {
     const size = Math.min(width, available) * 0.9;
     ctx.save();
     ctx.globalAlpha = background ? 0.22 : 0.1;
@@ -1075,6 +1161,360 @@ export async function renderSocialImage(content: SocialContent, options: SocialO
       if (crestSize) crest(club.name, club.logoUrl, x + cellWidth / 2, y + cellHeight * 0.42, crestSize);
       teamName(club.name, x + cellWidth / 2, options.showLogos ? y + cellHeight * 0.85 : y + cellHeight / 2, cellWidth * 0.88, Math.min(cellWidth * 0.11, 32));
     });
+  }
+
+  // ── Statistika: MVP, petorka, lideri, top lista ─────────────────────────────────────────────
+
+  if (content.kind === "stats") {
+    const season = content.season;
+    const darkInk = luminance(theme.ink) > 0.5;
+    const [ar, ag, ab] = rgbOf(theme.accent);
+    const accentAlpha = (alpha: number) => `rgba(${ar},${ag},${ab},${alpha})`;
+    const perGame = season ? " / UT" : "";
+
+    /** Tekst sa sjenom na tamnim predlošcima (preko fotografije) */
+    const shadowed = (draw: () => void) => {
+      ctx.save();
+      if (darkInk) {
+        ctx.shadowColor = "rgba(0,0,0,0.55)";
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetY = 2;
+      }
+      draw();
+      ctx.restore();
+    };
+
+    /** Panel (kartica) na kojoj stoji igrač */
+    const panel = (x: number, y: number, pw: number, ph: number, radius: number, highlight = false) => {
+      ctx.save();
+      ctx.globalAlpha = hasPanel ? panelAlpha : 1;
+      box(x, y, pw, ph, hasPanel ? theme.panel : accentAlpha(0.08), radius);
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x, y, pw, ph, radius);
+      ctx.clip();
+      const glow = ctx.createLinearGradient(0, y, 0, y + ph);
+      glow.addColorStop(0, accentAlpha(highlight ? 0.34 : 0.2));
+      glow.addColorStop(0.65, accentAlpha(0));
+      ctx.fillStyle = glow;
+      ctx.fillRect(x, y, pw, ph);
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = highlight ? theme.accent : accentAlpha(0.35);
+      ctx.lineWidth = highlight ? 3 : 1.5;
+      ctx.beginPath();
+      ctx.roundRect(x + 0.75, y + 0.75, pw - 1.5, ph - 1.5, radius);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    /** Silueta kad igrač nema fotografiju */
+    const silhouette = (x: number, y: number, fw: number, fh: number) => {
+      const size = Math.min(fw * 0.7, fh * 0.8);
+      const cx = x + fw / 2;
+      const base = y + fh;
+      ctx.save();
+      ctx.fillStyle = accentAlpha(0.28);
+      ctx.beginPath();
+      ctx.arc(cx, base - size * 0.72, size * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx, base, size * 0.42, size * 0.4, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    /**
+     * Igrač u okviru (x, y, fw, fh): izrezana fotografija stoji na dnu okvira i blago se gubi prema dnu; obična
+     * fotografija ispuni okvir (lice u gornjoj trećini). `zoom` > 1 krupnije (glava i ramena).
+     */
+    const figure = (p: SocialStatPlayer, x: number, y: number, fw: number, fh: number, { fade = 0.16, zoom = 1, radius = 0 }: { fade?: number; zoom?: number; radius?: number } = {}) => {
+      const own = photos.get(p.id);
+      const layer = document.createElement("canvas");
+      layer.width = Math.max(1, Math.round(fw));
+      layer.height = Math.max(1, Math.round(fh));
+      const lctx = layer.getContext("2d");
+      if (!lctx || (!own?.cutout && !own?.photo)) {
+        silhouette(x, y, fw, fh);
+        return;
+      }
+      lctx.imageSmoothingEnabled = true;
+      lctx.imageSmoothingQuality = "high";
+      if (own.cutout) {
+        const b = visibleBounds(own.cutout);
+        // Krupni kadar samo za fotografiju s ramenima; ona koja je samo lice već je krupna
+        const near = b.height / b.width >= 1.2 ? zoom : Math.min(zoom, 1.1);
+        let scale = (fh * near) / b.height;
+        if (b.width * scale > fw * 1.12 * near) scale = (fw * 1.12 * near) / b.width;
+        // Mala fotografija s licence (npr. 110 × 150 px) se ne uvećava više od tri puta, inače je samo mrlja
+        scale = Math.min(scale, 3);
+        const dw = b.width * scale;
+        const dh = b.height * scale;
+        // Krupni kadar: vrh glave uz gornji rub, višak tijela ispod okvira
+        const top = near > 1.1 ? fh * 0.04 : fh - dh;
+        lctx.drawImage(own.cutout, b.x, b.y, b.width, b.height, (fw - dw) / 2, top, dw, dh);
+      } else if (own.photo) {
+        const image = own.photo;
+        const scale = Math.max(fw / image.naturalWidth, fh / image.naturalHeight) * zoom;
+        const dw = image.naturalWidth * scale;
+        const dh = image.naturalHeight * scale;
+        lctx.drawImage(image, (fw - dw) / 2, (fh - dh) * 0.28, dw, dh);
+      }
+      if (fade > 0) {
+        lctx.globalCompositeOperation = "destination-in";
+        const mask = lctx.createLinearGradient(0, 0, 0, fh);
+        mask.addColorStop(0, "rgba(0,0,0,1)");
+        mask.addColorStop(1 - fade, "rgba(0,0,0,1)");
+        mask.addColorStop(1, "rgba(0,0,0,0)");
+        lctx.fillStyle = mask;
+        lctx.fillRect(0, 0, fw, fh);
+      }
+      ctx.save();
+      if (radius) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, fw, fh, radius);
+        ctx.clip();
+      }
+      ctx.drawImage(layer, x, y, fw, fh);
+      ctx.restore();
+    };
+
+    /** Okrugla fotografija (glava i ramena) s prstenom akcenta */
+    const headshot = (p: SocialStatPlayer, cx: number, cy: number, r: number) => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = accentAlpha(0.18);
+      ctx.fill();
+      ctx.clip();
+      figure(p, cx - r, cy - r, r * 2, r * 2, { fade: 0, zoom: 1.9 });
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = theme.accent;
+      ctx.lineWidth = Math.max(2, r * 0.06);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    /** Ime: ime manje i prigušeno, prezime veliko (do dva reda) */
+    const nameBlock = (p: SocialStatPlayer, x: number, y: number, max: number, size: number, align: CanvasTextAlign = "left") => {
+      const first = p.first.toUpperCase();
+      const last = (p.last || p.first).toUpperCase();
+      let lastSize = size;
+      while (measure(last, lastSize, 700, "poster", 0.01) > max && lastSize > size * 0.62) lastSize -= 1;
+      const firstSize = Math.max(14, size * 0.42);
+      shadowed(() => {
+        if (p.last) text(first, x, y, { size: firstSize, color: theme.muted, max, weight: 600, align, face: "poster", spacing: 0.06 });
+        text(last, x, y + firstSize * 0.62 + lastSize * 0.56, { size: lastSize, color: theme.ink, max, weight: 700, align, face: "poster", spacing: 0.01 });
+      });
+      return firstSize * 0.62 + lastSize * 1.1;
+    };
+
+    /** Grb i naziv ekipe u redu */
+    const teamRow = (p: SocialStatPlayer, x: number, cy: number, max: number, size: number, align: "left" | "center" = "left") => {
+      const logo = options.showLogos ? size * 1.5 : 0;
+      const label = p.team.toUpperCase();
+      const labelWidth = Math.min(measure(label, size, 600, "body", 0.06), max - logo - 10);
+      const start = align === "center" ? x - (logo + (logo ? 10 : 0) + labelWidth) / 2 : x;
+      if (logo) crest(p.team, p.teamLogo, start + logo / 2, cy, logo);
+      shadowed(() => text(label, start + logo + (logo ? 10 : 0), cy, { size, color: theme.muted, max: max - logo - 10, weight: 600, spacing: 0.06 }));
+    };
+
+    /** Kolo: "POBJEDA 98:77 · KK VUKOVI"; sezona: "5 UTAKMICA · 31 MIN PO UTAKMICI" */
+    const gameLine = (p: SocialStatPlayer) => {
+      if (p.game) return `${p.game.won ? "POBJEDA" : "PORAZ"} ${p.game.teamScore}:${p.game.opponentScore} · ${p.game.opponent.toUpperCase()}`;
+      const games = p.games % 10 >= 2 && p.games % 10 <= 4 && (p.games % 100 < 12 || p.games % 100 > 14) ? "UTAKMICE" : "UTAKMICA";
+      return `${p.games} ${games} · ${Math.round(p.seconds / 60 / Math.max(1, p.games))} MIN PO UTAKMICI`;
+    };
+
+    if (content.mode === "mvp") {
+      const p = content.player;
+      const tiles = (["pts", "reb", "ast", "eff"] as const).map((key) => ({ value: statText(p, key, season), label: `${SOCIAL_STATS.find((s) => s.id === key)!.unit}${perGame}` }));
+      const shooting = [
+        p.fga ? `ŠUT ${p.fgm}/${p.fga}` : null,
+        p.tpa ? `TRICE ${p.tpm}/${p.tpa}` : null,
+        p.fta ? `SB ${p.ftm}/${p.fta}` : null,
+        p.stl ? `UKR ${season ? statText(p, "stl", true) : p.stl}` : null,
+      ].filter(Boolean).join("  ·  ");
+
+      const statsBar = (x: number, y: number, bw: number, bh: number) => {
+        panel(x, y, bw, bh, Math.min(20, bh * 0.16), true);
+        const cw = bw / tiles.length;
+        tiles.forEach((tile, i) => {
+          const cx = x + cw * i + cw / 2;
+          if (i) line(x + cw * i, y + bh * 0.2, x + cw * i, y + bh * 0.8, theme.line, 1.5);
+          text(tile.value, cx, y + bh * 0.42, { size: Math.min(bh * 0.46, cw * 0.42), color: i === 0 ? theme.accent : theme.ink, max: cw - 16, weight: 700, align: "center", face: "poster" });
+          text(tile.label, cx, y + bh * 0.78, { size: Math.min(18, bh * 0.13), color: theme.muted, max: cw - 12, weight: 600, align: "center", spacing: 0.1 });
+        });
+      };
+
+      if (wide) {
+        // Široka: igrač lijevo, ime, ekipa i brojke desno
+        const photoW = width * 0.4;
+        const fx = margin;
+        if (p.number) text(p.number, fx + photoW / 2, contentTop + available * 0.45, { size: available * 0.75, color: accentAlpha(0.16), max: photoW, weight: 700, align: "center", face: "poster" });
+        figure(p, fx, contentTop, photoW, available + (h - bottom) * 0.6, { fade: 0.12 });
+        const tx = margin + photoW + 30;
+        const tw = w - margin - tx;
+        let ty = contentTop + 30;
+        ty += nameBlock(p, tx, ty, tw, 64) + 10;
+        teamRow(p, tx, ty + 14, tw, 20);
+        text(gameLine(p), tx, ty + 52, { size: 17, color: theme.accent, max: tw, weight: 700, spacing: 0.06 });
+        statsBar(tx, bottom - 130, tw, 130);
+        if (shooting) text(shooting, tx, bottom - 150, { size: 16, color: theme.muted, max: tw, weight: 600, spacing: 0.06 });
+      } else {
+        const barH = story ? 230 : options.format === "square" ? 150 : 176;
+        const stageBottom = bottom - barH - (story ? 34 : 22);
+        const stageH = stageBottom - contentTop;
+        // Iza igrača: broj dresa i grb ekipe
+        if (p.number) text(p.number, w * 0.66, contentTop + stageH * 0.42, { size: stageH * 0.72, color: accentAlpha(0.14), max: w * 0.6, weight: 700, align: "center", face: "poster" });
+        const glow = ctx.createRadialGradient(w * 0.66, contentTop + stageH * 0.55, 10, w * 0.66, contentTop + stageH * 0.55, stageH * 0.7);
+        glow.addColorStop(0, accentAlpha(0.32));
+        glow.addColorStop(1, accentAlpha(0));
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, contentTop - 20, w, stageH + 40);
+        const fw = w * 0.62;
+        figure(p, w - margin - fw + 30, contentTop, fw, stageH + 12, { fade: 0.1 });
+        // Ime, ekipa i utakmica dolje lijevo, preko dna fotografije
+        const tw = w * 0.58;
+        const nameSize = story ? 116 : options.format === "square" ? 84 : 100;
+        const blockH = nameSize * 0.42 * 0.62 + nameSize * 1.1 + 92;
+        let ty = stageBottom - blockH;
+        box(margin, ty - 72, 170, 40, theme.accent, 6);
+        text(season ? "SEZONA" : "MVP", margin + 85, ty - 52, { size: 24, color: inkOn(theme.accent), max: 150, weight: 700, align: "center", face: "poster", spacing: 0.12 });
+        ty += 8;
+        ty += nameBlock(p, margin, ty, tw, nameSize);
+        teamRow(p, margin, ty + 18, tw, story ? 24 : 21);
+        shadowed(() => text(gameLine(p), margin, ty + 60, { size: story ? 22 : 19, color: theme.accent, max: tw, weight: 700, spacing: 0.06 }));
+        statsBar(margin, bottom - barH, width, barH);
+        if (shooting) text(shooting, w - margin, ty + 60, { size: story ? 20 : 17, color: theme.muted, max: w * 0.36, weight: 600, align: "right", spacing: 0.06 });
+      }
+    }
+
+    if (content.mode === "five") {
+      const players = content.players;
+      const n = players.length;
+      const cols = wide ? Math.min(5, n) : story ? 2 : Math.min(3, n);
+      const rows = Math.ceil(n / cols);
+      const gap = wide ? 16 : 22;
+      const cardW = (width - (cols - 1) * gap) / cols;
+      const cardH = Math.min((available - (rows - 1) * gap) / rows, cardW * 1.6);
+      const y0 = contentTop + Math.max(0, available - rows * cardH - (rows - 1) * gap) / 2;
+      players.forEach((p, i) => {
+        const row = Math.floor(i / cols);
+        const inRow = row === rows - 1 ? n - row * cols : cols;
+        const x = (w - (inRow * cardW + (inRow - 1) * gap)) / 2 + (i - row * cols) * (cardW + gap);
+        const y = y0 + row * (cardH + gap);
+        const radius = Math.min(18, cardW * 0.07);
+        panel(x, y, cardW, cardH, radius, i === 0);
+        const photoH = cardH * 0.6;
+        if (p.number) text(p.number, x + cardW * 0.5, y + photoH * 0.46, { size: photoH * 0.62, color: accentAlpha(0.16), max: cardW, weight: 700, align: "center", face: "poster" });
+        figure(p, x + cardW * 0.04, y + 10, cardW * 0.92, photoH - 10, { fade: 0.14, radius: radius });
+        const logo = options.showLogos ? Math.min(cardW * 0.2, 64) : 0;
+        if (logo) crest(p.team, p.teamLogo, x + cardW - logo / 2 - 10, y + logo / 2 + 10, logo);
+        const pad = Math.min(18, cardW * 0.07);
+        const nameSize = Math.min(cardW * 0.15, cardH * 0.085, 46);
+        let ty = y + photoH + nameSize * 0.2;
+        ty += nameBlock(p, x + cardW / 2, ty, cardW - pad * 2, nameSize, "center");
+        text(p.team.toUpperCase(), x + cardW / 2, ty + nameSize * 0.1, { size: Math.max(12, nameSize * 0.36), color: theme.muted, max: cardW - pad * 2, weight: 600, align: "center", spacing: 0.06 });
+        // Tri brojke u dnu kartice
+        const keys = ["pts", "reb", "ast", "eff"] as const;
+        const shown = cardW < 230 ? keys.filter((k) => k !== "ast") : keys;
+        const statsTop = y + cardH - Math.min(cardH * 0.17, 92);
+        const sw = (cardW - pad * 2) / shown.length;
+        line(x + pad, statsTop, x + cardW - pad, statsTop, theme.line, 1.5);
+        const valueSize = Math.min(sw * 0.42, (y + cardH - statsTop) * 0.44);
+        shown.forEach((key, k) => {
+          const cx = x + pad + sw * k + sw / 2;
+          const stat = SOCIAL_STATS.find((s) => s.id === key)!;
+          text(statText(p, key, season), cx, statsTop + (y + cardH - statsTop) * 0.42, { size: valueSize, color: key === "eff" ? theme.accent : theme.ink, max: sw - 6, weight: 700, align: "center", face: "poster" });
+          text(stat.short, cx, statsTop + (y + cardH - statsTop) * 0.78, { size: Math.max(11, valueSize * 0.34), color: theme.muted, max: sw - 6, weight: 600, align: "center", spacing: 0.1 });
+        });
+      });
+    }
+
+    if (content.mode === "leaders") {
+      const categories = content.categories.filter((c) => c.players.length);
+      const n = Math.max(1, categories.length);
+      const cols = wide ? Math.min(3, n) : n <= 2 ? 1 : 2;
+      const rows = Math.ceil(n / cols);
+      const gap = wide ? 14 : 18;
+      const tileW = (width - (cols - 1) * gap) / cols;
+      const tileH = Math.min((available - (rows - 1) * gap) / rows, tileW * 0.9);
+      const y0 = contentTop + Math.max(0, available - rows * tileH - (rows - 1) * gap) / 2;
+      categories.forEach((category, i) => {
+        const [leader, ...rest] = category.players;
+        const stat = SOCIAL_STATS.find((s) => s.id === category.key)!;
+        const row = Math.floor(i / cols);
+        const inRow = row === rows - 1 ? n - row * cols : cols;
+        const x = (w - (inRow * tileW + (inRow - 1) * gap)) / 2 + (i - row * cols) * (tileW + gap);
+        const y = y0 + row * (tileH + gap);
+        const radius = Math.min(18, tileH * 0.08);
+        panel(x, y, tileW, tileH, radius);
+        const pad = Math.min(22, tileW * 0.05);
+        // Igrač desno, do dna pločice
+        const fw = tileW * 0.46;
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(x, y, tileW, tileH, radius);
+        ctx.clip();
+        figure(leader, x + tileW - fw - pad * 0.2, y + tileH * 0.12, fw, tileH * 0.88, { fade: 0.12 });
+        ctx.restore();
+        const tw = tileW - fw - pad;
+        const label = Math.min(26, tileH * 0.085);
+        text(stat.label.toUpperCase(), x + pad, y + pad + label * 0.5, { size: label, color: theme.accent, max: tileW - pad * 2, weight: 700, face: "poster", spacing: 0.06 });
+        const valueSize = Math.min(tileH * 0.27, tw * 0.5);
+        const vy = y + pad + label + valueSize * 0.6;
+        shadowed(() => text(statText(leader, category.key, season), x + pad, vy, { size: valueSize, color: theme.ink, max: tw, weight: 700, face: "poster" }));
+        text(`${stat.unit}${season ? " PO UTAKMICI" : ""}`, x + pad, vy + valueSize * 0.58, { size: Math.max(11, label * 0.62), color: theme.muted, max: tw, weight: 600, spacing: 0.1 });
+        const nameSize = Math.min(tileH * 0.1, 34);
+        let ny = vy + valueSize * 0.58 + nameSize * 1.1;
+        ny += nameBlock(leader, x + pad, ny, tw, nameSize);
+        teamRow(leader, x + pad, ny + nameSize * 0.2, tw, Math.max(11, nameSize * 0.42));
+        // Drugi i treći
+        const small = Math.max(12, Math.min(18, tileH * 0.058));
+        rest.slice(0, 2).forEach((q, k) => {
+          const ry = y + tileH - pad - (rest.slice(0, 2).length - 1 - k) * small * 1.5 - small * 0.3;
+          text(`${k + 2}. ${(q.last || q.first).toUpperCase()}`, x + pad, ry, { size: small, color: theme.muted, max: tw - 70, weight: 600, spacing: 0.04 });
+          shadowed(() => text(statText(q, category.key, season), x + tw - pad, ry, { size: small, color: theme.ink, max: 60, weight: 700, align: "right", face: "poster" }));
+        });
+      });
+    }
+
+    if (content.mode === "top") {
+      const players = content.players;
+      const stat = SOCIAL_STATS.find((s) => s.id === content.key)!;
+      const n = Math.max(1, players.length);
+      const gap = hasPanel ? 8 : 0;
+      const rowH = Math.min(story ? 150 : wide ? 70 : 118, (available - (n - 1) * gap) / n);
+      const y0 = contentTop + Math.max(0, available - n * rowH - (n - 1) * gap) * 0.35;
+      const valueW = width * 0.2;
+      players.forEach((p, i) => {
+        const y = y0 + i * (rowH + gap);
+        const cy = y + rowH / 2;
+        const top = i === 0 && content.firstRank === 1;
+        rowSurface(margin, y, width, rowH, i === n - 1, panelAlpha * (hasPanel && i % 2 ? 0.88 : 1), Math.min(12, rowH * 0.16));
+        if (top) box(margin, y, 6, rowH, theme.accent, 3);
+        const rankW = rowH * 0.8;
+        text(String(content.firstRank + i), margin + rankW / 2, cy, { size: rowH * 0.42, color: top ? theme.accent : theme.muted, max: rankW, weight: 700, align: "center", face: "poster" });
+        const r = rowH * 0.38;
+        headshot(p, margin + rankW + r, cy, r);
+        const nx = margin + rankW + r * 2 + 20;
+        const nameMax = width - (nx - margin) - valueW - 10;
+        const nameSize = Math.min(rowH * 0.3, 40);
+        const name = `${p.first.toUpperCase()} ${(p.last || "").toUpperCase()}`.trim();
+        text(name, nx, cy - rowH * 0.13, { size: nameSize, color: theme.ink, max: nameMax, weight: 700, face: "poster", spacing: 0.01 });
+        const logo = options.showLogos ? rowH * 0.24 : 0;
+        if (logo) crest(p.team, p.teamLogo, nx + logo / 2, cy + rowH * 0.22, logo);
+        const detail = [p.team.toUpperCase(), season ? `${p.games} UT` : p.game ? `${p.game.teamScore}:${p.game.opponentScore} ${p.game.opponent.toUpperCase()}` : null].filter(Boolean).join("  ·  ");
+        text(detail, nx + logo + (logo ? 8 : 0), cy + rowH * 0.22, { size: Math.min(rowH * 0.15, 19), color: theme.muted, max: nameMax - logo - 8, weight: 600, spacing: 0.05 });
+        text(statText(p, content.key, season), margin + width - 24, cy - rowH * 0.06, { size: rowH * 0.46, color: top ? theme.accent : theme.ink, max: valueW, weight: 700, align: "right", face: "poster" });
+        text(`${stat.short}${perGame}`, margin + width - 24, cy + rowH * 0.3, { size: Math.min(rowH * 0.13, 16), color: theme.muted, max: valueW, weight: 600, align: "right", spacing: 0.1 });
+      });
+    }
   }
 
   // ── Podnožje ─────────────────────────────────────────────

@@ -2,9 +2,12 @@ import { cacheLife, cacheTag } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { LIFE, TAG } from "@/lib/cache";
 import { dayKey, sarajevoToISO, todayISO } from "@/lib/format";
-import { FIBA_RESULT_PREFIX, LEAGUE_FIBA_COMPETITION, leagueFibaResults } from "@/lib/league-fiba";
+import { properName } from "@/lib/fiba";
+import { seasonOf } from "@/lib/fiba-stats";
+import { FIBA_RESULT_PREFIX, LEAGUE_FIBA_CATEGORIES, LEAGUE_FIBA_COMPETITION, leagueFibaResults, leagueRound } from "@/lib/league-fiba";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rows } from "./db";
+import { licensePhotos, type LicensePhoto } from "./fiba";
 
 const SOCIAL_SELECT = `
   id, number, round, starts_at, status, home_score, away_score,
@@ -165,3 +168,121 @@ export async function getSocialRound() {
 }
 
 export type SocialMatch = Awaited<ReturnType<typeof getSocialSchedules>>["matches"][number];
+
+// ───────── Statistika liga saveza (A2 jug, A1 žene) za slike: MVP kola, petorka, lideri ─────────
+
+/** Nastup igrača na jednoj utakmici lige saveza (box score s FIBA LiveStats, ime i fotografija s licence) */
+export type SocialStatLine = {
+  gameId: number;
+  competitionId: string;
+  round: number | null;
+  date: string;
+  playerId: string;
+  licenseId: string | null;
+  first: string;
+  last: string;
+  number: string | null;
+  team: string;
+  teamLogo: string | null;
+  opponent: string;
+  opponentLogo: string | null;
+  home: boolean;
+  teamScore: number;
+  opponentScore: number;
+  won: boolean;
+  starter: boolean;
+  seconds: number;
+  pts: number;
+  fgm: number;
+  fga: number;
+  tpm: number;
+  tpa: number;
+  ftm: number;
+  fta: number;
+  oreb: number;
+  dreb: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  tov: number;
+  pf: number;
+  eff: number;
+  plusMinus: number;
+};
+
+export type SocialStatsData = {
+  leagues: { id: string; name: string; rounds: number[] }[];
+  lines: SocialStatLine[];
+  /** Fotografije s licence: { [licenseId]: { photo, cutout } } (cutout = PNG bez pozadine) */
+  photos: Record<string, LicensePhoto>;
+};
+
+async function socialStatRows() {
+  "use cache: remote";
+  cacheLife(LIFE.reference);
+  cacheTag(TAG.fiba, TAG.matches, TAG.competitions, TAG.teams, TAG.clubs);
+  const db = createAdminClient();
+  const season = seasonOf(new Date().toISOString())!;
+  const seasonStart = sarajevoToISO(`${season.slice(0, 4)}-07-01`, "00:00");
+  const categories = Object.keys(LEAGUE_FIBA_CATEGORIES);
+  const competitionIds = Object.values(LEAGUE_FIBA_CATEGORIES);
+  const [games, competitions, teams] = await Promise.all([
+    db.from("fiba_games").select("id, category, starts_at, home_name, away_name, home_score, away_score")
+      .in("category", categories).eq("status", "COMPLETE").gte("starts_at", seasonStart).not("stats_at", "is", null).then(rows),
+    db.from("competitions").select("id, name, short_name").in("id", competitionIds).then(rows),
+    db.from("teams").select("name, competition_id, club:clubs!teams_club_id_fkey ( logo_url )").in("competition_id", competitionIds).then(rows),
+  ]);
+  if (games.length === 0) return { leagues: [], lines: [] };
+  const ids = games.map((g) => g.id);
+  const [players, linked] = await Promise.all([
+    db.from("fiba_player_games")
+      .select("game_id, side, player_id, license_id, first_name, family_name, number, starter, seconds, pts, fgm, fga, tpm, tpa, ftm, fta, oreb, dreb, reb, ast, stl, blk, tov, pf, eff, plus_minus")
+      .in("game_id", ids).gt("seconds", 0).limit(5000).then(rows),
+    db.from("matches").select("fiba_game_id, round").in("fiba_game_id", ids).then(rows),
+  ]);
+  const logos = new Map(teams.map((t) => [`${t.competition_id}|${t.name}`, t.club?.logo_url ?? null]));
+  const roundOf = new Map(linked.map((m) => [m.fiba_game_id!, m.round]));
+  const byGame = new Map(games.map((g) => {
+    const competitionId = LEAGUE_FIBA_CATEGORIES[g.category!];
+    const startsAt = g.starts_at!;
+    return [g.id, { ...g, competitionId, startsAt, round: roundOf.get(g.id) ?? leagueRound(competitionId, g.home_name, g.away_name, startsAt) }];
+  }));
+  const lines = players.flatMap<SocialStatLine>((p) => {
+    const g = byGame.get(p.game_id);
+    if (!g || g.home_score == null || g.away_score == null) return [];
+    const home = p.side === 1;
+    const team = home ? g.home_name : g.away_name;
+    const opponent = home ? g.away_name : g.home_name;
+    const teamScore = home ? g.home_score : g.away_score;
+    const opponentScore = home ? g.away_score : g.home_score;
+    // Ime s licence je već pravilno; FIBA ime ponekad velikim slovima ("MEDIN Duskaj")
+    const fix = (t: string | null) => (p.license_id ? t ?? "" : properName(t ?? "")).trim();
+    return [{
+      gameId: g.id, competitionId: g.competitionId, round: g.round, date: dayKey(g.startsAt),
+      playerId: p.player_id, licenseId: p.license_id, first: fix(p.first_name), last: fix(p.family_name), number: p.number,
+      team, teamLogo: logos.get(`${g.competitionId}|${team}`) ?? null,
+      opponent, opponentLogo: logos.get(`${g.competitionId}|${opponent}`) ?? null,
+      home, teamScore, opponentScore, won: teamScore > opponentScore, starter: p.starter, seconds: p.seconds,
+      pts: p.pts, fgm: p.fgm, fga: p.fga, tpm: p.tpm, tpa: p.tpa, ftm: p.ftm, fta: p.fta,
+      oreb: p.oreb, dreb: p.dreb, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, tov: p.tov, pf: p.pf, eff: p.eff, plusMinus: p.plus_minus,
+    }];
+  });
+  const leagues = competitions
+    .map((c) => ({
+      id: c.id,
+      name: c.short_name ?? c.name,
+      rounds: [...new Set(lines.filter((l) => l.competitionId === c.id && l.round != null).map((l) => l.round!))].sort((a, b) => a - b),
+    }))
+    .filter((l) => lines.some((x) => x.competitionId === l.id))
+    .sort((a, b) => competitionIds.indexOf(a.id) - competitionIds.indexOf(b.id));
+  return { leagues, lines };
+}
+
+/** Statistika liga saveza s FIBA LiveStats (tekuća sezona) i fotografije igrača s licence, za slike statistike */
+export async function getSocialStats(): Promise<SocialStatsData> {
+  await requireRole("admin");
+  const [{ leagues, lines }, all] = await Promise.all([socialStatRows(), licensePhotos()]);
+  const used = new Set(lines.flatMap((l) => (l.licenseId ? [l.licenseId] : [])));
+  return { leagues, lines, photos: Object.fromEntries(Object.entries(all).filter(([id]) => used.has(id))) };
+}

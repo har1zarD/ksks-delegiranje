@@ -49,6 +49,22 @@ const word = (name: string) => fibaClubBase(name).split(" ")[0];
 const pairKey = (a: string, b: string) => [word(a), word(b)].sort().join("|");
 const daysApart = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) / DAY;
 
+/** FIBA kategorija lige saveza (A2 jug "a2", A1 žene "a1_z") → naše takmičenje */
+export const LEAGUE_FIBA_CATEGORIES: Record<string, string> = { a2: A2_JUG_ID, a1_z: A1_ZENE_ID };
+
+/** Kolo FIBA utakmice lige saveza: par iz rasporeda najbliži terminu (null: par nije u rasporedu u ±60 dana) */
+export function leagueRound(competitionId: string, home: string, away: string, startsAt: string): number | null {
+  const league = LEAGUES.find((l) => l.competitionId === competitionId);
+  if (!league) return null;
+  const key = pairKey(home, away);
+  const fixture = league.fixtures
+    .filter((f) => pairKey(f.home, f.away) === key)
+    .map((f) => ({ f, distance: daysApart(f.roundDate ?? f.date, startsAt) }))
+    .filter((c) => c.distance <= WINDOW_DAYS)
+    .sort((a, b) => a.distance - b.distance)[0];
+  return fixture?.f.round ?? null;
+}
+
 /**
  * Završene FIBA utakmice koje odgovaraju paru iz rasporeda saveza, a nemaju našu utakmicu.
  * `games`: završene FIBA utakmice s rezultatom koje nisu povezane ni s jednom našom utakmicom.

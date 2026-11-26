@@ -11,7 +11,7 @@ import { Bone, Skeleton, Text, times } from "@/components/skeleton";
 import { ClubLogo } from "@/components/team-name";
 import { CARD, cx, Rows, SectionTitle, Status } from "@/components/ui";
 import { FibaStandings } from "../../../standings";
-import { BigStat, FormDots, PlayerLink, STICKY, TABLE_WRAP, TD, TH } from "../../../ui";
+import { BigStat, FormDots, PlayerLink, PlayerPhoto, STICKY, TABLE_WRAP, TD, TH } from "../../../ui";
 
 export const metadata = { title: "Ekipa — FIBA — KSKS" };
 
@@ -60,10 +60,10 @@ async function Team({ params, searchParams }: { params: Params; searchParams: Se
 
   // Igrači: zbir po igraču
   const lines = (await getFibaTeamPlayers(category, name)).filter((l) => seasonOf(l.game.starts_at) === season);
-  const roster = new Map<string, { id: string; name: string; number: string | null; games: number; starts: number; seconds: number; pts: number; reb: number; ast: number; stl: number; blk: number; tov: number; eff: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number; last: string }>();
+  const roster = new Map<string, { id: string; name: string; photo: string | null; number: string | null; games: number; starts: number; seconds: number; pts: number; reb: number; ast: number; stl: number; blk: number; tov: number; eff: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number; last: string }>();
   for (const l of lines) {
     if (l.seconds === 0) continue;
-    const r = roster.get(l.player_id) ?? { id: l.player_id, name: properName([l.first_name, l.family_name].filter(Boolean).join(" ")), number: l.number, games: 0, starts: 0, seconds: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, eff: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, last: "" };
+    const r = roster.get(l.player_id) ?? { id: l.player_id, name: properName([l.first_name, l.family_name].filter(Boolean).join(" ")), photo: l.photo, number: l.number, games: 0, starts: 0, seconds: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, eff: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, last: "" };
     r.games++;
     r.starts += l.starter ? 1 : 0;
     for (const k of ["seconds", "pts", "reb", "ast", "stl", "blk", "tov", "eff", "fgm", "fga", "tpm", "tpa", "ftm", "fta"] as const) r[k] += l[k];
@@ -75,6 +75,7 @@ async function Team({ params, searchParams }: { params: Params; searchParams: Se
     roster.set(l.player_id, r);
   }
   const players = [...roster.values()].sort((a, b) => avg(b.pts, b.games) - avg(a.pts, a.games));
+  const photos = players.some((p) => p.photo);
 
   return (
     <div className="flex flex-col gap-10">
@@ -152,7 +153,10 @@ async function Team({ params, searchParams }: { params: Params; searchParams: Se
                   <tr key={p.id} className="group hover:bg-panel-2">
                     <td className={cx(TD, "pl-4 text-left text-fg-muted sm:pl-5")}>{p.number}</td>
                     <td className={cx(STICKY, "max-w-[48vw] py-2.5 pr-3 group-hover:bg-panel-2 sm:max-w-none")}>
-                      <PlayerLink id={p.id} name={p.name} className="block truncate text-[14px] font-semibold" />
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        {photos && <PlayerPhoto src={p.photo} name={p.name} />}
+                        <PlayerLink id={p.id} name={p.name} className="block truncate text-[14px] font-semibold" />
+                      </span>
                     </td>
                     <td className={cx(TD, "text-fg-muted")}>{p.games}<span className="text-fg-faint"> ({p.starts})</span></td>
                     <td className={cx(TD, "text-fg-muted")}>{avgMinutes(p.seconds, p.games)}</td>
