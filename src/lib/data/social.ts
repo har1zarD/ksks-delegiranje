@@ -282,7 +282,7 @@ async function socialStatRows() {
 /** Statistika liga saveza s FIBA LiveStats (tekuća sezona) i fotografije igrača s licence, za slike statistike */
 export async function getSocialStats(): Promise<SocialStatsData> {
   await requireRole("admin");
-  const [{ leagues, lines }, all] = await Promise.all([socialStatRows(), licensePhotos()]);
-  const used = new Set(lines.flatMap((l) => (l.licenseId ? [l.licenseId] : [])));
-  return { leagues, lines, photos: Object.fromEntries(Object.entries(all).filter(([id]) => used.has(id))) };
+  const { leagues, lines } = await socialStatRows();
+  const photos: Record<string, LicensePhoto> = await licensePhotos(lines.map((l) => l.licenseId));
+  return { leagues, lines, photos };
 }

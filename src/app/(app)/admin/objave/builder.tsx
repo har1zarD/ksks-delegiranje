@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, Award, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Images, ListChecks, LoaderCircle, Pencil, Plus, Save, Search, Shield, Trophy, UserRound, X } from "lucide-react";
+import { ArrowLeft, Award, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Crown, Download, Hash, Images, ListChecks, ListOrdered, LoaderCircle, Pencil, Plus, Save, Search, Shield, SquareUser, Trophy, UserRound, UsersRound, X } from "lucide-react";
 import { Button, ButtonLink, CARD, cx, Empty, Field, inputClass } from "@/components/ui";
 import { Select } from "@/components/select";
 import { Popover } from "@/components/popover";
@@ -16,7 +16,7 @@ import { addDays, formatDate, formatTime, isoToSarajevo, sarajevoToISO, slug } f
 import { formatScore } from "@/lib/quarter-points";
 import {
   brandOf, contentSize, isPlayed, renderSocialImage, SOCIAL_ACCENTS, SOCIAL_BRANDS, SOCIAL_FORMATS, SOCIAL_LAYOUTS, SOCIAL_STATS, SOCIAL_TEMPLATES, SOCIAL_YEARS,
-  statName, statText, statValue, templateOf,
+  statName, statText, statValue, STATS_MODES, STATS_PHOTOS, STATS_STYLES, STATS_TEMPLATES, templateOf, type StatsMode, type StatsPhoto,
   type ScheduleDraft, type SocialContent, type SocialDesignOptions, type SocialKind, type SocialOptions, type SocialStatKey, type SocialStatPlayer,
   type SocialTextOptions, type SocialYear,
 } from "@/lib/social-image";
@@ -96,7 +96,7 @@ export function SocialStudio({ matches, results, round, today, now, competition,
       <div role="tabpanel" hidden={kind !== "round"}><RoundBuilder {...shared} matches={round} today={today} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "standings"}><StandingsBuilder {...shared} tables={tables} competition={competition} /></div>
       <div role="tabpanel" hidden={kind !== "clubs"}><ClubsBuilder {...shared} tables={tables} competition={competition} /></div>
-      <div role="tabpanel" hidden={kind !== "stats"}><StatsBuilder {...shared} stats={stats} competition={competition} /></div>
+      <div role="tabpanel" hidden={kind !== "stats"}><StatsBuilder stats={stats} competition={competition} font={font} /></div>
     </div>
   );
 }
@@ -897,10 +897,13 @@ function ClubsBuilder({ tables, competition: initialCompetition, design, onDesig
 
 // ───────────────────────── Statistika: MVP, petorka, lideri, top lista ─────────────────────────
 
-type StatsMode = "mvp" | "five" | "leaders" | "top";
 /** Kolo ("5") ili cijela sezona */
 const SEASON = "sezona";
 const DEFAULT_LEADERS: SocialStatKey[] = ["pts", "reb", "ast", "eff", "stl", "blk"];
+/** Podrazumijevani stil po vrsti slike */
+const DEFAULT_STYLES: Record<StatsMode, string> = { mvp: "poster", five: "pillars", leaders: "tiles", top: "podium" };
+/** Slike statistike imaju svoje teme (teren); izgled ostalih kartica se ne mijenja */
+const STATS_DESIGN: SocialDesignOptions = { ...DEFAULT_DESIGN, template: "court-hardwood" };
 
 /** Igrači takmičenja u kolu (jedna utakmica) ili sezoni (zbir), najkorisniji prvi */
 function statPlayersOf(stats: SocialStatsData, competitionId: string, round: string): SocialStatPlayer[] {
@@ -909,12 +912,12 @@ function statPlayersOf(stats: SocialStatsData, competitionId: string, round: str
   const byPlayer = new Map<string, SocialStatPlayer>();
   // Po terminu: ime, broj i ekipa ostaju sa zadnje utakmice
   for (const l of [...lines].sort((a, b) => a.date.localeCompare(b.date))) {
-    const photo = l.licenseId ? stats.photos[l.licenseId] : undefined;
     const old = byPlayer.get(l.playerId);
+    const photo = l.licenseId ? stats.photos[l.licenseId] : undefined;
     const sum = (key: "seconds" | "pts" | "reb" | "ast" | "stl" | "blk" | "tov" | "fgm" | "fga" | "tpm" | "tpa" | "ftm" | "fta" | "eff") => (old?.[key] ?? 0) + l[key];
     byPlayer.set(l.playerId, {
       id: l.playerId, first: l.first, last: l.last, number: l.number ?? old?.number ?? null, team: l.team, teamLogo: l.teamLogo,
-      photo: photo?.photo ?? old?.photo ?? null, cutout: photo?.cutout ?? old?.cutout ?? null,
+      photo: photo?.photo ?? old?.photo ?? null, cutout: photo?.cutout ?? old?.cutout ?? null, face: photo?.face ?? old?.face ?? null,
       games: (old?.games ?? 0) + 1,
       seconds: sum("seconds"), pts: sum("pts"), reb: sum("reb"), ast: sum("ast"), stl: sum("stl"), blk: sum("blk"), tov: sum("tov"),
       fgm: sum("fgm"), fga: sum("fga"), tpm: sum("tpm"), tpa: sum("tpa"), ftm: sum("ftm"), fta: sum("fta"), eff: sum("eff"),
@@ -950,54 +953,54 @@ const statLine = (p: SocialStatPlayer, season: boolean) =>
   (["pts", "reb", "ast", "eff"] as const).map((key) => `${statText(p, key, season)} ${SOCIAL_STATS.find((s) => s.id === key)!.short}`).join(" · ");
 
 /**
- * Slike statistike liga saveza s FIBA LiveStats (A2 jug, A1 žene): MVP kola, petorka kola, lideri i top lista, za kolo
- * ili cijelu sezonu. Igrači imaju ime i fotografiju s licence (bez pozadine kad je izrezana).
+ * Slike statistike liga saveza s FIBA LiveStats (A2 jug, A1 žene): MVP, petorka, lideri i top lista, za kolo ili
+ * cijelu sezonu. Ime i fotografija s licence (izrezana, u okviru ili bez), broj dresa i grb; teme i crteži su vezani za teren.
  */
-function StatsBuilder({ stats, competition: initialCompetition, design, onDesign, font }: Shared & { stats: SocialStatsData; competition?: string }) {
+function StatsBuilder({ stats, competition: initialCompetition, font }: { stats: SocialStatsData; competition?: string; font: string }) {
   const { leagues } = stats;
+  const [design, setDesign] = useState<SocialDesignOptions>(STATS_DESIGN);
+  const onDesign: DesignChange = (key, value) => setDesign((old) => ({ ...old, [key]: value }));
   const [league, setLeague] = useState(() => (leagues.find((l) => l.id === initialCompetition) ?? leagues[0])?.id ?? "");
   const current = leagues.find((l) => l.id === league);
   const [round, setRound] = useState(() => (current?.rounds.length ? String(Math.max(...current.rounds)) : SEASON));
   const season = round === SEASON;
+  const [mode, setMode] = useState<StatsMode>("mvp");
+  const [styles, setStyles] = useState(DEFAULT_STYLES);
+  const [photoStyle, setPhotoStyle] = useState<StatsPhoto>("cutout");
   const [statKey, setStatKey] = useState<SocialStatKey>("pts");
   const [count, setCount] = useState(10);
   const [categories, setCategories] = useState<SocialStatKey[]>(DEFAULT_LEADERS);
   // Ručni izbor MVP-a i petorke (null = najkorisniji); briše se s promjenom takmičenja ili kola
   const [mvp, setMvp] = useState<string | null>(null);
   const [five, setFive] = useState<string[] | null>(null);
-  const [texts, setTexts] = useState<SocialTextOptions>(() => follow({ ...defaultTexts(statsTitle("mvp", season, "pts"), "mvp") }, "", league, statsHeadline(current, round)));
-  const mode = texts.layout as StatsMode;
+  const [texts, setTexts] = useState<SocialTextOptions>(() => follow(defaultTexts(statsTitle("mvp", season, "pts"), DEFAULT_STYLES.mvp), "", league, statsHeadline(current, round)));
   const [page, setPage] = useState(0);
 
   const players = useMemo(() => (league ? statPlayersOf(stats, league, round) : []), [stats, league, round]);
   const mvpPlayer = players.find((p) => p.id === mvp) ?? players[0];
-  const fivePlayers = useMemo(() => {
-    const picked = five ? players.filter((p) => five.includes(p.id)) : players.slice(0, 5);
-    return picked.slice(0, 5);
-  }, [players, five]);
+  const fivePlayers = useMemo(() => (five ? players.filter((p) => five.includes(p.id)) : players).slice(0, 5), [players, five]);
 
   const pages = useMemo<SocialContent[]>(() => {
     if (!players.length) return [];
-    if (mode === "mvp") return mvpPlayer ? [{ kind: "stats", mode: "mvp", player: mvpPlayer, season }] : [];
-    if (mode === "five") return fivePlayers.length ? [{ kind: "stats", mode: "five", players: fivePlayers, season }] : [];
+    const photos = photoStyle;
+    if (mode === "mvp") return mvpPlayer ? [{ kind: "stats", mode: "mvp", player: mvpPlayer, season, photos }] : [];
+    if (mode === "five") return fivePlayers.length ? [{ kind: "stats", mode: "five", players: fivePlayers, season, photos }] : [];
     if (mode === "leaders") {
       const list = SOCIAL_STATS.filter((s) => categories.includes(s.id)).map((s) => ({ key: s.id, players: rankBy(players, s.id, season).filter((p) => statValue(p, s.id, season) > 0).slice(0, 3) }));
-      return list.some((c) => c.players.length) ? [{ kind: "stats", mode: "leaders", categories: list, season }] : [];
+      return list.some((c) => c.players.length) ? [{ kind: "stats", mode: "leaders", categories: list, season, photos }] : [];
     }
     const top = rankBy(players, statKey, season).filter((p) => statValue(p, statKey, season) > 0).slice(0, count);
-    return top.length ? [{ kind: "stats", mode: "top", key: statKey, players: top, firstRank: 1, season }] : [];
-  }, [players, mode, mvpPlayer, fivePlayers, categories, statKey, count, season]);
+    return top.length ? [{ kind: "stats", mode: "top", key: statKey, players: top, firstRank: 1, season, photos }] : [];
+  }, [players, mode, mvpPlayer, fivePlayers, categories, statKey, count, season, photoStyle]);
 
   /** Naslov i podnaslov prate izbor dok ih korisnik ne promijeni */
   function retitle(next: { league?: string; round?: string; mode?: StatsMode; statKey?: SocialStatKey }) {
     const before = { league, round, mode, statKey };
     const after = { ...before, ...next };
-    const beforeLeague = leagues.find((l) => l.id === before.league);
-    const afterLeague = leagues.find((l) => l.id === after.league);
     setTexts((old) => {
-      const followed = follow(old, statsHeadline(beforeLeague, before.round), after.league, statsHeadline(afterLeague, after.round));
+      const followed = follow(old, statsHeadline(leagues.find((l) => l.id === before.league), before.round), after.league, statsHeadline(leagues.find((l) => l.id === after.league), after.round));
       const title = old.title === statsTitle(before.mode, before.round === SEASON, before.statKey) ? statsTitle(after.mode, after.round === SEASON, after.statKey) : old.title;
-      return { ...followed, title, layout: after.mode };
+      return { ...followed, title, layout: styles[after.mode] };
     });
     setPage(0);
   }
@@ -1017,6 +1020,16 @@ function StatsBuilder({ stats, competition: initialCompetition, design, onDesign
     setRound(value);
     setMvp(null);
     setFive(null);
+  }
+
+  function pickMode(next: StatsMode) {
+    retitle({ mode: next });
+    setMode(next);
+  }
+
+  function pickStyle(style: string) {
+    setStyles((old) => ({ ...old, [mode]: style }));
+    setTexts((old) => ({ ...old, layout: style }));
   }
 
   function toggleFive(id: string) {
@@ -1043,7 +1056,7 @@ function StatsBuilder({ stats, competition: initialCompetition, design, onDesign
             <option value={SEASON}>Cijela sezona (prosjek po utakmici)</option>
           </Select>
         </div>
-        <LayoutPicker kind="stats" value={mode} onChange={(layout) => retitle({ mode: layout as StatsMode })} />
+        <ModePicker value={mode} onChange={pickMode} template={templateOf(design.template)} accent={design.accent || templateOf(design.template).accent} />
 
         {mode === "mvp" && (
           <PlayerChoice
@@ -1072,7 +1085,7 @@ function StatsBuilder({ stats, competition: initialCompetition, design, onDesign
                 </label>
               ))}
             </div>
-            <p className="text-[12px] text-fg-faint">Na slici je najbolji igrač svake kategorije s fotografijom, pa drugi i treći. Šest kategorija najljepše stoji na objavi 4:5.</p>
+            <p className="text-[12px] text-fg-faint">Najbolji u svakoj kategoriji, pa drugi i treći. Šest kategorija najljepše stoji na objavi 4:5.</p>
           </div>
         )}
         {mode === "top" && (
@@ -1086,11 +1099,11 @@ function StatsBuilder({ stats, competition: initialCompetition, design, onDesign
           </div>
         )}
         <p className="text-[12px] text-fg-faint">
-          Box score s FIBA LiveStats; imena i fotografije s licence (fotografija bez pozadine kad je izrezana). {season ? "Sezona: prosjek po utakmici, igrači s bar pola odigranih utakmica." : "Kolo: brojke s utakmice tog kola."}
+          Box score s FIBA LiveStats, imena i fotografije s licence. {season ? "Sezona: prosjek po utakmici, igrači s bar pola odigranih utakmica." : "Kolo: brojke s utakmice tog kola."}
         </p>
       </Step>
       <Step number={2} title="Izgled">
-        <SocialDesign design={design} onDesign={onDesign} brand={texts.brand} />
+        <StatsDesign design={design} onDesign={onDesign} mode={mode} style={styles[mode]} onStyle={pickStyle} photo={photoStyle} onPhoto={setPhotoStyle} />
       </Step>
       <Step number={3} title="Tekst i detalji">
         <SocialText texts={texts} onText={(patch) => setTexts((old) => ({ ...old, ...patch }))} design={design} onDesign={onDesign} placeholder={statsTitle(mode, season, statKey)} />
@@ -1099,7 +1112,347 @@ function StatsBuilder({ stats, competition: initialCompetition, design, onDesign
   );
 }
 
-/** Lista igrača s fotografijom i brojkama, za izbor MVP-a (radio) ili petorke (checkbox) */
+function StatsDesign({ design, onDesign, mode, style, onStyle, photo, onPhoto }: {
+  design: SocialDesignOptions;
+  onDesign: DesignChange;
+  mode: StatsMode;
+  style: string;
+  onStyle: (style: string) => void;
+  photo: StatsPhoto;
+  onPhoto: (photo: StatsPhoto) => void;
+}) {
+  const template = templateOf(design.template);
+  const accent = design.accent || template.accent;
+  const photoIcons = { cutout: UserRound, frame: SquareUser, none: Hash };
+  const badge = "absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-brand text-brand-ink shadow-sm";
+  const tile = "group relative min-w-0 rounded-xl border text-left transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand motion-safe:hover:-translate-y-0.5";
+
+  return (
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-[14px] font-semibold">Tema</h3>
+          <span className="text-[12px] text-fg-muted">{template.name}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="group" aria-label="Tema">
+          {STATS_TEMPLATES.map((item) => {
+            const active = design.template === item.id;
+            return (
+              <button
+                key={item.id} type="button" aria-pressed={active} aria-label={item.name} title={item.description}
+                onClick={() => onDesign("template", item.id)}
+                className={cx(tile, "aspect-2/3 overflow-hidden bg-panel-2", active ? "border-brand ring-2 ring-brand ring-offset-2 ring-offset-panel" : "border-line hover:border-line-hover hover:shadow-md")}
+              >
+                {
+                  // eslint-disable-next-line @next/next/no-img-element -- statična minijatura pozadine
+                  <img src={`/social/thumbs/${item.id}-thumb.jpg`} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105" />
+                }
+                <div aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/90 via-black/15 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 p-3">
+                  <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.accent }} />
+                  <span className="text-[13px] font-semibold leading-snug text-white">{item.name}</span>
+                </div>
+                {active && <span className={badge}><Check aria-hidden="true" className="size-3.5" strokeWidth={3} /></span>}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[12px] leading-relaxed text-fg-muted">{template.description}</p>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-6">
+        <h3 className="text-[14px] font-semibold">Stil</h3>
+        <div className={cx("grid grid-cols-2 gap-3", STATS_STYLES[mode].length === 3 && "sm:grid-cols-3")} role="group" aria-label="Stil">
+          {STATS_STYLES[mode].map((item) => {
+            const active = style === item.id;
+            return (
+              <button
+                key={item.id} type="button" aria-pressed={active} onClick={() => onStyle(item.id)}
+                className={cx(tile, "flex flex-col p-2", active ? "border-brand bg-brand-soft ring-2 ring-brand" : "border-line hover:border-line-hover hover:bg-panel-2")}
+              >
+                <div aria-hidden="true" className="flex h-32 w-full items-center justify-center overflow-hidden rounded-lg p-3" style={{ backgroundColor: template.bg, color: template.ink, "--stats-accent": accent } as CSSProperties}>
+                  <StatsStylePreview id={item.id} />
+                </div>
+                {active && <span className={badge}><Check aria-hidden="true" className="size-3.5" strokeWidth={3} /></span>}
+                <div className="px-1 pb-1 pt-3">
+                  <span className="block text-[13px] font-semibold">{item.name}</span>
+                  <span className="mt-1 block text-[11px] leading-relaxed text-fg-muted">{item.description}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-6">
+        <h3 className="text-[14px] font-semibold">Fotografije igrača</h3>
+        <div className="grid grid-cols-3 gap-1 rounded-xl border border-line bg-panel-2 p-1" role="group" aria-label="Fotografije igrača">
+          {STATS_PHOTOS.map((item) => {
+            const Icon = photoIcons[item.id];
+            const active = photo === item.id;
+            return (
+              <button
+                key={item.id} type="button" aria-pressed={active} onClick={() => onPhoto(item.id)}
+                className={cx("flex min-w-0 flex-col items-center gap-2 rounded-lg px-1.5 py-3 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-3", active ? "bg-panel text-brand shadow-segment ring-1 ring-brand" : "text-fg-muted hover:bg-panel-3 hover:text-fg")}
+              >
+                <Icon aria-hidden="true" className="size-5" strokeWidth={1.75} />
+                <span className="text-[12px] font-semibold leading-snug sm:text-[13px]">{item.name}</span>
+                <span className="text-[11px] leading-relaxed text-fg-muted">{item.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-[14px] font-semibold">Boja akcenta</h3>
+          <span className="text-[12px] text-fg-muted">{SOCIAL_ACCENTS.find((item) => item.id === design.accent)?.name}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Boja akcenta">
+          {SOCIAL_ACCENTS.map((item) => {
+            const active = design.accent === item.id;
+            const color = item.id || template.accent;
+            return (
+              <button
+                key={item.id || "template"} type="button" aria-pressed={active} aria-label={item.name} title={item.name}
+                onClick={() => onDesign("accent", item.id)}
+                className="group grid size-10 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                <span className={cx("grid size-8 place-items-center rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)] transition-transform motion-safe:group-hover:scale-110", active && "ring-2 ring-brand ring-offset-2 ring-offset-panel")} style={{ backgroundColor: color }}>
+                  {active && <Check aria-hidden="true" className={cx("size-4", isLight(color) ? "text-black/70" : "text-white")} strokeWidth={3} />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-fg-faint">Prva boja prati odabranu temu.</p>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-6">
+        <h3 className="text-[14px] font-semibold">Format</h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="group" aria-label="Format">
+          {SOCIAL_FORMATS.map((item) => {
+            const active = design.format === item.id;
+            return (
+              <button
+                key={item.id} type="button" aria-pressed={active} onClick={() => onDesign("format", item.id)}
+                className={cx(tile, "flex flex-col items-center px-2 py-3 text-center", active ? "border-brand bg-brand-soft ring-2 ring-brand" : "border-line hover:border-line-hover hover:bg-panel-2")}
+              >
+                <div aria-hidden="true" className="flex h-14 w-full items-center justify-center">
+                  <div
+                    className={cx("flex items-center justify-center rounded border-2", active ? "border-brand bg-brand/10 text-brand" : "border-fg-faint/50 bg-panel-2 text-fg-faint")}
+                    style={{ width: `${48 * item.width / Math.max(item.width, item.height)}px`, height: `${48 * item.height / Math.max(item.width, item.height)}px` }}
+                  >
+                    {active ? <Check className="size-3.5" strokeWidth={2.5} /> : <span className="size-1 rounded-full bg-current" />}
+                  </div>
+                </div>
+                <span className="mt-2 text-[12px] font-semibold leading-snug">{item.name}</span>
+                <span className="mt-1 text-[11px] tabular-nums text-fg-muted">{item.width} × {item.height}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatsStylePreview({ id }: { id: string }) {
+  const bar = "h-1 rounded-full bg-current/25";
+  const cell = "rounded border border-current/10 bg-current/5";
+
+  if (id === "pillars") return (
+    <div className="flex h-full w-full max-w-36 flex-col gap-1.5">
+      <div className="grid min-h-0 flex-1 grid-cols-5 gap-0.5">
+        {[4, 2, 1, 3, 5].map((rank) => (
+          <div key={rank} className={cx("relative flex flex-col items-center justify-end gap-1 rounded-t-full bg-linear-to-b from-transparent via-(--stats-accent)/30 to-(--stats-accent)/5 pb-1", rank === 1 && "via-(--stats-accent)/60")}>
+            <div className="absolute inset-x-1 top-2 h-1 rounded-full bg-current/70" />
+            <div className="scoreboard text-[20px] font-bold leading-none text-(--stats-accent)">{24 - rank}</div>
+            <div className="grid size-4 place-items-center rounded border border-white/60 bg-white/25 shadow-[0_0_8px_rgb(255_255_255/0.2)]"><div className="size-2 rounded-full bg-current/70" /></div>
+            <div className="h-0.5 w-3/4 rounded-full bg-current/50" />
+          </div>
+        ))}
+      </div>
+      <div className="mx-auto h-0.5 w-1/2 rounded-full bg-current/40" />
+      <div className="scoreboard text-center text-[13px] font-bold leading-none text-(--stats-accent)">PETORKA KOLA</div>
+    </div>
+  );
+  if (id === "staggered") return (
+    <div className="relative h-full w-full max-w-36">
+      {[4, 2, 1, 3, 5].map((rank, i) => (
+        <div key={rank} className="absolute flex w-[19%] flex-col items-center" style={{ left: `${i * 20}%`, top: `${Math.abs(i - 2) === 2 ? 4 : i === 2 ? 24 : 14}%` }}>
+          <div className={cx("scoreboard flex w-full items-end justify-center rounded-t-full bg-(--stats-accent)/15 text-[22px] font-bold leading-none text-(--stats-accent)", rank === 1 ? "h-9" : "h-7")}>{24 - rank}</div>
+          <div className="relative flex w-full flex-col items-center gap-0.5 rounded-xs bg-white px-1 py-1.5">
+            <div className="h-0.5 w-full rounded-full bg-slate-900" />
+            <div className="h-0.5 w-2/3 rounded-full bg-slate-400" />
+            <div className="absolute -right-0.5 -top-1 size-1.5 rounded-full bg-(--stats-accent)" />
+          </div>
+          <div className="scoreboard mt-1 flex w-full justify-around text-[9px] font-bold leading-none text-(--stats-accent)"><span>{30 - rank}</span><span>{35 - rank}</span></div>
+        </div>
+      ))}
+    </div>
+  );
+  if (id === "zigzag") return (
+    <div className="relative h-full w-full max-w-36">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} className={cx("absolute rounded-sm border border-current/10 bg-current/5", i === 0 ? "w-1/2" : "w-[46%]", i % 2 === 0 ? "left-0" : "right-0")} style={{ top: `${i * 18}%` }}>
+          <div className="flex items-center justify-between gap-1 px-1 py-0.5" style={{ flexDirection: i % 2 === 0 ? "row" : "row-reverse" }}>
+            <div className="flex flex-col gap-0.5"><div className="h-0.5 w-1.5 bg-current/40" /><div className="h-0.5 w-1.5 bg-current/40" /><div className="h-0.5 w-1.5 bg-current/40" /></div>
+            <span className="scoreboard text-[16px] font-bold leading-none text-(--stats-accent)">{23 - i}</span>
+            <div className="flex flex-col items-center gap-0.5"><div className="size-1.5 rounded-full bg-current/60" /><span className="text-[6px] leading-none text-(--stats-accent)">{31 - i}</span></div>
+          </div>
+          <div className="flex h-1.5 items-center justify-center rounded-b-xs bg-(--stats-accent)"><div className="h-0.5 w-2/3 rounded-full bg-black/70" /></div>
+        </div>
+      ))}
+    </div>
+  );
+  if (id === "poster") return (
+    <div className="flex w-full max-w-36 flex-col items-center gap-2">
+      <div className="scoreboard text-[44px] font-bold leading-none tracking-tighter text-(--stats-accent)">23</div>
+      <div className="h-1.5 w-20 rounded-full bg-current/80" />
+      <div className="grid w-full grid-cols-4 gap-1">
+        {[28, 12, 8, 36].map((value) => <div key={value} className={cx(cell, "scoreboard py-1 text-center text-[10px] font-semibold")}>{value}</div>)}
+      </div>
+    </div>
+  );
+  if (id === "scoreboard") return (
+    <div className="flex w-full max-w-36 flex-col gap-2 rounded-md border border-white/15 bg-black/60 p-2 text-white">
+      <div className="flex items-center justify-center gap-2 font-mono text-[24px] font-bold leading-none text-(--stats-accent)"><span>84</span><span className="text-[14px] text-white/30">:</span><span>72</span></div>
+      <div className="grid grid-cols-3 gap-1">
+        {[28, 12, 8, 4, 2, 36].map((value, i) => <div key={i} className="rounded-sm border border-white/10 bg-white/5 py-1 text-center font-mono text-[9px]">{value}</div>)}
+      </div>
+    </div>
+  );
+  if (id === "court") return (
+    <div className="relative h-full w-full max-w-36 overflow-hidden rounded-sm border border-current/30">
+      <div className="absolute inset-x-[14%] -top-8 h-23 rounded-b-full border border-current/25" />
+      <div className="absolute inset-x-[35%] -top-px h-[42%] border border-current/30" />
+      <div className="absolute left-1/2 top-[32%] size-5 -translate-x-1/2 rounded-full border border-current/25" />
+      <div className="absolute -bottom-3 left-1/2 size-6 -translate-x-1/2 rounded-full border border-current/25" />
+      {[[18, 34], [82, 34], [50, 60], [26, 80], [74, 80]].map(([x, y], i) => <div key={i} className="absolute grid size-4 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-(--stats-accent) text-[8px] font-bold text-black" style={{ left: `${x}%`, top: `${y}%` }}>{i + 1}</div>)}
+    </div>
+  );
+  if (id === "cards") return (
+    <div className="grid w-full max-w-36 grid-cols-6 gap-1.5">
+      {[0, 1, 2, 3, 4].map((n) => (
+        <div key={n} className={cx(cell, "col-span-2 flex flex-col items-center gap-1.5 p-1.5", n === 3 && "col-start-2")}>
+          <div className="size-3 rounded-full bg-(--stats-accent)" />
+          <div className={cx(bar, "w-full")} />
+          <div className={cx(bar, "w-2/3")} />
+        </div>
+      ))}
+    </div>
+  );
+  if (id === "tiles") return (
+    <div className="grid w-full max-w-36 grid-cols-2 gap-1.5">
+      {[28, 12, 8, 4, 2, 36].map((value) => <div key={value} className={cx(cell, "flex items-center justify-between gap-2 px-2 py-1")}><div className={cx(bar, "w-5")} /><div className="scoreboard text-[12px] font-bold text-(--stats-accent)">{value}</div></div>)}
+    </div>
+  );
+  if (id === "board") return (
+    <div className="w-full max-w-36 overflow-hidden rounded-md border border-current/15">
+      {[28, 12, 8, 4, 2].map((value, i) => <div key={value} className="grid grid-cols-[1fr_2fr_auto] items-center gap-2 border-b border-current/10 last:border-b-0"><div className="flex h-full items-center bg-(--stats-accent)/15 p-1.5"><div className="h-1 w-full rounded-full bg-(--stats-accent)/60" /></div><div className={bar} /><div className="scoreboard pr-2 text-[10px] font-semibold">{value - i}</div></div>)}
+    </div>
+  );
+  if (id === "podium") return (
+    <div className="flex w-full max-w-36 flex-col gap-1.5">
+      <div className="flex h-16 items-end justify-center gap-1">
+        {[2, 1, 3].map((rank) => <div key={rank} className={cx("scoreboard flex w-1/3 justify-center rounded-t-sm border border-(--stats-accent)/30 pt-1 text-[12px] font-bold text-(--stats-accent)", rank === 1 ? "h-full bg-(--stats-accent)/25" : rank === 2 ? "h-3/4 bg-(--stats-accent)/10" : "h-1/2 bg-(--stats-accent)/10")}>{rank}</div>)}
+      </div>
+      {[4, 5].map((rank) => <div key={rank} className="flex items-center gap-2"><div className="w-2 text-[8px] text-(--stats-accent)">{rank}</div><div className={cx(bar, "flex-1")} /><div className={cx(bar, "w-4")} /></div>)}
+    </div>
+  );
+  return (
+    <div className="flex w-full max-w-36 flex-col gap-1">
+      {[1, 2, 3, 4, 5].map((rank) => <div key={rank} className={cx(cell, "flex items-center gap-2 px-1.5 py-0.5")}><div className="size-2.5 shrink-0 rounded-full bg-(--stats-accent)/70" /><div className={cx(bar, "flex-1")} /><div className="scoreboard text-[8px] font-semibold leading-none text-(--stats-accent)">{30 - rank * 2}</div></div>)}
+    </div>
+  );
+}
+
+const MODE_ICONS = { mvp: Crown, five: UsersRound, leaders: ChartColumn, top: ListOrdered } as const;
+
+/** Šta se objavljuje (MVP, petorka, lideri, top lista): kartice s ikonom i mini prikazom u bojama izabrane teme */
+function ModePicker({ value, onChange, template, accent }: { value: StatsMode; onChange: (mode: StatsMode) => void; template: ReturnType<typeof templateOf>; accent: string }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="text-[14px] font-semibold">Šta objavljuješ</h3>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="group" aria-label="Šta objavljuješ">
+        {STATS_MODES.map((item) => {
+          const Icon = MODE_ICONS[item.id];
+          const active = value === item.id;
+          return (
+            <button
+              key={item.id} type="button" aria-pressed={active} onClick={() => onChange(item.id)}
+              className={cx(
+                "group relative flex min-w-0 flex-col overflow-hidden rounded-xl border text-left transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand motion-safe:hover:-translate-y-0.5",
+                active ? "border-brand ring-2 ring-brand ring-offset-2 ring-offset-panel" : "border-line hover:border-line-hover hover:shadow-md",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className="relative flex h-24 items-center justify-center overflow-hidden"
+                style={{ background: `radial-gradient(120% 90% at 50% 0%, ${accent}55 0%, transparent 60%), ${template.bg}`, color: template.ink, "--mode-accent": accent } as CSSProperties}
+              >
+                <ModeSketch id={item.id} />
+                <span className="absolute left-2.5 top-2.5 grid size-8 place-items-center rounded-lg bg-black/35 text-(--mode-accent) ring-1 ring-white/15 backdrop-blur-sm">
+                  <Icon className="size-4.5" strokeWidth={2.2} />
+                </span>
+                {active && <span className="absolute right-2.5 top-2.5 grid size-6 place-items-center rounded-full bg-brand text-brand-ink shadow-sm"><Check className="size-3.5" strokeWidth={3} /></span>}
+              </span>
+              <span className={cx("flex flex-1 flex-col gap-1 px-3 pb-3 pt-2.5", active ? "bg-brand-soft" : "bg-panel group-hover:bg-panel-2")}>
+                <span className="text-[14px] font-semibold leading-tight">{item.name}</span>
+                <span className="line-clamp-2 text-[11.5px] leading-snug text-fg-muted">{item.description}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Mala skica vrste slike (boja akcenta iz teme) */
+function ModeSketch({ id }: { id: StatsMode }) {
+  const name = "h-1 rounded-full bg-current/70";
+  if (id === "mvp") return (
+    <span className="flex items-end gap-2.5 pl-8">
+      <span className="scoreboard text-[40px] font-bold leading-none tracking-tighter text-(--mode-accent) opacity-90">1</span>
+      <span className="flex flex-col gap-1 pb-1"><span className={cx(name, "w-12")} /><span className="h-1 w-8 rounded-full bg-current/35" /><span className="mt-1 flex gap-0.5">{[0, 1, 2].map((n) => <span key={n} className="h-2.5 w-3.5 rounded-[2px] bg-current/20" />)}</span></span>
+    </span>
+  );
+  if (id === "five") return (
+    <span className="flex items-end gap-1 pl-6">
+      {[0.62, 0.8, 1, 0.8, 0.62].map((scale, n) => (
+        <span key={n} className="flex flex-col items-center gap-0.5" style={{ transform: `scale(${scale})`, transformOrigin: "bottom" }}>
+          <span className={cx("size-4 rounded-full", n === 2 ? "bg-(--mode-accent)" : "bg-current/45")} />
+          <span className={cx("h-4 w-5 rounded-t-md", n === 2 ? "bg-(--mode-accent)/70" : "bg-current/25")} />
+        </span>
+      ))}
+    </span>
+  );
+  if (id === "leaders") return (
+    <span className="grid grid-cols-3 gap-1 pl-8">
+      {[34, 16, 8, 40, 5, 5].map((value, n) => (
+        <span key={n} className="flex h-7 w-9 flex-col justify-between rounded-[3px] bg-current/12 px-1 py-0.5">
+          <span className="h-0.5 w-4 rounded-full bg-(--mode-accent)/80" />
+          <span className="scoreboard text-[10px] font-bold leading-none">{value}</span>
+        </span>
+      ))}
+    </span>
+  );
+  return (
+    <span className="flex w-24 flex-col gap-1 pl-6">
+      {[1, 2, 3, 4].map((rank) => (
+        <span key={rank} className="flex items-center gap-1.5">
+          <span className={cx("scoreboard w-2 text-[9px] font-bold leading-none", rank === 1 ? "text-(--mode-accent)" : "opacity-60")}>{rank}</span>
+          <span className={cx("h-1.5 rounded-full", rank === 1 ? "bg-(--mode-accent)" : "bg-current/35")} style={{ width: `${70 - rank * 10}%` }} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Lista igrača s brojem dresa i brojkama, za izbor MVP-a (radio) ili petorke (checkbox) */
 function PlayerChoice({ label, hint, players, season, type, checked, disabled, onToggle, onReset }: {
   label: string;
   hint: string;
@@ -1123,11 +1476,11 @@ function PlayerChoice({ label, hint, players, season, type, checked, disabled, o
           <label key={p.id} className={cx("flex cursor-pointer items-center gap-3 border-b border-line p-2.5 last:border-b-0 hover:bg-panel-2", checked(p) && "bg-panel-2", disabled?.(p) && "cursor-not-allowed opacity-50")}>
             <input type={type} name={name} checked={checked(p)} disabled={disabled?.(p)} onChange={() => onToggle(p.id)} className="size-4 shrink-0 accent-brand" />
             <span className="scoreboard w-5 shrink-0 text-right text-[12px] font-semibold text-fg-faint">{i + 1}</span>
-            {p.photo || p.cutout ? (
+            {p.photo ? (
               // eslint-disable-next-line @next/next/no-img-element -- privremeni link fotografije s licence, ista ide na sliku
-              <img src={p.photo ?? p.cutout!} alt="" loading="lazy" className="size-9 shrink-0 rounded-full bg-panel-2 object-cover object-[50%_20%]" />
+              <img src={p.photo} alt="" loading="lazy" className="size-9 shrink-0 rounded-full bg-panel-2 object-cover object-[50%_20%] ring-1 ring-inset ring-line" />
             ) : (
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-panel-2 text-fg-faint"><UserRound className="size-4" aria-hidden="true" /></span>
+              <span className="scoreboard grid size-9 shrink-0 place-items-center rounded-full bg-panel-2 text-[13px] font-semibold ring-1 ring-inset ring-line">{p.number ?? "–"}</span>
             )}
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px] font-semibold">{statName(p)}</span>
@@ -1148,7 +1501,7 @@ function PlayerChoice({ label, hint, players, season, type, checked, disabled, o
 // ───────────────────────── Zajedničko ─────────────────────────
 
 /** Raspored elemenata na slici (npr. trake, kartice, lista) */
-function LayoutPicker({ kind, value, onChange }: { kind: SocialKind; value: string; onChange: (layout: string) => void }) {
+function LayoutPicker({ kind, value, onChange }: { kind: keyof typeof SOCIAL_LAYOUTS; value: string; onChange: (layout: string) => void }) {
   return (
     <div className="flex flex-col gap-2.5">
       <h3 className="text-[14px] font-semibold">Raspored</h3>
@@ -1183,7 +1536,15 @@ function LayoutGlyph({ kind, id }: { kind: SocialKind; id: string }) {
 }
 
 /** Tema, boja akcenta i format */
-function SocialDesign({ design, onDesign: change, brand }: { design: SocialDesignOptions; onDesign: DesignChange; brand: SocialTextOptions["brand"] }) {
+function SocialDesign({ design, onDesign: change, brand, templates = SOCIAL_TEMPLATES, sample = "RASPORED" }: {
+  design: SocialDesignOptions;
+  onDesign: DesignChange;
+  brand: SocialTextOptions["brand"];
+  /** Teme na izbor (slike statistike imaju svoje, vezane za teren) */
+  templates?: readonly { id: SocialOptions["template"] }[];
+  /** Naslov na minijaturi teme */
+  sample?: string;
+}) {
   return (
     <>
       <label className={cx("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors", design.statehoodDay ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-line hover:bg-panel-2")}>
@@ -1195,7 +1556,7 @@ function SocialDesign({ design, onDesign: change, brand }: { design: SocialDesig
       {!design.statehoodDay && <div className="flex flex-col gap-2.5">
         <h3 className="text-[14px] font-semibold">Tema</h3>
         <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4" role="group" aria-label="Tema">
-          {SOCIAL_TEMPLATES.map((template) => <TemplateThumb key={template.id} id={template.id} brand={brand} accent={design.accent} active={design.template === template.id} onPick={() => change("template", template.id)} />)}
+          {templates.map((template) => <TemplateThumb key={template.id} id={template.id} brand={brand} accent={design.accent} label={sample} active={design.template === template.id} onPick={() => change("template", template.id)} />)}
         </div>
       </div>}
       <AccentPicker value={design.accent} templateAccent={templateOf(design.template, design.statehoodDay).accent} onChange={(accent) => change("accent", accent)} />
@@ -1253,7 +1614,7 @@ function AccentPicker({ value, templateAccent, onChange }: { value: string; temp
 }
 
 /** Minijatura predloška: kako izgledaju naslov i dva reda */
-function TemplateThumb({ id, brand, accent: accentOverride, active, onPick }: { id: SocialOptions["template"]; brand: SocialTextOptions["brand"]; accent: string; active: boolean; onPick: () => void }) {
+function TemplateThumb({ id, brand, accent: accentOverride, label, active, onPick }: { id: SocialOptions["template"]; brand: SocialTextOptions["brand"]; accent: string; label: string; active: boolean; onPick: () => void }) {
   const t = templateOf(id);
   const accent = accentOverride || t.accent;
   const surface: CSSProperties = { backgroundColor: t.bg, backgroundImage: t.background ? `linear-gradient(${t.overlay}, ${t.overlay}), url("${t.background}")` : undefined, backgroundSize: "cover", backgroundPosition: "center" };
@@ -1262,7 +1623,7 @@ function TemplateThumb({ id, brand, accent: accentOverride, active, onPick }: { 
     <button type="button" aria-pressed={active} title={t.description} onClick={onPick} className={cx("min-w-0 rounded-lg border p-1.5 text-left transition-colors", active ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-hover")}>
       <span aria-hidden="true" className="relative flex aspect-[4/5] flex-col gap-[6%] overflow-hidden rounded-md p-[9%]" style={surface}>
         <span className="flex items-center gap-1"><span className="h-[3px] w-1.5 rounded-sm" style={{ backgroundColor: accent }} /><span className="text-[7px] font-bold tracking-wider" style={{ color: t.headerMuted }}>{SOCIAL_BRANDS[brand].name}</span></span>
-        <span className="text-center text-[11px] font-bold leading-none tracking-tight" style={{ color: t.headerInk }}>RASPORED</span>
+        <span className="text-center text-[11px] font-bold leading-none tracking-tight" style={{ color: t.headerInk }}>{label}</span>
         <span className="mx-auto -mt-[3%] h-[2px] w-1/3 rounded-sm" style={{ backgroundColor: accent }} />
         {[0, 1, 2].map((n) => (
           <span key={n} className="flex flex-1 items-center justify-between gap-1 rounded-[3px] px-[6%]" style={{ backgroundColor: panel ? t.panel : undefined, borderBottom: panel || n === 2 ? undefined : `1px solid ${t.line}` }}>

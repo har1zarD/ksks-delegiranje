@@ -44,6 +44,7 @@ export const FIBA_CLUBS: { clubId: string | null; logoPath: string | null; names
   { clubId: "8c706bbf-520c-4d4a-bf5f-31c1111714b5", logoPath: null, names: ["OKK Zenica"] },
   { clubId: null, logoPath: "2026-10-20/fiba/orlovi.png", names: ["Orlovi"] },
   { clubId: "25c7f34e-409e-4037-9e96-70468caa0eb7", logoPath: null, names: ["PLAY OFF WU14", "PLAY OFF WU16", "Play Off"] },
+  { clubId: "436f8af2-7691-4a1b-8666-71057277d861", logoPath: null, names: ["KK Point - Richmond Park"] },
   { clubId: null, logoPath: "2026-10-20/fiba/rilski-sportist.png", names: ["RILSKI SPORTIST U16"] },
   { clubId: null, logoPath: "2026-10-20/fiba/banovici.png", names: ["RMU Banovici"] },
   { clubId: "99aac297-8c60-440c-a03b-75b9a9d8df66", logoPath: null, names: ["KK Star Fojnica"] },

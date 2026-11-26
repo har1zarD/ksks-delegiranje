@@ -624,14 +624,14 @@ isOneToOne: false
                   ]
                 },"licenses": {
                   Row: {
-                    "birth_date": string | null,"birth_place": string | null,"club_id": string,"competition_id": string,"created_at": string,"cutout_path": string | null,"first_name": string,"height_cm": number | null,"id": string,"kind": string,"last_name": string,"license_no": string | null,"photo_path": string | null,"position": string | null,"role": string | null,"sort": number,"team_id": string | null
+                    "birth_date": string | null,"birth_place": string | null,"club_id": string,"competition_id": string,"created_at": string,"cutout_face": number[] | null,"cutout_path": string | null,"first_name": string,"height_cm": number | null,"id": string,"kind": string,"last_name": string,"license_no": string | null,"photo_path": string | null,"position": string | null,"role": string | null,"sort": number,"team_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id": string,"competition_id": string,"created_at"?: string,"cutout_path"?: string | null,"first_name": string,"height_cm"?: number | null,"id"?: string,"kind": string,"last_name": string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
+                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id": string,"competition_id": string,"created_at"?: string,"cutout_face"?: number[] | null,"cutout_path"?: string | null,"first_name": string,"height_cm"?: number | null,"id"?: string,"kind": string,"last_name": string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
                   }
                   Update: {
-                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id"?: string,"competition_id"?: string,"created_at"?: string,"cutout_path"?: string | null,"first_name"?: string,"height_cm"?: number | null,"id"?: string,"kind"?: string,"last_name"?: string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
+                    "birth_date"?: string | null,"birth_place"?: string | null,"club_id"?: string,"competition_id"?: string,"created_at"?: string,"cutout_face"?: number[] | null,"cutout_path"?: string | null,"first_name"?: string,"height_cm"?: number | null,"id"?: string,"kind"?: string,"last_name"?: string,"license_no"?: string | null,"photo_path"?: string | null,"position"?: string | null,"role"?: string | null,"sort"?: number,"team_id"?: string | null
                   }
                   Relationships: [
                     {
