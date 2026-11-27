@@ -32,7 +32,7 @@ export function DateTile({ iso, size = "md", selected, hideTime, off, className 
       className={cx(
         "flex shrink-0 flex-col overflow-hidden rounded-lg border text-center transition-colors",
         selected ? "border-brand bg-brand text-brand-ink" : off ? "border-crest text-crest" : "border-line",
-        lg ? "w-[76px] sm:w-[92px]" : "w-14",
+        lg ? "w-[76px] sm:w-[92px]" : off ? "w-16" : "w-14",
         className,
       )}
     >
@@ -42,7 +42,7 @@ export function DateTile({ iso, size = "md", selected, hideTime, off, className 
         <span className={label}>{MONTHS_SHORT[d.getUTCMonth()]}</span>
       </div>
       {off ? (
-        <span className={cx("whitespace-nowrap border-t border-crest bg-crest font-semibold uppercase text-white", lg ? "py-1.5 text-[11px] tracking-[0.06em]" : "px-0.5 py-1 text-[9px] tracking-[0.02em]")}>{off}</span>
+        <span className={cx("whitespace-nowrap border-t border-crest bg-crest px-1 font-semibold text-white", lg ? "py-1.5 text-[13px]" : "py-1 text-[10px]")}>{off}</span>
       ) : !hideTime && (
         <span
           className={cx(
