@@ -4,12 +4,12 @@ import { Clock, CheckCircle2 } from "lucide-react";
 import { Suspense } from "react";
 import { getCrews, getMyAssignments } from "@/lib/data/official";
 import { getTeamRanks } from "@/lib/data/results";
-import { positionName } from "@/lib/format";
+import { MATCH_STATUS_LABEL, positionName } from "@/lib/format";
 import { PageIntro } from "@/components/page-intro";
 import { MatchLine } from "@/components/match-line";
 import { CrewList, CrewListSkeleton } from "@/components/crew-list";
 import { ButtonSkeleton, MatchLineSkeleton, Skeleton, StatusSkeleton, Text, times } from "@/components/skeleton";
-import { Empty, SectionTitle, Status } from "@/components/ui";
+import { cx, Empty, SectionTitle, Status } from "@/components/ui";
 import { RespondForm } from "./respond-form";
 
 export const metadata = { title: "Nominacije — KSKS" };
@@ -25,6 +25,9 @@ export default function NominationsPage() {
   );
 }
 
+/** Otkazana ili odgođena utakmica: oznaka statusa ("Odgođena"), inače undefined */
+const offLabel = (status: string) => (status === "cancelled" || status === "postponed" ? MATCH_STATUS_LABEL[status] : undefined);
+
 async function Nominations() {
   const [{ upcoming: all }, ranks] = await Promise.all([getMyAssignments(), getTeamRanks()]);
   const pending = all.filter((a) => a.status === "pending");
@@ -39,17 +42,20 @@ async function Nominations() {
         <section>
           <SectionTitle icon={<Clock />} count={pending.length}>Čeka tvoj odgovor</SectionTitle>
           <ul className="flex flex-col gap-3">
-            {pending.map((a) => (
-              <li key={a.id} className="overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
-                <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center">
-                  <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 px-2 py-1">
-                    <MatchLine match={a.match} ranks={ranks} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
-                  </Link>
-                  <RespondForm id={a.id} />
-                </div>
-                <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
-              </li>
-            ))}
+            {pending.map((a) => {
+              const off = offLabel(a.match.status);
+              return (
+                <li key={a.id} className={cx("overflow-hidden rounded-lg border bg-panel px-4 shadow-panel sm:px-6", off ? "border-crest/60" : "border-line")}>
+                  <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center">
+                    <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 px-2 py-1">
+                      <MatchLine match={a.match} ranks={ranks} off={off} meta={<Status tone="gold">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                    </Link>
+                    {!off && <RespondForm id={a.id} />}
+                  </div>
+                  <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
@@ -57,17 +63,20 @@ async function Nominations() {
         <section>
           <SectionTitle icon={<CheckCircle2 />} count={accepted.length}>Prihvaćene</SectionTitle>
           <ul className="flex flex-col gap-3">
-            {accepted.map((a) => (
-              <li key={a.id} className="relative overflow-hidden rounded-lg border border-line bg-panel px-4 shadow-panel sm:px-6">
-                <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:py-5">
-                  <Link href={`/utakmice/${a.match.id}`} className="min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 pl-2 pr-24 py-1 sm:pr-2">
-                    <MatchLine match={a.match} ranks={ranks} meta={<Status tone="mint">{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
-                  </Link>
-                  <RespondForm id={a.id} accepted />
-                </div>
-                <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
-              </li>
-            ))}
+            {accepted.map((a) => {
+              const off = offLabel(a.match.status);
+              return (
+                <li key={a.id} className={cx("relative overflow-hidden rounded-lg border bg-panel px-4 shadow-panel sm:px-6", off ? "border-crest/60" : "border-line")}>
+                  <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:py-5">
+                    <Link href={`/utakmice/${a.match.id}`} className={cx("min-w-0 flex-1 rounded-md transition-colors hover:bg-panel-2 -mx-2 pl-2 py-1", off ? "pr-2" : "pr-24 sm:pr-2")}>
+                      <MatchLine match={a.match} ranks={ranks} off={off} meta={<Status tone={off ? "crest" : "mint"}>{positionName(a.position, a.match.digital_scoresheet)}</Status>} />
+                    </Link>
+                    {!off && <RespondForm id={a.id} accepted />}
+                  </div>
+                  <CrewList collapsible match={a.match} crew={crews.get(a.match.id) ?? []} mine={a.position} />
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

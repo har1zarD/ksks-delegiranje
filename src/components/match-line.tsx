@@ -21,27 +21,29 @@ export type MatchSummary = {
   hall: { name: string } | null;
 };
 
-/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice, `selected` = označen (puna boja), `hideTime` = bez vremena (odgođena). */
-export function DateTile({ iso, size = "md", selected, hideTime, className }: { iso: string; size?: "md" | "lg"; selected?: boolean; hideTime?: boolean; className?: string }) {
+/** List kalendara: dan u sedmici, veliki broj, mjesec; ispod crte vrijeme. `lg` za zaglavlje utakmice, `selected` = označen (puna boja), `hideTime` = bez vremena (odgođena), `off` = crveni list s oznakom umjesto vremena (npr. "Odgođena"). */
+export function DateTile({ iso, size = "md", selected, hideTime, off, className }: { iso: string; size?: "md" | "lg"; selected?: boolean; hideTime?: boolean; off?: string; className?: string }) {
   const { date } = isoToSarajevo(iso);
   const d = new Date(`${date}T12:00:00Z`);
   const lg = size === "lg";
-  const label = cx("font-semibold uppercase leading-none tracking-[0.1em]", selected ? "text-brand-ink/65" : "text-fg-faint", lg ? "text-[11px]" : "text-[10px]");
+  const label = cx("font-semibold uppercase leading-none tracking-[0.1em]", selected ? "text-brand-ink/65" : off ? "text-crest/75" : "text-fg-faint", lg ? "text-[11px]" : "text-[10px]");
   return (
     <div
       className={cx(
         "flex shrink-0 flex-col overflow-hidden rounded-lg border text-center transition-colors",
-        selected ? "border-brand bg-brand text-brand-ink" : "border-line",
+        selected ? "border-brand bg-brand text-brand-ink" : off ? "border-crest text-crest" : "border-line",
         lg ? "w-[76px] sm:w-[92px]" : "w-14",
         className,
       )}
     >
-      <div className={cx("flex flex-col items-center", !selected && "bg-panel-2", lg ? "gap-1.5 py-2.5 sm:gap-2 sm:py-3" : "gap-1 py-2")}>
+      <div className={cx("flex flex-col items-center", !selected && (off ? "bg-crest/10" : "bg-panel-2"), lg ? "gap-1.5 py-2.5 sm:gap-2 sm:py-3" : "gap-1 py-2")}>
         <span className={label}>{WEEKDAYS[d.getUTCDay()]}</span>
         <span className={cx("scoreboard font-semibold leading-none tracking-[-0.03em]", lg ? "text-[32px] sm:text-[42px]" : "text-[24px]")}>{d.getUTCDate()}</span>
         <span className={label}>{MONTHS_SHORT[d.getUTCMonth()]}</span>
       </div>
-      {!hideTime && (
+      {off ? (
+        <span className={cx("whitespace-nowrap border-t border-crest bg-crest font-semibold uppercase text-white", lg ? "py-1.5 text-[11px] tracking-[0.06em]" : "px-0.5 py-1 text-[9px] tracking-[0.02em]")}>{off}</span>
+      ) : !hideTime && (
         <span
           className={cx(
             "scoreboard whitespace-nowrap border-t font-semibold",
@@ -95,7 +97,10 @@ export function MatchLine({
   hideHall,
   hideLabelOnMobile,
   ranks,
+  off,
 }: {
+  /** Utakmica otkazana/odgođena: crveni list datuma s oznakom */
+  off?: string;
   match: MatchSummary;
   /** Pozicije ekipa na tabeli (getTeamRanks), diskretno uz naziv */
   ranks?: TeamRanks;
@@ -142,7 +147,7 @@ export function MatchLine({
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
-      {!hideDate && <DateTile iso={match.starts_at} hideTime={hideTime} />}
+      {!hideDate && <DateTile iso={match.starts_at} hideTime={hideTime} off={off} />}
       <div className="min-w-0 flex-1 basis-40">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] font-semibold text-fg-faint">
           <span className={cx("min-w-0 max-w-full truncate", hideLabelOnMobile && "max-sm:hidden")}>{competition}</span>
