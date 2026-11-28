@@ -1617,7 +1617,9 @@ function AccentPicker({ value, templateAccent, onChange }: { value: string; temp
 function TemplateThumb({ id, brand, accent: accentOverride, label, active, onPick }: { id: SocialOptions["template"]; brand: SocialTextOptions["brand"]; accent: string; label: string; active: boolean; onPick: () => void }) {
   const t = templateOf(id);
   const accent = accentOverride || t.accent;
-  const surface: CSSProperties = { backgroundColor: t.bg, backgroundImage: t.background ? `linear-gradient(${t.overlay}, ${t.overlay}), url("${t.background}")` : undefined, backgroundSize: "cover", backgroundPosition: "center" };
+  // Mala sličica (public/social/thumbs), ne puna pozadina: 2 MB po temi gušilo je učitavanje izabrane pozadine za sliku
+  const thumb = t.background?.replace("/social/", "/social/thumbs/").replace(/-v1\.png$/, "-thumb.jpg");
+  const surface: CSSProperties = { backgroundColor: t.bg, backgroundImage: thumb ? `linear-gradient(${t.overlay}, ${t.overlay}), url("${thumb}")` : undefined, backgroundSize: "cover", backgroundPosition: "center" };
   const panel = t.panel !== "transparent";
   return (
     <button type="button" aria-pressed={active} title={t.description} onClick={onPick} className={cx("min-w-0 rounded-lg border p-1.5 text-left transition-colors", active ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-hover")}>
