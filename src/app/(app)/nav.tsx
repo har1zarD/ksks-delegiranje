@@ -21,7 +21,6 @@ import {
   Wallet,
   type LucideIcon,
   BarChart3,
-  Shield,
   IdCard,
   Radio,
   Images,
@@ -31,7 +30,7 @@ import { Bone, Text } from "@/components/skeleton";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { cx, GUTTER } from "@/components/ui";
 
-export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences" | "stats" | "clubs" | "licenses" | "live" | "social" | "bulletins";
+export type NavIcon = "overview" | "matches" | "results" | "people" | "competitions" | "fees" | "registrations" | "nominations" | "absences" | "stats" | "licenses" | "live" | "social" | "bulletins";
 
 /** `primary` = ima mjesto u donjoj traci na mobitelu; ostale idu pod "Više" */
 export type NavItem = { href: string; label: string; icon: NavIcon; primary?: boolean };
@@ -47,7 +46,6 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   nominations: Inbox,
   absences: CalendarOff,
   stats: BarChart3,
-  clubs: Shield,
   licenses: IdCard,
   live: Radio,
   social: Images,

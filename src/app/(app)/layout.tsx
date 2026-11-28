@@ -29,7 +29,6 @@ const NAV: Record<Role, NavItem[]> = {
     // Rjeđe korišteno: na dnu
     { href: "/admin/takmicenja", label: "Takmičenja", icon: "competitions" },
     { href: "/admin/ljudi", label: "Službena lica", icon: "people", primary: true },
-    { href: "/admin/klubovi", label: "Klubovi", icon: "clubs" },
   ],
   official: PERSONAL,
   commissioner: PERSONAL,
